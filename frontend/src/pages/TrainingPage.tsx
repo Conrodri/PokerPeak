@@ -896,26 +896,23 @@ export function TrainingPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Module tabs — hidden once a trainer is active to save scroll space */}
-      <div className={`flex gap-2 border-b border-gray-800 pb-2 flex-wrap transition-all duration-300 ${trainerStarted ? 'hidden' : ''}`}>
+      {/* Module tabs — horizontally scrollable on mobile, hidden once trainer is active */}
+      <div className={`flex gap-1.5 border-b border-gray-800 pb-2 overflow-x-auto transition-all duration-300 scrollbar-none ${trainerStarted ? 'hidden' : ''}`}>
         {TABS.map(tab => (
           <button
             key={tab.id}
             onClick={() => handleTabChange(tab.id)}
             className={`
-              flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all relative
+              flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap shrink-0 transition-all relative
               ${activeModule === tab.id
                 ? 'bg-felt-700 text-white shadow-glow-green border border-felt-500'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800'}
             `}
           >
-            <span>{tab.icon}</span>
-            <span className="hidden sm:block">{tab.label}</span>
+            <span className="text-sm leading-none">{tab.icon}</span>
+            <span>{tab.label}</span>
             {tab.premium && !isPremium && (
-              <span className="flex items-center gap-0.5 ml-0.5">
-                <Lock size={11} className="text-yellow-400" />
-                <span className="text-yellow-400 text-[10px] font-bold hidden sm:inline">Premium</span>
-              </span>
+              <Lock size={10} className="text-yellow-400 shrink-0 ml-0.5" />
             )}
           </button>
         ))}
