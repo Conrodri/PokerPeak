@@ -2,7 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
-import { BarChart2, Trophy, BookOpen, Home, LogOut, Crown, ChevronDown, Lock } from 'lucide-react';
+import {
+  BarChart2, Trophy, BookOpen, Home, LogOut, Crown,
+  ChevronDown, Lock, Menu, X, TableProperties,
+} from 'lucide-react';
 import { LanguageToggle } from '../ui/LanguageToggle';
 import { ModeToggle } from '../ui/ModeToggle';
 import { Tutorial, shouldShowTutorial } from '../tutorial/Tutorial';
@@ -21,105 +24,73 @@ const MODULES = [
 ] as const;
 
 export function Navbar() {
-  const location  = useLocation();
+  const location = useLocation();
   const { user, logout } = useAuthStore();
-  const t         = useT();
-  const isEn      = useLangStore(s => s.lang) === 'en';
+  const t      = useT();
+  const isEn   = useLangStore(s => s.lang) === 'en';
 
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [dropOpen,     setDropOpen]     = useState(false);
-  const dropRef = useRef<HTMLDivElement>(null);
+  const [mobileOpen,   setMobileOpen]   = useState(false);
 
-  // Close dropdown on click outside
+  const dropRef   = useRef<HTMLDivElement>(null);
+  const mobileRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
-        setDropOpen(false);
-      }
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
+      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) setMobileOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Close dropdown on route change
-  useEffect(() => { setDropOpen(false); }, [location.pathname]);
+  // Close on route change
+  useEffect(() => { setDropOpen(false); setMobileOpen(false); }, [location.pathname, location.search]);
 
   const isTrainingActive = location.pathname.startsWith('/training');
-
-  const NAV_ITEMS = [
-    { path: '/',            label: t.nav.home,              icon: <Home size={16} /> },
-    { path: '/rules',       label: isEn ? 'Rules' : 'Règles', icon: <span className="text-sm">📚</span> },
-    // Training is rendered separately as a dropdown (see below)
-    { path: '/table',       label: isEn ? 'Table' : 'Table',  icon: <span className="text-sm">🃏</span> },
-    { path: '/stats',       label: t.nav.stats,             icon: <BarChart2 size={16} /> },
-    { path: '/leaderboard', label: t.nav.leaderboard,       icon: <Trophy size={16} /> },
-  ];
-
   const avatarLetter = user?.username?.[0]?.toUpperCase() ?? '?';
+
+  // Shared link style helper
+  const linkCls = (active: boolean) =>
+    `relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+    ${active ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/5'}`;
 
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-40 bg-felt-dark/95 backdrop-blur-sm border-b border-felt-900">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
 
-          {/* Logo */}
+          {/* ── Logo ── */}
           <Link to="/" className="flex items-center gap-2 font-bold text-xl shrink-0">
             <span className="text-2xl">🃏</span>
             <span className="text-gold-400 font-serif hidden sm:block">PokerTrainer</span>
           </Link>
 
-          {/* Nav links */}
-          <nav className="flex items-center gap-1 flex-1 justify-center">
+          {/* ── Desktop nav (hidden below lg) ── */}
+          <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
 
-            {/* Home + Rules */}
-            {NAV_ITEMS.slice(0, 2).map(item => {
-              const isActive = item.path === '/'
-                ? location.pathname === '/'
-                : location.pathname.startsWith(item.path);
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`
-                    relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                    ${isActive ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}
-                  `}
-                >
-                  {item.icon}
-                  <span className="hidden sm:block">{item.label}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute inset-0 bg-white/10 rounded-lg -z-10"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
+            {/* Home */}
+            <Link to="/" className={linkCls(location.pathname === '/')}>
+              <Home size={16} /><span>{t.nav.home}</span>
+            </Link>
 
-            {/* ── Training dropdown ── */}
+            {/* Rules */}
+            <Link to="/rules" className={linkCls(location.pathname.startsWith('/rules'))}>
+              <span className="text-sm">📚</span>
+              <span>{isEn ? 'Rules' : 'Règles'}</span>
+            </Link>
+
+            {/* Training dropdown */}
             <div className="relative" ref={dropRef}>
               <button
                 onClick={() => setDropOpen(v => !v)}
-                className={`
-                  relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors select-none
-                  ${isTrainingActive ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}
-                `}
+                className={linkCls(isTrainingActive)}
               >
-                {isTrainingActive && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    className="absolute inset-0 bg-white/10 rounded-lg -z-10"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
-                  />
-                )}
                 <BookOpen size={16} />
-                <span className="hidden sm:block">{t.nav.training}</span>
-                <ChevronDown
-                  size={12}
-                  className={`hidden sm:block transition-transform duration-200 ${dropOpen ? 'rotate-180' : ''}`}
-                />
+                <span>{t.nav.training}</span>
+                <ChevronDown size={12} className={`transition-transform duration-200 ${dropOpen ? 'rotate-180' : ''}`} />
               </button>
 
               <AnimatePresence>
@@ -131,132 +102,46 @@ export function Navbar() {
                     transition={{ duration: 0.14 }}
                     className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl z-50 overflow-hidden py-2"
                   >
-                    {/* Free modules */}
-                    <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold text-gray-600 uppercase tracking-wider">
-                      {isEn ? 'Free' : 'Gratuit'}
-                    </p>
-                    {MODULES.filter(m => !m.premium).map(mod => {
-                      const label = isEn ? mod.labelEn : mod.labelFr;
-                      const isActive = location.search.includes(`module=${mod.id}`) && isTrainingActive;
-                      return (
-                        <Link
-                          key={mod.id}
-                          to={`/training?module=${mod.id}`}
-                          onClick={() => setDropOpen(false)}
-                          className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors group ${
-                            isActive
-                              ? 'bg-white/10 text-white'
-                              : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                          }`}
-                        >
-                          <span className="text-base leading-none">{mod.icon}</span>
-                          <span className="flex-1">{label}</span>
-                        </Link>
-                      );
-                    })}
-
-                    {/* Separator */}
-                    <div className="mx-3 my-1.5 border-t border-gray-800" />
-
-                    {/* Premium modules */}
-                    <p className="px-3 pb-1.5 text-[10px] font-bold text-yellow-700 uppercase tracking-wider flex items-center gap-1">
-                      <Crown size={9} className="text-yellow-600" />
-                      {isEn ? 'Premium' : 'Premium'}
-                    </p>
-                    {MODULES.filter(m => m.premium).map(mod => {
-                      const label     = isEn ? mod.labelEn : mod.labelFr;
-                      const isLocked  = !user?.isPremium;
-                      const isActive  = location.search.includes(`module=${mod.id}`) && isTrainingActive;
-                      return (
-                        <Link
-                          key={mod.id}
-                          to={`/training?module=${mod.id}`}
-                          onClick={() => setDropOpen(false)}
-                          className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors group ${
-                            isActive
-                              ? 'bg-white/10 text-white'
-                              : isLocked
-                                ? 'text-gray-500 hover:bg-gray-800/60 hover:text-gray-400'
-                                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                          }`}
-                        >
-                          <span className="text-base leading-none">{mod.icon}</span>
-                          <span className="flex-1">{label}</span>
-                          {isLocked
-                            ? <Lock size={11} className="text-yellow-700 shrink-0" />
-                            : <Crown size={10} className="text-yellow-500 shrink-0 opacity-60" />
-                          }
-                        </Link>
-                      );
-                    })}
-
-                    {/* If not logged in — invite to login */}
-                    {!user && (
-                      <>
-                        <div className="mx-3 my-1.5 border-t border-gray-800" />
-                        <Link
-                          to="/login"
-                          onClick={() => setDropOpen(false)}
-                          className="flex items-center justify-center gap-1.5 mx-2 mb-1 py-1.5 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 text-xs font-semibold transition-colors"
-                        >
-                          {isEn ? 'Log in for Premium' : 'Connexion pour le Premium'}
-                        </Link>
-                      </>
-                    )}
+                    <ModuleList user={user} isEn={isEn} location={location} isTrainingActive={isTrainingActive} onClose={() => setDropOpen(false)} />
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* Table, Stats, Leaderboard */}
-            {NAV_ITEMS.slice(2).map(item => {
-              const isActive = location.pathname.startsWith(item.path);
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`
-                    relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                    ${isActive ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'}
-                  `}
-                >
-                  {item.icon}
-                  <span className="hidden sm:block">{item.label}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute inset-0 bg-white/10 rounded-lg -z-10"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
+            {/* Table */}
+            <Link to="/table" className={linkCls(location.pathname.startsWith('/table'))}>
+              <TableProperties size={16} /><span>{isEn ? 'Table' : 'Table'}</span>
+            </Link>
 
+            {/* Stats */}
+            <Link to="/stats" className={linkCls(location.pathname.startsWith('/stats'))}>
+              <BarChart2 size={16} /><span>{t.nav.stats}</span>
+            </Link>
+
+            {/* Leaderboard */}
+            <Link to="/leaderboard" className={linkCls(location.pathname.startsWith('/leaderboard'))}>
+              <Trophy size={16} /><span>{t.nav.leaderboard}</span>
+            </Link>
           </nav>
 
-          {/* Right side */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Tutorial button */}
+          {/* ── Right side ── */}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Tutorial — desktop only */}
             <button
               onClick={() => setTutorialOpen(true)}
-              className="hidden sm:flex items-center gap-1 text-xs text-gray-500 hover:text-gold-400 transition-colors px-2 py-1 rounded-lg hover:bg-gray-800"
+              className="hidden lg:flex items-center gap-1 text-xs text-gray-500 hover:text-gold-400 transition-colors px-2 py-1 rounded-lg hover:bg-gray-800"
               title={t.nav.tutorial}
             >
-              <BookOpen size={13} />
-              <span>{t.nav.tutorial}</span>
+              <BookOpen size={13} /><span>{t.nav.tutorial}</span>
             </button>
 
             <ModeToggle />
             <LanguageToggle />
 
+            {/* User avatar — always visible */}
             {user ? (
               <>
-                <Link
-                  to="/profile"
-                  className="flex items-center gap-1.5 group"
-                  title={isEn ? 'My profile' : 'Mon profil'}
-                >
+                <Link to="/profile" className="flex items-center gap-1.5 group ml-1" title={isEn ? 'My profile' : 'Mon profil'}>
                   <div className="relative">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center text-xs font-black text-gray-900 shadow group-hover:ring-2 group-hover:ring-gold-400 transition-all">
                       {avatarLetter}
@@ -267,27 +152,87 @@ export function Navbar() {
                       </div>
                     )}
                   </div>
-                  <span className="hidden md:block text-sm font-medium text-gold-400 group-hover:text-gold-300 transition-colors">
+                  <span className="hidden xl:block text-sm font-medium text-gold-400 group-hover:text-gold-300 transition-colors">
                     {user.username}
                   </span>
                 </Link>
-
+                {/* Logout — desktop only */}
                 <button
                   onClick={logout}
-                  className="p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+                  className="hidden lg:flex p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/10"
                   title={isEn ? 'Sign out' : 'Déconnexion'}
                 >
                   <LogOut size={16} />
                 </button>
               </>
             ) : (
-              <Link
-                to="/login"
-                className="text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
-              >
+              <Link to="/login" className="hidden lg:flex text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors ml-1">
                 {t.nav.login}
               </Link>
             )}
+
+            {/* ── Hamburger (shown below lg) ── */}
+            <div className="lg:hidden relative ml-1" ref={mobileRef}>
+              <button
+                onClick={() => setMobileOpen(v => !v)}
+                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                aria-label="Menu"
+              >
+                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+
+              <AnimatePresence>
+                {mobileOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0,  scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full right-0 mt-2 w-64 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl z-50 overflow-hidden py-2"
+                  >
+                    {/* Main nav links */}
+                    <MobileNavLink to="/" icon={<Home size={15} />} label={t.nav.home} active={location.pathname === '/'} />
+                    <MobileNavLink to="/rules" icon={<span>📚</span>} label={isEn ? 'Rules' : 'Règles'} active={location.pathname.startsWith('/rules')} />
+                    <MobileNavLink to="/table" icon={<TableProperties size={15} />} label={isEn ? 'Table' : 'Table'} active={location.pathname.startsWith('/table')} />
+                    <MobileNavLink to="/stats" icon={<BarChart2 size={15} />} label={t.nav.stats} active={location.pathname.startsWith('/stats')} />
+                    <MobileNavLink to="/leaderboard" icon={<Trophy size={15} />} label={t.nav.leaderboard} active={location.pathname.startsWith('/leaderboard')} />
+
+                    {/* Training section */}
+                    <div className="mx-3 my-1.5 border-t border-gray-800" />
+                    <p className="px-3 py-1 text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1">
+                      <BookOpen size={9} /> {t.nav.training}
+                    </p>
+                    <ModuleList user={user} isEn={isEn} location={location} isTrainingActive={isTrainingActive} onClose={() => setMobileOpen(false)} />
+
+                    {/* Bottom actions */}
+                    <div className="mx-3 my-1.5 border-t border-gray-800" />
+                    <button
+                      onClick={() => { setTutorialOpen(true); setMobileOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                    >
+                      <BookOpen size={15} />{t.nav.tutorial}
+                    </button>
+
+                    {user ? (
+                      <button
+                        onClick={() => { logout(); setMobileOpen(false); }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors"
+                      >
+                        <LogOut size={15} />{isEn ? 'Sign out' : 'Déconnexion'}
+                      </button>
+                    ) : (
+                      <Link
+                        to="/login"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm text-gold-400 hover:text-gold-300 hover:bg-gray-800 transition-colors"
+                      >
+                        {t.nav.login}
+                      </Link>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </header>
@@ -297,5 +242,97 @@ export function Navbar() {
         {tutorialOpen && <Tutorial onClose={() => setTutorialOpen(false)} />}
       </AnimatePresence>
     </>
+  );
+}
+
+// ─── Shared module list (used in both desktop dropdown + mobile menu) ─────────
+function ModuleList({ user, isEn, location, isTrainingActive, onClose }: {
+  user: any; isEn: boolean; location: any; isTrainingActive: boolean; onClose: () => void;
+}) {
+  return (
+    <>
+      <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold text-gray-600 uppercase tracking-wider">
+        {isEn ? 'Free' : 'Gratuit'}
+      </p>
+      {MODULES.filter(m => !m.premium).map(mod => {
+        const label    = isEn ? mod.labelEn : mod.labelFr;
+        const isActive = location.search.includes(`module=${mod.id}`) && isTrainingActive;
+        return (
+          <Link
+            key={mod.id}
+            to={`/training?module=${mod.id}`}
+            onClick={onClose}
+            className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+              isActive ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <span className="text-base leading-none">{mod.icon}</span>
+            <span className="flex-1">{label}</span>
+          </Link>
+        );
+      })}
+
+      <div className="mx-3 my-1.5 border-t border-gray-800" />
+
+      <p className="px-3 pb-1.5 text-[10px] font-bold text-yellow-700 uppercase tracking-wider flex items-center gap-1">
+        <Crown size={9} className="text-yellow-600" /> Premium
+      </p>
+      {MODULES.filter(m => m.premium).map(mod => {
+        const label    = isEn ? mod.labelEn : mod.labelFr;
+        const isLocked = !user?.isPremium;
+        const isActive = location.search.includes(`module=${mod.id}`) && isTrainingActive;
+        return (
+          <Link
+            key={mod.id}
+            to={`/training?module=${mod.id}`}
+            onClick={onClose}
+            className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+              isActive
+                ? 'bg-white/10 text-white'
+                : isLocked
+                  ? 'text-gray-500 hover:bg-gray-800/60 hover:text-gray-400'
+                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <span className="text-base leading-none">{mod.icon}</span>
+            <span className="flex-1">{label}</span>
+            {isLocked
+              ? <Lock size={11} className="text-yellow-700 shrink-0" />
+              : <Crown size={10} className="text-yellow-500 shrink-0 opacity-60" />
+            }
+          </Link>
+        );
+      })}
+
+      {!user && (
+        <>
+          <div className="mx-3 my-1.5 border-t border-gray-800" />
+          <Link
+            to="/login"
+            onClick={onClose}
+            className="flex items-center justify-center gap-1.5 mx-2 mb-1 py-1.5 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 text-xs font-semibold transition-colors"
+          >
+            {isEn ? 'Log in for Premium' : 'Connexion pour le Premium'}
+          </Link>
+        </>
+      )}
+    </>
+  );
+}
+
+// ─── Mobile nav link helper ───────────────────────────────────────────────────
+function MobileNavLink({ to, icon, label, active }: {
+  to: string; icon: React.ReactNode; label: string; active: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+        active ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+      }`}
+    >
+      <span className="w-4 flex items-center justify-center shrink-0">{icon}</span>
+      <span>{label}</span>
+    </Link>
   );
 }
