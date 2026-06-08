@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  isPremium Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions  TrainingSession[]
+  stats     PlayerStats?
+  dailyChallenges DailyChallenge[]
+  customRanges    CustomRange[]
+  rangePresets    RangePreset[]
+  rangeProfiles   RangeProfile[]
+
+  @@map("users")
+}
+
+model CustomRange {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position  String
+  cells     String   // JSON: flat 169-element array floats (13x13 row-major)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, position])
+  @@map("custom_ranges")
+}
+
+model RangePreset {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String   @default("")
+  isActive    Boolean  @default(false)
+  stackMin    Float?                   // min stack in BB — null = no lower bound
+  stackMax    Float?                   // max stack in BB — null = no upper bound
+  // JSON: Record<Position, number[][]>  — each position is a 13×13 matrix
+  data        String
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("range_presets")
+}
+
+// ── Range Profiles (named sets of ranges, with optional stack-depth sub-ranges) ─
+
+model RangeProfile {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String           // "MTT 6 Max", "Cash Game", …
+  isActive    Boolean          @default(false)
+  sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  stackRanges RangeStackRange[]
+
+  @@map("range_profiles")
+}
+
+model RangeStackRange {
+  id        String       @id @default(cuid())
+  profileId String
+  profile   RangeProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  label     String       // "< 20bb", "20-50bb", "> 50bb"
+  stackMin  Float        @default(0)   // inclusive lower bound in BB
+  stackMax  Float?                     // exclusive upper bound in BB — null = no upper bound
+  sortOrder Int          @default(0)
+  // JSON: Record<Position, number[]>  — flat 169-element array of frequencies per position
+  data      String       @default("{}")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@map("range_stack_ranges")
+}
+
+model PlayerStats {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Overall
+  totalExercises Int @default(0)
+  totalCorrect   Int @default(0)
+  streak         Int @default(0)
+  longestStreak  Int @default(0)
+  xp             Int @default(0)
+  level          Int @default(1)
+
+  // Per-module accuracy (float 0-1) + integer counters for correct computation
+  preflopAccuracy   Float @default(0)
+  potOddsAccuracy   Float @default(0)
+  equityAccuracy    Float @default(0)
+  postflopAccuracy  Float @default(0)
+
+  preflopTotal     Int @default(0)
+  preflopCorrect   Int @default(0)
+  potoddsTotal     Int @default(0)
+  potoddsCorrect   Int @default(0)
+  equityTotal      Int @default(0)
+  equityCorrect    Int @default(0)
+  outsTotal        Int @default(0)
+  outsCorrect      Int @default(0)
+  bbdefenseTotal   Int @default(0)
+  bbdefenseCorrect Int @default(0)
+  postflopTotal        Int @default(0)
+  postflopCorrect      Int @default(0)
+  postflopFlopTotal    Int @default(0)
+  postflopFlopCorrect  Int @default(0)
+  postflopTurnTotal    Int @default(0)
+  postflopTurnCorrect  Int @default(0)
+  postflopRiverTotal   Int @default(0)
+  postflopRiverCorrect Int @default(0)
+
+  // Full hand — overall + per street
+  fullhandTotal          Int @default(0)
+  fullhandCorrect        Int @default(0)
+  fullhandPreflopTotal   Int @default(0)
+  fullhandPreflopCorrect Int @default(0)
+  fullhandFlopTotal      Int @default(0)
+  fullhandFlopCorrect    Int @default(0)
+  fullhandTurnTotal      Int @default(0)
+  fullhandTurnCorrect    Int @default(0)
+  fullhandRiverTotal     Int @default(0)
+  fullhandRiverCorrect   Int @default(0)
+
+  // Per-module streaks
+  preflopStreak      Int @default(0)
+  preflopBest        Int @default(0)
+  potoddsStreak      Int @default(0)
+  potoddssBest       Int @default(0)
+  equityStreak       Int @default(0)
+  equityBest         Int @default(0)
+  outsStreak         Int @default(0)
+  outsBest           Int @default(0)
+  bbdefenseStreak    Int @default(0)
+  bbdefenseBest      Int @default(0)
+  postflopStreak     Int @default(0)
+  postflopBest       Int @default(0)
+  fullhandStreak     Int @default(0)
+  fullhandBest       Int @default(0)
+
+  // Per-position accuracy (preflop) — float + counters
+  utgAccuracy Float @default(0)
+  hjAccuracy  Float @default(0)
+  coAccuracy  Float @default(0)
+  btnAccuracy Float @default(0)
+  sbAccuracy  Float @default(0)
+  bbAccuracy  Float @default(0)
+
+  utgTotal   Int @default(0)
+  utgCorrect Int @default(0)
+  hjTotal    Int @default(0)
+  hjCorrect  Int @default(0)
+  coTotal    Int @default(0)
+  coCorrect  Int @default(0)
+  btnTotal   Int @default(0)
+  btnCorrect Int @default(0)
+  sbTotal    Int @default(0)
+  sbCorrect  Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("player_stats")
+}
+
+model TrainingSession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module    String   // preflop, potodds, equity, postflop
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+
+  exercises SessionExercise[]
+
+  @@map("training_sessions")
+}
+
+model SessionExercise {
+  id         String          @id @default(cuid())
+  sessionId  String
+  session    TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  exerciseType String  // preflop, potodds, equity, postflop
+  question     String  // JSON serialized exercise data
+  userAnswer   String
+  correctAnswer String
+  isCorrect    Boolean
+  timeTaken    Int     // milliseconds
+  xpEarned     Int     @default(0)
+  hint         String? // explanation shown after answer
+
+  createdAt DateTime @default(now())
+
+  @@map("session_exercises")
+}
+
+model DailyChallenge {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  completedAt DateTime  @default(now())
+  score       Int
+  isCorrect   Boolean
+
+  @@unique([userId, challengeId])
+  @@map("daily_challenges")
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  date        String   @unique // YYYY-MM-DD
+  module      String
+  difficulty  String   // easy, medium, hard, expert
+  question    String   // JSON serialized
+  answer      String
+  explanation String
+  createdAt   DateTime @default(now())
+
+  @@map("challenges")
+}

@@ -1,0 +1,149 @@
+export type Suit = 'h' | 'd' | 'c' | 's';
+export type Rank = '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'T' | 'J' | 'Q' | 'K' | 'A';
+export type CardStr = `${Rank}${Suit}`;
+
+// 6-max positions only. UTG1 does not exist in 6-max (9-max concept).
+export type Position = 'UTG' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
+export type Action = 'fold' | 'call' | 'raise' | 'check' | '3bet' | '4bet';
+export type TrainingModule = 'preflop' | 'potodds' | 'equity' | 'outs' | 'bbdefense' | 'postflop' | 'fullhand' | 'rules' | 'betsizing';
+
+export const SUIT_SYMBOL: Record<Suit, string> = {
+  h: '♥', d: '♦', c: '♣', s: '♠',
+};
+
+export const SUIT_COLOR: Record<Suit, string> = {
+  h: 'text-red-500', d: 'text-red-500', c: 'text-gray-900', s: 'text-gray-900',
+};
+
+export const POSITION_LABELS: Record<Position, string> = {
+  UTG: 'Under the Gun', HJ: 'Hijack',
+  CO: 'Cutoff', BTN: 'Button', SB: 'Small Blind', BB: 'Big Blind',
+};
+
+export const POSITION_SHORT: Record<Position, string> = {
+  UTG: 'UTG', HJ: 'HJ', CO: 'CO', BTN: 'BTN', SB: 'SB', BB: 'BB',
+};
+
+export const POSITION_DESCRIPTIONS: Record<Position, string> = {
+  UTG: 'Premier à parler — range la plus serrée',
+  HJ: 'Position intermédiaire — range modérée',
+  CO: 'Bonne position — range assez large',
+  BTN: 'Meilleure position — range très large',
+  SB: 'Forced bet, désavantage post-flop',
+  BB: 'Forced bet, dernier à parler pré-flop',
+};
+
+export interface PreflopExercise {
+  hand: [CardStr, CardStr];
+  notation: string;
+  position: Position;
+  correctAction: 'raise' | 'fold';
+  correctFrequency: number;
+  explanation: string;
+  isMixed?: boolean;
+}
+
+export interface PotOddsExercise {
+  potSize: number;
+  betSize: number;
+  heroEquity: number;
+  correctAction: 'call' | 'fold';
+  potOdds: number;
+  requiredEquity: number;
+  explanation: string;
+  difficulty: string;
+  context: string;
+  heroCards: [CardStr, CardStr];
+  board: CardStr[];
+  street: 'flop' | 'turn' | 'river';
+  outs: number;
+  equityExplanation: string;
+  equityExplanationAdvanced: string;
+  thresholdExplanation: string;
+  thresholdExplanationAdvanced: string;
+}
+
+export interface EquityExercise {
+  hand1: [CardStr, CardStr];
+  hand2: [CardStr, CardStr];
+  board: CardStr[];
+  hand1Equity: number;
+  hand2Equity: number;
+  hand1Notation: string;
+  hand2Notation: string;
+  explanation: string;
+  explanationAdvanced: string;
+}
+
+export interface OutsExercise {
+  heroCards: [CardStr, CardStr];
+  board: CardStr[];
+  street: 'flop' | 'turn';
+  difficulty: string;
+  outs: number;
+  options: number[];
+  equityEstimate: number;
+  draws: string[];
+  explanation: string;
+}
+
+export interface BBDefenseExercise {
+  hand: [CardStr, CardStr];
+  notation: string;
+  opener: string;
+  openSize: number;
+  correctAction: 'fold' | 'call' | '3bet';
+  altAction: 'fold' | 'call' | '3bet';
+  isMixed: boolean;
+  kind: 'value3bet' | 'bluff3bet' | 'call' | 'thincall' | 'fold';
+  explanation: string;
+}
+
+export interface ExerciseResult {
+  isCorrect: boolean;
+  correctAction: string;
+  explanation: string;
+  xpEarned: number;
+  frequency?: number;
+  isMixed?: boolean;
+  potOdds?: number;
+  potOddsPct?: number;
+  requiredEquity?: number;
+  ev?: number;
+  reasoning?: string;
+}
+
+export interface PlayerStats {
+  totalExercises: number;
+  totalCorrect: number;
+  streak: number;
+  longestStreak: number;
+  xp: number;
+  level: number;
+  preflopAccuracy: number;
+  potOddsAccuracy: number;
+  equityAccuracy: number;
+}
+
+export interface LeaderboardModuleStat {
+  accuracy: number | null;   // null = no exercises done yet
+  total: number;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  username: string;
+  xp: number;
+  level: number;
+  totalExercises: number;
+  accuracy: number;
+  streak: number;
+  modules?: {
+    preflop:  LeaderboardModuleStat;
+    potodds:  LeaderboardModuleStat;
+    equity:   LeaderboardModuleStat;
+    outs:     LeaderboardModuleStat;
+    postflop: LeaderboardModuleStat;
+    fullhand: LeaderboardModuleStat;
+  };
+}
