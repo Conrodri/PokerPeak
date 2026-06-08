@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Info, Zap, Target } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { useTrainingStore } from '../../store/trainingStore';
 import { Hand } from '../poker/Card';
 import { Button } from '../ui/Button';
@@ -120,8 +121,9 @@ function EquityDetailPanel({ detail, equity, isEn }: {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function PostflopTrainer() {
-  const lang  = useLangStore(s => s.lang);
-  const isEn  = lang === 'en';
+  const lang     = useLangStore(s => s.lang);
+  const isEn     = lang === 'en';
+  const isMobile = useIsMobile();
   const { sessionStats, recordResult, setTrainerStarted } = useTrainingStore();
 
   const [showIntro, setShowIntro]   = useState(true);
@@ -311,7 +313,7 @@ export function PostflopTrainer() {
             </div>
 
             {/* ── Poker table with cards + on-table stack / bet info ── */}
-            <div className="w-full">
+            <div className="w-full max-w-xs sm:max-w-full">
               <PokerTable
                 heroPosition={ex.heroPosition as Position}
                 interactive={false}
@@ -319,7 +321,8 @@ export function PostflopTrainer() {
                 potDisplay={`${ex.potSize}bb`}
                 heroCards={ex.heroHand as string[]}
                 boardCards={ex.board as string[]}
-                boardCardSize="lg"
+                boardCardSize={isMobile ? 'sm' : 'lg'}
+                compact={isMobile}
                 seatInfos={{
                   [ex.heroPosition]: { stack: `${ex.effectiveStack}bb` },
                   [ex.villainPosition]: {
@@ -463,7 +466,7 @@ export function PostflopTrainer() {
           <VerdictBanner isCorrect={isCorrect} />
 
           {/* Table + stacks */}
-          <div className="w-full">
+          <div className="w-full max-w-xs sm:max-w-full">
             <PokerTable
               heroPosition={ex.heroPosition as Position}
               interactive={false}
@@ -471,6 +474,7 @@ export function PostflopTrainer() {
               potDisplay={`${ex.potSize}bb`}
               heroCards={ex.heroHand as string[]}
               boardCards={ex.board as string[]}
+              compact={isMobile}
               seatInfos={{
                 [ex.heroPosition]: { stack: `${ex.effectiveStack}bb` },
                 [ex.villainPosition]: {

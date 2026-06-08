@@ -20,7 +20,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen text-white" style={{ backgroundColor: BG_THEMES[bgTheme].bg }}>
       <Navbar />
       <main className="pt-14">
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
           {children}
         </div>
       </main>

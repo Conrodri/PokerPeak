@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Info, Zap, BookOpen, ExternalLink } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { useTrainingStore } from '../../store/trainingStore';
 import { Button } from '../ui/Button';
 import { SessionStatsBar } from '../ui/SessionStatsBar';
@@ -461,10 +462,11 @@ function SourcesFooter({ isEn }: { isEn: boolean }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function BetSizingTrainer() {
-  const lang  = useLangStore(s => s.lang);
-  const isEn  = lang === 'en';
+  const lang     = useLangStore(s => s.lang);
+  const isEn     = lang === 'en';
+  const isMobile = useIsMobile();
   const { sessionStats, recordResult, setTrainerStarted } = useTrainingStore();
-  const mode  = useModeStore(s => s.mode);
+  const mode     = useModeStore(s => s.mode);
 
   const [showIntro, setShowIntro] = useState(true);
   const [phase,     setPhase]     = useState<Phase>('exercise');
@@ -605,7 +607,7 @@ export function BetSizingTrainer() {
             </div>
 
             {/* Poker table */}
-            <div className="w-full">
+            <div className="w-full max-w-xs sm:max-w-full">
               <PokerTable
                 heroPosition={ex.heroPosition}
                 interactive={false}
@@ -613,7 +615,8 @@ export function BetSizingTrainer() {
                 potDisplay={`${ex.potSize}bb`}
                 heroCards={ex.heroHand}
                 boardCards={ex.board}
-                boardCardSize="lg"
+                boardCardSize={isMobile ? 'sm' : 'lg'}
+                compact={isMobile}
                 seatInfos={{
                   [ex.heroPosition]:    { stack: `${ex.effectiveStack}bb` },
                   [ex.villainPosition]: { stack: `${ex.effectiveStack}bb` },
@@ -714,7 +717,7 @@ export function BetSizingTrainer() {
           <VerdictBanner isCorrect={isCorrect} />
 
           {/* Table recap */}
-          <div className="w-full">
+          <div className="w-full max-w-xs sm:max-w-full">
             <PokerTable
               heroPosition={ex.heroPosition}
               interactive={false}
@@ -722,6 +725,7 @@ export function BetSizingTrainer() {
               potDisplay={`${ex.potSize}bb`}
               heroCards={ex.heroHand}
               boardCards={ex.board}
+              compact={isMobile}
               seatInfos={{
                 [ex.heroPosition]:    { stack: `${ex.effectiveStack}bb` },
                 [ex.villainPosition]: { stack: `${ex.effectiveStack}bb` },

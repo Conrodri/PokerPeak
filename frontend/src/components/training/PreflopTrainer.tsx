@@ -19,6 +19,7 @@ import { handToDisplay, getMatrixIndices } from '../../utils/pokerUtils';
 import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 import { useCustomRangeStore } from '../../store/customRangeStore';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 type Phase    = 'select_position' | 'exercise' | 'result';
 type BBAction = 'fold' | 'call' | '3bet';
@@ -114,6 +115,7 @@ function RangeSection({ matrix, highlightNotation, position, isCustom, resolvedL
 
 export function PreflopTrainer() {
   const t = useT();
+  const isMobile = useIsMobile();
   const {
     preflopExercise, lastResult, sessionStats, isLoading,
     fetchPreflopExercise, checkPreflopAnswer, recordResult,
@@ -412,13 +414,13 @@ export function PreflopTrainer() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-3 sm:gap-6 max-w-2xl mx-auto">
 
       {/* ── Persistent header with info button ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-1">{t.training.preflop_title}</h2>
-          <p className="text-gray-400 text-sm">{t.training.preflop_subtitle}</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">{t.training.preflop_title}</h2>
+          <p className="text-gray-400 text-xs sm:text-sm">{t.training.preflop_subtitle}</p>
         </div>
         <button
           onClick={() => { setShowIntro(true); setTrainerStarted(false); }}
@@ -434,15 +436,16 @@ export function PreflopTrainer() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col items-center gap-6"
+          className="flex flex-col items-center gap-4 sm:gap-6"
         >
 
-          {/* Interactive poker table — main selector */}
-          <div className="w-full max-w-xl">
+          {/* Interactive poker table — compact on mobile */}
+          <div className="w-full max-w-xs sm:max-w-xl">
             <PokerTable
               heroPosition={selectedPosition}
               onPositionChange={pos => setSelectedPosition(pos)}
               interactive
+              compact={isMobile}
             />
           </div>
 
@@ -517,12 +520,13 @@ export function PreflopTrainer() {
                 <Spinner />
               ) : (
                 <>
-                  <div className="w-full">
+                  <div className="w-full max-w-xs sm:max-w-full">
                     <PokerTable
                       heroPosition="BB"
                       interactive={false}
                       heroCards={bbExercise.hand as string[]}
-                      boardCardSize="lg"
+                      boardCardSize={isMobile ? 'md' : 'lg'}
+                      compact={isMobile}
                       seatInfos={{
                         [bbExercise.opener]: { bet: `${bbExercise.openSize}bb` },
                         ...(preflopEnabled ? { BB: { stack: `${heroStack} bb` } } : {}),
@@ -549,11 +553,11 @@ export function PreflopTrainer() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="flex gap-3 flex-wrap justify-center"
+                    className="flex gap-2 sm:gap-3 w-full sm:w-auto"
                   >
-                    <Button size="xl" variant="danger"    onClick={() => handleAnswerBB('fold')}  className="min-w-[110px]">Fold</Button>
-                    <Button size="xl" variant="secondary" onClick={() => handleAnswerBB('call')}  className="min-w-[110px]">Call</Button>
-                    <Button size="xl" variant="gold"      onClick={() => handleAnswerBB('3bet')}  className="min-w-[110px]">3-Bet</Button>
+                    <Button size="xl" variant="danger"    onClick={() => handleAnswerBB('fold')}  className="flex-1 sm:flex-none sm:min-w-[110px]">Fold</Button>
+                    <Button size="xl" variant="secondary" onClick={() => handleAnswerBB('call')}  className="flex-1 sm:flex-none sm:min-w-[110px]">Call</Button>
+                    <Button size="xl" variant="gold"      onClick={() => handleAnswerBB('3bet')}  className="flex-1 sm:flex-none sm:min-w-[110px]">3-Bet</Button>
                   </motion.div>
                 </>
               )}
@@ -565,18 +569,19 @@ export function PreflopTrainer() {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              className="flex flex-col items-center gap-5"
+              className="flex flex-col items-center gap-3 sm:gap-5"
             >
               {isLoading ? (
                 <Spinner />
               ) : preflopExercise ? (
                 <>
-                  <div className="w-full">
+                  <div className="w-full max-w-xs sm:max-w-full">
                     <PokerTable
                       heroPosition={preflopExercise.position}
                       interactive={false}
                       heroCards={preflopExercise.hand as string[]}
-                      boardCardSize="lg"
+                      boardCardSize={isMobile ? 'md' : 'lg'}
+                      compact={isMobile}
                       seatInfos={preflopEnabled
                         ? { [preflopExercise.position]: { stack: `${heroStack} bb` } } as any
                         : undefined}
@@ -601,12 +606,12 @@ export function PreflopTrainer() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="flex gap-6"
+                    className="flex gap-3 sm:gap-6 w-full sm:w-auto"
                   >
-                    <Button size="xl" variant="danger" onClick={() => handleAnswer('fold')} className="min-w-[140px]">
+                    <Button size="xl" variant="danger" onClick={() => handleAnswer('fold')} className="flex-1 sm:flex-none sm:min-w-[140px]">
                       Fold
                     </Button>
-                    <Button size="xl" variant="gold" onClick={() => handleAnswer('raise')} className="min-w-[140px]">
+                    <Button size="xl" variant="gold" onClick={() => handleAnswer('raise')} className="flex-1 sm:flex-none sm:min-w-[140px]">
                       Raise
                     </Button>
                   </motion.div>

@@ -4,6 +4,7 @@ import {
   ChevronRight, Zap, Target,
   Check, Lock, Trophy, Shuffle, Info,
 } from 'lucide-react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import { useTrainingStore } from '../../store/trainingStore';
 import { Hand } from '../poker/Card';
 import { Button } from '../ui/Button';
@@ -182,8 +183,9 @@ function EquityBadge({ equity, label }: { equity: number; label: string }) {
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function FullHandTrainer() {
-  const lang  = useLangStore(s => s.lang);
-  const isEn  = lang === 'en';
+  const lang     = useLangStore(s => s.lang);
+  const isEn     = lang === 'en';
+  const isMobile = useIsMobile();
   const { sessionStats, recordResult, setTrainerStarted } = useTrainingStore();
 
   const [showIntro, setShowIntro] = useState(true);
@@ -394,7 +396,7 @@ export function FullHandTrainer() {
       <Stepper phase={phase} lastStreet={scenario.lastStreet} isEn={isEn} />
 
       {/* ── Poker table ── */}
-      <div className="w-full">
+      <div className="w-full max-w-xs sm:max-w-full">
         <PokerTable
           heroPosition={scenario.heroPosition as Position}
           interactive={false}
@@ -402,7 +404,8 @@ export function FullHandTrainer() {
           potDisplay={`${currentPotSize}bb`}
           heroCards={scenario.heroHand as string[]}
           boardCards={board as string[]}
-          boardCardSize="lg"
+          boardCardSize={isMobile ? 'sm' : 'lg'}
+          compact={isMobile}
         />
       </div>
 
