@@ -1,8 +1,12 @@
 import axios from 'axios';
 import { Position } from '../types/poker';
 
+// In dev, VITE_API_URL is undefined → proxy in vite.config.ts handles /api
+// In production, VITE_API_URL=https://your-backend.onrender.com
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api`
+    : '/api',
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });

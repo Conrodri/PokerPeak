@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pokertrainer-api
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: cd backend && npm install && npm run build && npx prisma db push
+    startCommand: cd backend && node dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false          # set manually in Render dashboard (Neon URL)
+      - key: JWT_SECRET
+        sync: false          # set manually in Render dashboard
+      - key: CORS_ORIGIN
+        sync: false          # set to your Vercel URL once deployed
+      - key: PORT
+        value: 10000
