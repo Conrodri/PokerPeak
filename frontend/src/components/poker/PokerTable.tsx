@@ -289,7 +289,7 @@ export function PokerTable({
       {/* Hero hole cards are NOT rendered inside PokerTable.
           Each trainer renders them separately in normal flow below the table.
           This prevents any overflow / overlap regardless of screen size or JS state. */}
-    </div>{/* end outer wrapper */}
+    </div>
   );
 }
 
