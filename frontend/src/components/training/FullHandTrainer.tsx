@@ -433,8 +433,11 @@ export function FullHandTrainer() {
         />
       </div>
 
-      {/* Hero cards in a clearly separated info block */}
-      <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-4 py-3 flex items-center justify-center gap-3">
+      {/* Hero cards */}
+      <div className="w-full rounded-2xl border border-gray-700/60 bg-gray-900/50 px-4 py-3 flex flex-col items-center gap-2">
+        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
+          {isEn ? 'Your hand' : 'Votre main'}
+        </p>
         <Hand cards={scenario.heroHand as any} size="md" gap="gap-2" animate={false} />
       </div>
 

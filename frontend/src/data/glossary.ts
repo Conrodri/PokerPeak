@@ -210,8 +210,29 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     id: 'draw',
     fr: 'Draw (tirage)', en: 'Draw',
-    definitionFr: 'Main incomplète nécessitant une carte de plus pour être forte. Flush draw = 4 cartes de couleur. Straight draw = 4 cartes consécutives.',
-    definitionEn: 'Incomplete hand needing one more card to be strong. Flush draw = 4 flush cards. Straight draw = 4 consecutive cards.',
+    definitionFr: 'Main incomplète nécessitant une carte de plus pour être forte. Flush draw = 4 cartes de couleur. Straight draw = 4 cartes consécutives. Il existe deux types de tirages quinte : l\'open-ended (8 outs) et le gutshot (4 outs).',
+    definitionEn: 'Incomplete hand needing one more card to be strong. Flush draw = 4 flush cards. Straight draw = 4 consecutive cards. Two types of straight draws: open-ended (8 outs) and gutshot (4 outs).',
+    category: 'strength',
+  },
+  {
+    id: 'gutshot',
+    fr: 'Gutshot (tirage quinte intérieur)', en: 'Gutshot',
+    definitionFr: 'Tirage quinte avec un "trou" au milieu : une seule carte peut compléter la quinte. Ex : 5-6-8-9 → seulement les 7 complètent = **4 outs** (≈16% au flop, ≈8% au turn). Bien plus faible qu\'un open-ended qui a 8 outs.',
+    definitionEn: 'Inside straight draw — only one card rank completes the straight. E.g.: 5-6-8-9 → only 7s complete it = **4 outs** (≈16% on flop, ≈8% on turn). Much weaker than an open-ended draw with 8 outs.',
+    category: 'strength',
+  },
+  {
+    id: 'oesd',
+    fr: 'Open-ended (tirage quinte bilatéral)', en: 'Open-ended draw',
+    definitionFr: 'Tirage quinte ouvert des deux côtés : deux cartes différentes peuvent compléter la quinte. Ex : 6-7-8-9 → les 5 et les 10 complètent = **8 outs** (≈31% au flop). Deux fois plus fort qu\'un gutshot.',
+    definitionEn: 'Open-ended straight draw — two different ranks complete the straight. E.g.: 6-7-8-9 → fives and tens complete it = **8 outs** (≈31% on flop). Twice as strong as a gutshot.',
+    category: 'strength',
+  },
+  {
+    id: 'flushdraw',
+    fr: 'Flush draw (tirage couleur)', en: 'Flush draw',
+    definitionFr: '4 cartes de la même couleur en main + board : une 5ème carte de cette couleur complète la couleur. **9 outs** (≈36% au flop, ≈20% au turn). Un des tirages les plus puissants.',
+    definitionEn: '4 cards of the same suit between hand + board: one more of that suit completes the flush. **9 outs** (≈36% on flop, ≈20% on turn). One of the strongest draws.',
     category: 'strength',
   },
   {

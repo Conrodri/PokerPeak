@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import {
   BarChart2, Trophy, BookOpen, Home, LogOut, Crown,
-  ChevronDown, Lock, Menu, X,
+  ChevronDown, Lock, Menu, X, BookMarked, GraduationCap,
 } from 'lucide-react';
 import { LanguageToggle } from '../ui/LanguageToggle';
 import { ModeToggle } from '../ui/ModeToggle';
@@ -31,15 +31,18 @@ export function Navbar() {
 
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [dropOpen,     setDropOpen]     = useState(false);
+  const [rulesOpen,    setRulesOpen]    = useState(false);
   const [mobileOpen,   setMobileOpen]   = useState(false);
 
   const dropRef   = useRef<HTMLDivElement>(null);
+  const rulesRef  = useRef<HTMLDivElement>(null);
   const mobileRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false);
+      if (dropRef.current   && !dropRef.current.contains(e.target as Node))   setDropOpen(false);
+      if (rulesRef.current  && !rulesRef.current.contains(e.target as Node))  setRulesOpen(false);
       if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) setMobileOpen(false);
     };
     document.addEventListener('mousedown', handler);
@@ -47,10 +50,15 @@ export function Navbar() {
   }, []);
 
   // Close on route change
-  useEffect(() => { setDropOpen(false); setMobileOpen(false); }, [location.pathname, location.search]);
+  useEffect(() => {
+    setDropOpen(false);
+    setRulesOpen(false);
+    setMobileOpen(false);
+  }, [location.pathname, location.search]);
 
   const isTrainingActive = location.pathname.startsWith('/training');
-  const avatarLetter = user?.username?.[0]?.toUpperCase() ?? '?';
+  const isRulesActive    = location.pathname.startsWith('/rules') || location.pathname.startsWith('/glossary');
+  const avatarLetter     = user?.username?.[0]?.toUpperCase() ?? '?';
 
   // Shared link style helper
   const linkCls = (active: boolean) =>
@@ -65,37 +73,79 @@ export function Navbar() {
           {/* ── Logo ── */}
           <Link to="/" className="flex items-center gap-2 font-bold text-xl shrink-0">
             <span className="text-2xl">🃏</span>
-            <span className="text-gold-400 font-serif hidden sm:block">PokerTrainer</span>
+            <span className="text-gold-400 font-serif hidden xl:block">PokerTrainer</span>
           </Link>
 
-          {/* ── Desktop nav (hidden below lg) ── */}
-          <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+          {/* ── Desktop nav (hidden below md) ── */}
+          <nav className="hidden md:flex items-center gap-1 flex-1 justify-center min-w-0">
 
             {/* Home */}
-            <Link to="/" className={linkCls(location.pathname === '/')}>
-              <Home size={16} /><span>{t.nav.home}</span>
+            <Link to="/" className={linkCls(location.pathname === '/')} title={t.nav.home}>
+              <Home size={16} /><span className="hidden 2xl:block">{t.nav.home}</span>
             </Link>
 
-            {/* Rules */}
-            <Link to="/rules" className={linkCls(location.pathname.startsWith('/rules'))}>
-              <span className="text-sm">📚</span>
-              <span>{isEn ? 'Rules' : 'Règles'}</span>
-            </Link>
+            {/* Rules dropdown */}
+            <div className="relative" ref={rulesRef}>
+              <button
+                onClick={() => setRulesOpen(v => !v)}
+                className={linkCls(isRulesActive)}
+                title={isEn ? 'Rules' : 'Règles'}
+              >
+                <span className="text-sm">📚</span>
+                <span className="hidden 2xl:block">{isEn ? 'Rules' : 'Règles'}</span>
+                <ChevronDown size={12} className={`transition-transform duration-200 ${rulesOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            {/* Glossary */}
-            <Link to="/glossary" className={linkCls(location.pathname.startsWith('/glossary'))}>
-              <span className="text-sm">📖</span>
-              <span>{isEn ? 'Glossary' : 'Lexique'}</span>
-            </Link>
+              <AnimatePresence>
+                {rulesOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0,  scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                    transition={{ duration: 0.14 }}
+                    className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl z-50 overflow-hidden py-2"
+                  >
+                    <Link
+                      to="/rules"
+                      onClick={() => setRulesOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                        location.pathname.startsWith('/rules') ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-base leading-none">📚</span>
+                      <span>{isEn ? 'Rules' : 'Règles'}</span>
+                    </Link>
+                    <Link
+                      to="/glossary"
+                      onClick={() => setRulesOpen(false)}
+                      className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                        location.pathname.startsWith('/glossary') ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      }`}
+                    >
+                      <BookMarked size={15} className="shrink-0" />
+                      <span>{isEn ? 'Glossary' : 'Lexique'}</span>
+                    </Link>
+                    <button
+                      onClick={() => { setRulesOpen(false); setTutorialOpen(true); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                    >
+                      <GraduationCap size={15} className="shrink-0" />
+                      <span>{isEn ? 'Tutorial' : 'Tutoriel'}</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Training dropdown */}
             <div className="relative" ref={dropRef}>
               <button
                 onClick={() => setDropOpen(v => !v)}
                 className={linkCls(isTrainingActive)}
+                title={t.nav.training}
               >
                 <BookOpen size={16} />
-                <span>{t.nav.training}</span>
+                <span className="hidden 2xl:block">{t.nav.training}</span>
                 <ChevronDown size={12} className={`transition-transform duration-200 ${dropOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -115,27 +165,28 @@ export function Navbar() {
             </div>
 
             {/* Stats */}
-            <Link to="/stats" className={linkCls(location.pathname.startsWith('/stats'))}>
-              <BarChart2 size={16} /><span>{t.nav.stats}</span>
+            <Link to="/stats" className={linkCls(location.pathname.startsWith('/stats'))} title={t.nav.stats}>
+              <BarChart2 size={16} /><span className="hidden 2xl:block">{t.nav.stats}</span>
             </Link>
 
             {/* Leaderboard */}
-            <Link to="/leaderboard" className={linkCls(location.pathname.startsWith('/leaderboard'))}>
-              <Trophy size={16} /><span>{t.nav.leaderboard}</span>
+            <Link to="/leaderboard" className={linkCls(location.pathname.startsWith('/leaderboard'))} title={t.nav.leaderboard}>
+              <Trophy size={16} /><span className="hidden 2xl:block">{t.nav.leaderboard}</span>
             </Link>
           </nav>
 
           {/* ── Right side ── */}
           <div className="flex items-center gap-1 shrink-0">
-            {/* Tutorial — desktop only */}
-            <button
-              onClick={() => setTutorialOpen(true)}
-              className="hidden lg:flex items-center gap-1 text-xs text-gray-500 hover:text-gold-400 transition-colors px-2 py-1 rounded-lg hover:bg-gray-800"
-              title={t.nav.tutorial}
-            >
-              <BookOpen size={13} /><span>{t.nav.tutorial}</span>
-            </button>
-
+            {/* Premium CTA — only for non-premium users */}
+            {!user?.isPremium && (
+              <Link
+                to="/premium"
+                className="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-gold-600/20 hover:bg-gold-600/30 border border-gold-600/40 text-gold-400 hover:text-gold-300 text-xs font-bold transition-colors"
+                title={isEn ? 'Go Premium' : 'Passer Premium'}
+              >
+                <Crown size={12} fill="currentColor" />
+              </Link>
+            )}
             <ModeToggle />
             <LanguageToggle />
 
@@ -153,27 +204,27 @@ export function Navbar() {
                       </div>
                     )}
                   </div>
-                  <span className="hidden xl:block text-sm font-medium text-gold-400 group-hover:text-gold-300 transition-colors">
+                  <span className="hidden 2xl:block text-sm font-medium text-gold-400 group-hover:text-gold-300 transition-colors">
                     {user.username}
                   </span>
                 </Link>
-                {/* Logout — desktop only */}
+                {/* Logout — only at xl+ to save space at lg */}
                 <button
                   onClick={logout}
-                  className="hidden lg:flex p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+                  className="hidden xl:flex p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/10"
                   title={isEn ? 'Sign out' : 'Déconnexion'}
                 >
                   <LogOut size={16} />
                 </button>
               </>
             ) : (
-              <Link to="/login" className="hidden lg:flex text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors ml-1">
+              <Link to="/login" className="hidden md:flex text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors ml-1">
                 {t.nav.login}
               </Link>
             )}
 
-            {/* ── Hamburger (shown below lg) ── */}
-            <div className="lg:hidden relative ml-1" ref={mobileRef}>
+            {/* ── Hamburger (shown below md) ── */}
+            <div className="md:hidden relative ml-1" ref={mobileRef}>
               <button
                 onClick={() => setMobileOpen(v => !v)}
                 className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -193,10 +244,23 @@ export function Navbar() {
                   >
                     {/* Main nav links */}
                     <MobileNavLink to="/" icon={<Home size={15} />} label={t.nav.home} active={location.pathname === '/'} />
-                    <MobileNavLink to="/rules" icon={<span>📚</span>} label={isEn ? 'Rules' : 'Règles'} active={location.pathname.startsWith('/rules')} />
-                    <MobileNavLink to="/glossary" icon={<span>📖</span>} label={isEn ? 'Glossary' : 'Lexique'} active={location.pathname.startsWith('/glossary')} />
                     <MobileNavLink to="/stats" icon={<BarChart2 size={15} />} label={t.nav.stats} active={location.pathname.startsWith('/stats')} />
                     <MobileNavLink to="/leaderboard" icon={<Trophy size={15} />} label={t.nav.leaderboard} active={location.pathname.startsWith('/leaderboard')} />
+
+                    {/* Rules section */}
+                    <div className="mx-3 my-1.5 border-t border-gray-800" />
+                    <p className="px-3 py-1 text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1">
+                      <span>📚</span> {isEn ? 'Rules' : 'Règles'}
+                    </p>
+                    <MobileNavLink to="/rules" icon={<span>📚</span>} label={isEn ? 'Rules' : 'Règles'} active={location.pathname.startsWith('/rules')} />
+                    <MobileNavLink to="/glossary" icon={<BookMarked size={15} />} label={isEn ? 'Glossary' : 'Lexique'} active={location.pathname.startsWith('/glossary')} />
+                    <button
+                      onClick={() => { setTutorialOpen(true); setMobileOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                    >
+                      <span className="w-4 flex items-center justify-center shrink-0"><GraduationCap size={15} /></span>
+                      <span>{isEn ? 'Tutorial' : 'Tutoriel'}</span>
+                    </button>
 
                     {/* Training section */}
                     <div className="mx-3 my-1.5 border-t border-gray-800" />
@@ -207,12 +271,18 @@ export function Navbar() {
 
                     {/* Bottom actions */}
                     <div className="mx-3 my-1.5 border-t border-gray-800" />
-                    <button
-                      onClick={() => { setTutorialOpen(true); setMobileOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-                    >
-                      <BookOpen size={15} />{t.nav.tutorial}
-                    </button>
+
+                    {/* Premium CTA in mobile menu */}
+                    {!user?.isPremium && (
+                      <Link
+                        to="/premium"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 text-sm text-gold-400 hover:text-gold-300 hover:bg-yellow-900/20 transition-colors font-semibold"
+                      >
+                        <Crown size={15} fill="currentColor" />
+                        {isEn ? 'Go Premium' : 'Devenir Premium'}
+                      </Link>
+                    )}
 
                     {user ? (
                       <button

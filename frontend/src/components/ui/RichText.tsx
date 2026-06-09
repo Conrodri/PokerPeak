@@ -51,6 +51,17 @@ const MATCHES: MatchEntry[] = [
   { pattern: 'monotone board',    id: 'monotone' },
   { pattern: 'rainbow board',     id: 'rainbow'  },
   { pattern: 'arc-en-ciel',       id: 'rainbow'  },
+  // ── Draw types (multi-word first) ───────────────────────────────────────────
+  { pattern: 'flush draw',              id: 'flushdraw' },
+  { pattern: 'tirage couleur',          id: 'flushdraw' },
+  { pattern: 'open-ended straight draw',id: 'oesd'      },
+  { pattern: 'open-ended draw',         id: 'oesd'      },
+  { pattern: 'tirage quinte gutshot',   id: 'gutshot'   },
+  { pattern: 'tirage quinte bilatéral', id: 'oesd'      },
+  { pattern: 'tirage quinte intérieur', id: 'gutshot'   },
+  { pattern: 'gutshot straight draw',   id: 'gutshot'   },
+  { pattern: 'open-ended',             id: 'oesd'      },
+  { pattern: 'gutshot',                id: 'gutshot'   },
   // ── Single words ────────────────────────────────────────────────────────────
   { pattern: 'showdown',          id: 'showdown' },
   { pattern: 'monotone',          id: 'monotone' },

@@ -11,6 +11,7 @@ import { TablePage } from './pages/TablePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { PokerRulesPage } from './components/training/PokerRulesPage';
 import { GlossaryPage } from './pages/GlossaryPage';
+import { PremiumPage } from './pages/PremiumPage';
 import { Tutorial } from './components/tutorial/Tutorial';
 import { useAuthStore } from './store/authStore';
 import { useTrainingStore } from './store/trainingStore';
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/premium" element={<PremiumPage />} />
         </Routes>
       </Layout>
 

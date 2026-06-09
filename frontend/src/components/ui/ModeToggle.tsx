@@ -33,7 +33,7 @@ export function ModeToggle() {
           `}
         >
           {opt.icon}
-          <span className="hidden sm:block">{opt.label}</span>
+          <span className="hidden 2xl:block">{opt.label}</span>
         </motion.button>
       ))}
     </div>
