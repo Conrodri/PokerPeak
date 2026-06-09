@@ -1,5 +1,11 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { useLangStore } from '../../store/langStore';
 import { Hand } from '../poker/Card';
+import { PokerTable } from '../poker/PokerTable';
+import { Position } from '../../types/poker';
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -12,10 +18,52 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+// ─── Interactive table constants ─────────────────────────────────────────────
+
+const CLOCKWISE: Position[] = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
+
+const POSITION_COLORS: Record<Position, string> = {
+  BTN: '#16a34a', SB: '#2563eb', BB: '#dc2626',
+  UTG: '#b45309', HJ: '#7c3aed', CO: '#0891b2',
+};
+
+const POSITION_TIPS: Record<Position, { fr: string; en: string }> = {
+  BTN: {
+    fr: 'La meilleure position. Tu agis en DERNIER post-flop — tu vois toutes les actions avant de décider. Range la plus large (~45%). Le jeton D tourne à chaque main.',
+    en: 'The best position. You act LAST post-flop — you see all actions before deciding. Widest range (~45%). The D token rotates each hand.',
+  },
+  SB: {
+    fr: 'Position délicate. Tu postes 0.5 BB obligatoire. Tu as un désavantage de position post-flop (tu agis avant BB). Range assez large mais jeu post-flop difficile.',
+    en: 'Tricky position. You post 0.5 BB forced. You have a positional disadvantage post-flop (you act before BB). Fairly wide range but tough post-flop play.',
+  },
+  BB: {
+    fr: "Tu as déjà payé 1 BB. Tu es le DERNIER à parler pré-flop, ce qui te donne un avantage pour fermer l'action. Post-flop tu es en OOP (hors position) sauf face au SB.",
+    en: 'You already paid 1 BB. You are the LAST to act pre-flop, giving you an advantage to close the action. Post-flop you are OOP (out of position) except vs. SB.',
+  },
+  UTG: {
+    fr: "La pire position. Tu agis en PREMIER sans aucune information sur les autres joueurs. Joue uniquement tes meilleures mains (~15%). Chaque adversaire est encore à parler.",
+    en: 'The worst position. You act FIRST with no information on other players. Only play your best hands (~15%). Every opponent still has to act after you.',
+  },
+  HJ: {
+    fr: "Position intermédiaire, légèrement meilleure qu'UTG. Tu peux jouer quelques mains de plus (~20%) mais reste relativement serré. 3 joueurs actent encore après toi.",
+    en: 'Middle position, slightly better than UTG. You can play a few more hands (~20%) but stay relatively tight. 3 players still act after you.',
+  },
+  CO: {
+    fr: 'Bonne position, juste avant le Button. Tu peux voler les blindes régulièrement et jouer une range assez large (~26%). Seulement BTN, SB et BB actent après toi.',
+    en: 'Good position, right before the Button. You can steal the blinds regularly and play a fairly wide range (~26%). Only BTN, SB and BB act after you.',
+  },
+};
+
 // ─── PokerRulesPage ───────────────────────────────────────────────────────────
 
 export function PokerRulesPage() {
   const isEn = useLangStore(s => s.lang) === 'en';
+  const [activePos, setActivePos] = useState<Position>('BTN');
+
+  const rangePct: Record<Position, string> = {
+    BTN: '~45%', SB: '~35%', BB: isEn ? 'Defend' : 'Défend',
+    UTG: '~15%', HJ: '~20%', CO: '~26%',
+  };
 
   // Only the cards that define the combination — no filler cards
   const hands = [
@@ -290,6 +338,102 @@ export function PokerRulesPage() {
               : '✅ En position = tu parles EN DERNIER = gros avantage !'}
           </p>
         </div>
+      </Section>
+
+      {/* ── Section 5b: Table interactive ── */}
+      <Section title={`🎮 ${isEn ? 'Interactive table' : 'Table interactive'}`}>
+        <p className="text-sm text-gray-400 mb-4">
+          {isEn
+            ? 'Click a seat to see the strategy, opening range and key tips for each position.'
+            : 'Clique sur une place pour voir la stratégie, la range et les conseils de chaque position.'}
+        </p>
+
+        {/* Table */}
+        <div className="mb-4">
+          <PokerTable
+            heroPosition={activePos}
+            onPositionChange={setActivePos}
+            interactive
+          />
+        </div>
+
+        {/* Animated position info */}
+        <motion.div
+          key={activePos}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.15 }}
+          className="rounded-xl p-4 border mb-4"
+          style={{
+            background: `${POSITION_COLORS[activePos]}0f`,
+            borderColor: `${POSITION_COLORS[activePos]}30`,
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <div className="w-3 h-3 rounded-full shrink-0" style={{ background: POSITION_COLORS[activePos] }} />
+            <span className="text-white font-bold text-lg">{activePos}</span>
+            <span
+              className="text-xs font-bold px-2 py-0.5 rounded-full"
+              style={{
+                background: `${POSITION_COLORS[activePos]}22`,
+                color: POSITION_COLORS[activePos],
+                border: `1px solid ${POSITION_COLORS[activePos]}44`,
+              }}
+            >
+              {rangePct[activePos]}
+            </span>
+            {activePos === 'BTN' && (
+              <span className="text-xs px-2 py-0.5 bg-gray-700 text-gray-300 rounded-full">
+                {isEn ? '⬤ Dealer' : '⬤ Donneur'}
+              </span>
+            )}
+            {activePos === 'SB' && (
+              <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded-full border border-blue-800">
+                {isEn ? 'Posts ½ BB' : 'Poste ½ BB'}
+              </span>
+            )}
+            {activePos === 'BB' && (
+              <span className="text-xs px-2 py-0.5 bg-red-900/50 text-red-300 rounded-full border border-red-800">
+                {isEn ? 'Posts 1 BB' : 'Poste 1 BB'}
+              </span>
+            )}
+          </div>
+          <p className="text-gray-300 text-sm leading-relaxed">
+            {isEn ? POSITION_TIPS[activePos].en : POSITION_TIPS[activePos].fr}
+          </p>
+        </motion.div>
+
+        {/* Position grid */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {CLOCKWISE.map(pos => (
+            <button
+              key={pos}
+              onClick={() => setActivePos(pos)}
+              className={`flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all ${
+                activePos === pos
+                  ? 'border-white/20 bg-gray-800/80'
+                  : 'border-gray-800 bg-gray-900/30 hover:border-gray-700 hover:bg-gray-900/60'
+              }`}
+            >
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: POSITION_COLORS[pos] }} />
+              <div>
+                <p className="text-white text-xs font-bold leading-none">{pos}</p>
+                <p className="text-gray-500 text-xs mt-0.5">{rangePct[pos]}</p>
+              </div>
+              {activePos === pos && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: POSITION_COLORS[pos] }} />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <Link to={activePos === 'BB' ? '/training?module=preflop' : '/training?module=preflop'}>
+          <button className="w-full py-2.5 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2">
+            {isEn ? `Train from ${activePos} →` : `S'entraîner depuis ${activePos} →`}
+            <ArrowRight size={15} />
+          </button>
+        </Link>
       </Section>
 
       {/* ── Section 6: Les modules de PokerTrainer ── */}

@@ -4,11 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import {
   BarChart2, Trophy, BookOpen, Home, LogOut, Crown,
-  ChevronDown, Lock, Menu, X, TableProperties,
+  ChevronDown, Lock, Menu, X,
 } from 'lucide-react';
 import { LanguageToggle } from '../ui/LanguageToggle';
 import { ModeToggle } from '../ui/ModeToggle';
-import { Tutorial, shouldShowTutorial } from '../tutorial/Tutorial';
+import { Tutorial } from '../tutorial/Tutorial';
 import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 
@@ -108,11 +108,6 @@ export function Navbar() {
               </AnimatePresence>
             </div>
 
-            {/* Table */}
-            <Link to="/table" className={linkCls(location.pathname.startsWith('/table'))}>
-              <TableProperties size={16} /><span>{isEn ? 'Table' : 'Table'}</span>
-            </Link>
-
             {/* Stats */}
             <Link to="/stats" className={linkCls(location.pathname.startsWith('/stats'))}>
               <BarChart2 size={16} /><span>{t.nav.stats}</span>
@@ -193,7 +188,6 @@ export function Navbar() {
                     {/* Main nav links */}
                     <MobileNavLink to="/" icon={<Home size={15} />} label={t.nav.home} active={location.pathname === '/'} />
                     <MobileNavLink to="/rules" icon={<span>📚</span>} label={isEn ? 'Rules' : 'Règles'} active={location.pathname.startsWith('/rules')} />
-                    <MobileNavLink to="/table" icon={<TableProperties size={15} />} label={isEn ? 'Table' : 'Table'} active={location.pathname.startsWith('/table')} />
                     <MobileNavLink to="/stats" icon={<BarChart2 size={15} />} label={t.nav.stats} active={location.pathname.startsWith('/stats')} />
                     <MobileNavLink to="/leaderboard" icon={<Trophy size={15} />} label={t.nav.leaderboard} active={location.pathname.startsWith('/leaderboard')} />
 
