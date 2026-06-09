@@ -77,9 +77,18 @@ function ModuleGrid({ modules, isEn }: {
                   />
                 )}
               </div>
-              {stat.total > 0 && (
-                <span className="text-[10px] text-gray-600">{stat.total} ex.</span>
-              )}
+              <div className="flex items-center justify-between mt-0.5">
+                {stat.total > 0 ? (
+                  <span className="text-[10px] text-gray-600">{stat.total} ex.</span>
+                ) : (
+                  <span />
+                )}
+                {(stat.bestStreak ?? 0) > 0 && (
+                  <span className="text-[10px] text-orange-400 font-semibold">
+                    🔥 {stat.bestStreak}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
@@ -244,8 +253,8 @@ export function LeaderboardPage() {
         <p className="flex items-center justify-center gap-1.5">
           <ChevronDown size={11} />
           {isEn
-            ? 'Click any row to see accuracy per module'
-            : 'Cliquez sur une ligne pour voir la précision par module'}
+            ? 'Click any row to see accuracy & best streaks per module'
+            : 'Cliquez sur une ligne pour voir la précision & séries max par module'}
         </p>
         <p>{t.leaderboard.updated}</p>
         <p>{t.leaderboard.coming_soon} 🃏</p>

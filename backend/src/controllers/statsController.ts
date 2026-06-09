@@ -63,12 +63,12 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
       accuracy: l.totalExercises > 0 ? Math.round((l.totalCorrect / l.totalExercises) * 100) : 0,
       streak: l.streak,
       modules: {
-        preflop:  { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal  },
-        potodds:  { accuracy: acc(l.potoddsCorrect,  l.potoddsTotal),  total: l.potoddsTotal  },
-        equity:   { accuracy: acc(l.equityCorrect,   l.equityTotal),   total: l.equityTotal   },
-        outs:     { accuracy: acc(l.outsCorrect,     l.outsTotal),     total: l.outsTotal     },
-        postflop: { accuracy: acc(l.postflopCorrect, l.postflopTotal), total: l.postflopTotal },
-        fullhand: { accuracy: acc(l.fullhandCorrect, l.fullhandTotal), total: l.fullhandTotal },
+        preflop:  { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal,  bestStreak: l.preflopBest  },
+        potodds:  { accuracy: acc(l.potoddsCorrect,  l.potoddsTotal),  total: l.potoddsTotal,  bestStreak: l.potoddssBest },
+        equity:   { accuracy: acc(l.equityCorrect,   l.equityTotal),   total: l.equityTotal,   bestStreak: l.equityBest   },
+        outs:     { accuracy: acc(l.outsCorrect,     l.outsTotal),     total: l.outsTotal,     bestStreak: l.outsBest     },
+        postflop: { accuracy: acc(l.postflopCorrect, l.postflopTotal), total: l.postflopTotal, bestStreak: l.postflopBest },
+        fullhand: { accuracy: acc(l.fullhandCorrect, l.fullhandTotal), total: l.fullhandTotal, bestStreak: l.fullhandBest },
       },
     }));
 

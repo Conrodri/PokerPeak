@@ -128,6 +128,7 @@ export interface PlayerStats {
 export interface LeaderboardModuleStat {
   accuracy: number | null;   // null = no exercises done yet
   total: number;
+  bestStreak?: number;
 }
 
 export interface LeaderboardEntry {
