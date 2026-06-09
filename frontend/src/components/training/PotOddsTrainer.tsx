@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 import { ProgressBar } from '../ui/ProgressBar';
 import { SessionStatsBar } from '../ui/SessionStatsBar';
 import { VerdictBanner } from '../ui/VerdictBanner';
-import { RichText } from '../ui/RichText';
+import { RichText, RichLine } from '../ui/RichText';
 import { Spinner } from '../ui/Spinner';
 import { ExplanationPanel } from '../ui/ExplanationPanel';
 import { TrainerIntro } from '../ui/TrainerIntro';
@@ -71,16 +71,16 @@ export function PotOddsTrainer() {
           whatContent={
             <>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                {isEn
+                <RichLine text={isEn
                   ? "The ratio between the cost of a call and the total pot size. If your equity exceeds this threshold, calling is profitable in the long run."
-                  : "Le ratio entre le coût de l'appel et la taille totale du pot. Si votre équité dépasse ce seuil, l'appel est rentable à long terme."}
+                  : "Le ratio entre le coût de l'appel et la taille totale du pot. Si votre équité dépasse ce seuil, l'appel est rentable à long terme."} />
               </p>
               <div className="bg-gray-800/60 rounded-xl p-3 border border-gray-700 text-center">
                 <div className="text-gold-400 font-mono font-bold text-sm">
                   {isEn ? 'Pot Odds = Call ÷ (Pot + Call)' : 'Pot Odds = Mise ÷ (Pot + Mise)'}
                 </div>
                 <div className="text-gray-500 text-xs mt-1">
-                  {isEn ? 'If your equity > pot odds → Call is +EV' : 'Si votre équité > pot odds → Appeler est +EV'}
+                  <RichLine text={isEn ? 'If your equity > pot odds → Call is +EV' : 'Si votre équité > pot odds → Appeler est +EV'} />
                 </div>
               </div>
             </>

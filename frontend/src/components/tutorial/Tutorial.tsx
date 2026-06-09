@@ -4,6 +4,7 @@ import { X, ChevronRight, ChevronLeft, BookOpen, EyeOff } from 'lucide-react';
 import { useT } from '../../i18n';
 import { Button } from '../ui/Button';
 import { Link } from 'react-router-dom';
+import { RichLine } from '../ui/RichText';
 import { useLangStore } from '../../store/langStore';
 import { useAuthStore } from '../../store/authStore';
 
@@ -188,7 +189,7 @@ function Slide2({ isEn }: { isEn: boolean }) {
                   <span className="text-[10px] bg-gold-800/60 text-gold-300 border border-gold-700 px-1.5 py-0.5 rounded-full font-semibold">👑</span>
                 )}
               </div>
-              <p className="text-gray-400 text-xs mt-0.5 leading-snug">{mod.desc}</p>
+              <p className="text-gray-400 text-xs mt-0.5 leading-snug"><RichLine text={mod.desc} /></p>
             </div>
           </div>
         ))}
@@ -208,7 +209,7 @@ function Slide3({ isEn }: { isEn: boolean }) {
           <ul className="text-sm text-blue-200 space-y-1.5">
             <li className="flex items-center gap-2"><span className="text-green-400">✓</span>{isEn ? 'Hints shown' : 'Indices affichés'}</li>
             <li className="flex items-center gap-2"><span className="text-green-400">✓</span>{isEn ? 'Explanations' : 'Explications'}</li>
-            <li className="flex items-center gap-2"><span className="text-green-400">✓</span>{isEn ? 'Hand ranges' : 'Ranges de mains'}</li>
+            <li className="flex items-center gap-2"><span className="text-green-400">✓</span><RichLine text={isEn ? 'Hand ranges' : 'Ranges de mains'} /></li>
           </ul>
           <p className="text-xs text-blue-300 text-center italic">{isEn ? 'For people learning' : 'Pour ceux qui apprennent'}</p>
         </div>

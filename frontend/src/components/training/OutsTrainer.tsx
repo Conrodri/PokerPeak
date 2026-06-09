@@ -11,6 +11,7 @@ import { ExplanationPanel } from '../ui/ExplanationPanel';
 import { TrainerIntro } from '../ui/TrainerIntro';
 import { useModeStore } from '../../store/modeStore';
 import { CardStr } from '../../types/poker';
+import { RichLine } from '../ui/RichText';
 import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 
@@ -69,9 +70,9 @@ export function OutsTrainer() {
           whatContent={
             <>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
-                {isEn
+                <RichLine text={isEn
                   ? "A card remaining in the deck that improves your hand. For example, with a flush draw (4 cards of the same suit), there are 9 remaining cards of that suit = 9 outs."
-                  : "Une carte restante dans le deck qui améliore votre main. Exemple : avec un tirage couleur (4 cartes de la même couleur), il reste 9 cartes de cette couleur = 9 outs."}
+                  : "Une carte restante dans le deck qui améliore votre main. Exemple : avec un tirage couleur (4 cartes de la même couleur), il reste 9 cartes de cette couleur = 9 outs."} />
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {[
@@ -81,7 +82,7 @@ export function OutsTrainer() {
                   <div key={s.label} className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 text-center">
                     <div className="text-xl mb-1">{s.emoji}</div>
                     <div className="text-white font-bold text-sm">{s.label}</div>
-                    <div className="text-gray-500 text-xs mt-1 leading-tight">{s.desc}</div>
+                    <div className="text-gray-500 text-xs mt-1 leading-tight"><RichLine text={s.desc} /></div>
                   </div>
                 ))}
               </div>

@@ -8,7 +8,7 @@ import { ProgressBar } from '../ui/ProgressBar';
 import { SessionStatsBar } from '../ui/SessionStatsBar';
 import { useModeStore } from '../../store/modeStore';
 import { VerdictBanner } from '../ui/VerdictBanner';
-import { RichText } from '../ui/RichText';
+import { RichText, RichLine } from '../ui/RichText';
 import { RangeMatrix } from '../poker/RangeMatrix';
 import { CardStr, Position } from '../../types/poker';
 import { trainingApi, rangesApi, profilesApi } from '../../services/api';
@@ -51,9 +51,9 @@ function IntroPanel({ isEn, mode, onStart }: { isEn: boolean; mode: 'beginner' |
           {isEn ? 'BB Defense Trainer' : 'Entraîneur Défense BB'}
         </h2>
         <p className="text-gray-400 text-sm leading-relaxed">
-          {isEn
+          <RichLine text={isEn
             ? 'Master the big blind defense strategy — when to fold, call, or 3-bet facing a raise.'
-            : 'Maîtrisez la stratégie de défense en grosse blind — quand se coucher, appeler ou 3-better face à une relance.'}
+            : 'Maîtrisez la stratégie de défense en grosse blind — quand se coucher, appeler ou 3-better face à une relance.'} />
         </p>
       </div>
 
@@ -63,9 +63,9 @@ function IntroPanel({ isEn, mode, onStart }: { isEn: boolean; mode: 'beginner' |
           {isEn ? 'The BB context' : 'Le contexte en BB'}
         </h3>
         <p className="text-gray-400 text-sm leading-relaxed mb-4">
-          {isEn
+          <RichLine text={isEn
             ? 'You are in the big blind. A player has raised from a specific position (BTN, CO, HJ...). You must choose the best response with your 2 hole cards.'
-            : 'Vous êtes en grosse blind. Un joueur a relancé depuis une position adverse (BTN, CO, HJ...). Vous devez choisir la meilleure réponse avec vos 2 cartes en main.'}
+            : 'Vous êtes en grosse blind. Un joueur a relancé depuis une position adverse (BTN, CO, HJ...). Vous devez choisir la meilleure réponse avec vos 2 cartes en main.'} />
         </p>
         <div className="grid grid-cols-3 gap-2">
           {[
@@ -76,7 +76,7 @@ function IntroPanel({ isEn, mode, onStart }: { isEn: boolean; mode: 'beginner' |
             <div key={s.label} className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 text-center">
               <div className="text-xl mb-1">{s.emoji}</div>
               <div className="text-white font-bold text-sm">{s.label}</div>
-              <div className="text-gray-500 text-xs mt-1 leading-tight">{s.desc}</div>
+              <div className="text-gray-500 text-xs mt-1 leading-tight"><RichLine text={s.desc} /></div>
             </div>
           ))}
         </div>
@@ -103,7 +103,7 @@ function IntroPanel({ isEn, mode, onStart }: { isEn: boolean; mode: 'beginner' |
           ]).map((item, i) => (
             <li key={i} className="flex items-start gap-2">
               <span className="shrink-0 mt-0.5">{item.split(' ')[0]}</span>
-              <span>{item.slice(item.indexOf(' ') + 1)}</span>
+              <span><RichLine text={item.slice(item.indexOf(' ') + 1)} /></span>
             </li>
           ))}
         </ul>

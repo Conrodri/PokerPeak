@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { GraduationCap, Play, Zap } from 'lucide-react';
 import { Button } from './Button';
+import { RichText } from './RichText';
 import { useLangStore } from '../../store/langStore';
 
 interface TrainerIntroProps {
@@ -32,7 +33,7 @@ export function TrainerIntro({
       <div className="text-center">
         <div className="text-5xl mb-3">{emoji}</div>
         <h2 className="text-2xl font-black text-white mb-2">{title}</h2>
-        <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
+        <div className="text-gray-400 text-sm leading-relaxed"><RichText text={description} /></div>
       </div>
 
       {/* What is X? */}
@@ -56,7 +57,7 @@ export function TrainerIntro({
             return (
               <li key={i} className="flex items-start gap-2">
                 <span className="shrink-0 mt-0.5">{item.slice(0, spaceIdx)}</span>
-                <span>{item.slice(spaceIdx + 1)}</span>
+                <div className="flex-1"><RichText text={item.slice(spaceIdx + 1)} /></div>
               </li>
             );
           })}
