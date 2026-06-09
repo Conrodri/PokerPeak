@@ -536,8 +536,8 @@ export function PreflopTrainer() {
                     />
                   </div>
 
-                  {/* Mobile: hero cards displayed separately below the table (CSS, no JS) */}
-                  <div className="sm:hidden flex flex-col items-center gap-1.5">
+                  {/* Hero cards below the table */}
+                  <div className="flex flex-col items-center gap-1.5">
                     <Hand
                       cards={bbExercise.hand as CardStr[]}
                       size="md"
@@ -599,8 +599,8 @@ export function PreflopTrainer() {
                     />
                   </div>
 
-                  {/* Mobile: show hero cards prominently below the table (CSS, no JS) */}
-                  <div className="sm:hidden flex flex-col items-center gap-1.5">
+                  {/* Hero cards below the table */}
+                  <div className="flex flex-col items-center gap-1.5">
                     <Hand
                       cards={preflopExercise.hand as CardStr[]}
                       size="md"

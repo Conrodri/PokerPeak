@@ -625,8 +625,8 @@ export function BetSizingTrainer() {
               />
             </div>
 
-            {/* Mobile: hero cards displayed separately below the table (CSS, no JS) */}
-            <div className="sm:hidden flex items-center justify-center gap-3">
+            {/* Hero cards below the table */}
+            <div className="flex items-center justify-center gap-3">
               <Hand cards={ex.heroHand as any} size="md" gap="gap-2" />
             </div>
 

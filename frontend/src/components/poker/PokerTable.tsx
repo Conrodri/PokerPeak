@@ -126,15 +126,8 @@ export function PokerTable({
 
   const seatSize = compact ? 34 : 52;
 
-  const hasHeroCards = !!heroCards?.length;
-  const heroPos      = seatPositions[0];
-  const hasHeroStack = hasHeroCards && !!seatInfos?.[heroPos]?.stack;
-
-  // On compact (mobile) mode, hero cards are NOT rendered inside the table —
-  // the parent trainer is responsible for displaying them separately below.
-  // On desktop (non-compact) mode, they appear in flow with a negative
-  // margin-top to visually overlap the hero seat at the table edge.
-  const heroCardsMarginTop = `calc(-10.12% + 26px)`;  // seatSize=52 → 26px
+  // hasHeroCards kept for future use; actual rendering is done by each trainer
+  const hasHeroCards = !!heroCards?.length; // eslint-disable-line @typescript-eslint/no-unused-vars
 
   return (
     <div className={`select-none w-full ${className}`}>
@@ -293,47 +286,9 @@ export function PokerTable({
         </div>{/* end absolute inset-0 */}
       </div>{/* end table oval (paddingBottom 46%) */}
 
-      {/* ── Hero hole cards + stack — hidden on mobile via CSS, shown on sm+ ──
-          Using Tailwind `hidden sm:flex` so this works regardless of JS state. */}
-      {hasHeroCards && (
-        <div
-          className="hidden sm:flex flex-col items-center"
-          style={{
-            marginTop:  heroCardsMarginTop,
-            position:   'relative',
-            zIndex:     25,
-            gap:        6,
-          }}
-        >
-          {/* Cards row */}
-          <div style={{ display: 'flex', gap: bCardSize === 'lg' ? 8 : 5 }}>
-            {heroCards!.map((c, i) => (
-              <MiniCard key={i} card={c} size={bCardSize} />
-            ))}
-          </div>
-
-          {/* Hero stack badge */}
-          {hasHeroStack && (
-            <div
-              style={{
-                fontSize:      compact ? 9 : 12,
-                fontWeight:    800,
-                color:         '#d4af37',
-                letterSpacing: '-0.02em',
-                background:    'rgba(8, 14, 26, 0.85)',
-                border:        '1px solid rgba(212,175,55,0.45)',
-                borderRadius:  compact ? 4 : 6,
-                padding:       compact ? '1px 6px' : '3px 10px',
-                boxShadow:     '0 2px 8px rgba(0,0,0,0.75), 0 0 0 1px rgba(212,175,55,0.1)',
-                whiteSpace:    'nowrap',
-                pointerEvents: 'none',
-              }}
-            >
-              {seatInfos![heroPos]!.stack}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Hero hole cards are NOT rendered inside PokerTable.
+          Each trainer renders them separately in normal flow below the table.
+          This prevents any overflow / overlap regardless of screen size or JS state. */}
     </div>{/* end outer wrapper */}
   );
 }
