@@ -128,6 +128,7 @@ export function PreflopTrainer() {
   const [phase,            setPhase]            = useState<Phase>('select_position');
   const [selectedPosition, setSelectedPosition] = useState<Position>('BTN');
   const [lockPosition,     setLockPosition]     = useState(false);
+  const [randomMode,       setRandomMode]       = useState(false);
   const [rangeMatrix,      setRangeMatrix]      = useState<number[][] | null>(null);
   const [customMatrix,     setCustomMatrix]     = useState<number[][] | null>(null);
   const [localResult,      setLocalResult]      = useState<ExerciseResult | null>(null);
@@ -184,14 +185,13 @@ export function PreflopTrainer() {
     setHeroStack(Math.floor(Math.random() * 96) + 5);
   };
 
-  // ─── handleStart ──────────────────────────────────────────────────────────────
+  // ─── pickAndStart — shared routing logic for a given position ─────────────────
 
-  const handleStart = async (pos?: Position) => {
-    const actualPos = pos ?? selectedPosition;
-    resetExerciseState();
-    setPhase('exercise');
+  const ALL_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
-    if (actualPos === 'BB') {
+  const pickAndStart = async (pos: Position) => {
+    setSelectedPosition(pos);
+    if (pos === 'BB') {
       setIsBBSession(true);
       setBBExercise(null);
       setBBIsLoading(true);
@@ -203,8 +203,16 @@ export function PreflopTrainer() {
     } else {
       setIsBBSession(false);
       setBBExercise(null);
-      await fetchPreflopExercise(actualPos);
+      await fetchPreflopExercise(pos);
     }
+  };
+
+  // ─── handleStart ──────────────────────────────────────────────────────────────
+
+  const handleStart = async (pos?: Position) => {
+    resetExerciseState();
+    setPhase('exercise');
+    await pickAndStart(pos ?? selectedPosition);
   };
 
   // ─── handleAnswer (preflop open) ──────────────────────────────────────────────
@@ -332,7 +340,12 @@ export function PreflopTrainer() {
     resetExerciseState();
     setPhase('exercise');
 
-    if (isBBSession) {
+    if (randomMode) {
+      // Re-randomize position every hand — BB included in the rotation
+      const nextPos = ALL_POSITIONS[Math.floor(Math.random() * ALL_POSITIONS.length)];
+      await pickAndStart(nextPos);
+    } else if (isBBSession) {
+      // Locked in BB session
       setBBExercise(null);
       setBBIsLoading(true);
       try {
@@ -348,6 +361,7 @@ export function PreflopTrainer() {
   // ─── handleChangePosition ─────────────────────────────────────────────────────
 
   const handleChangePosition = () => {
+    setRandomMode(false);
     setIsBBSession(false);
     setBBExercise(null);
     setBBSelected(null);
@@ -489,15 +503,14 @@ export function PreflopTrainer() {
               size="lg"
               variant="secondary"
               onClick={() => {
-                const allPos: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
-                const random = allPos[Math.floor(Math.random() * allPos.length)];
-                setSelectedPosition(random);
+                setRandomMode(true);
+                const random = ALL_POSITIONS[Math.floor(Math.random() * ALL_POSITIONS.length)];
                 handleStart(random);
               }}
             >
               {t.training.random_pos}
             </Button>
-            <Button size="lg" variant="gold" onClick={() => handleStart(selectedPosition)}>
+            <Button size="lg" variant="gold" onClick={() => { setRandomMode(false); handleStart(selectedPosition); }}>
               {selectedPosition === 'BB'
                 ? (isEn ? 'Defend as BB' : 'Défendre en BB')
                 : `${t.training.play_pos} ${selectedPosition}`}
@@ -621,18 +634,20 @@ export function PreflopTrainer() {
                     </Button>
                   </motion.div>
 
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-                    <input
-                      type="checkbox"
-                      checked={lockPosition}
-                      onChange={e => {
-                        setLockPosition(e.target.checked);
-                        if (e.target.checked) setSelectedPosition(preflopExercise.position);
-                      }}
-                      className="rounded"
-                    />
-                    {t.training.lock_pos} {preflopExercise.position}
-                  </label>
+                  {!randomMode && (
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
+                      <input
+                        type="checkbox"
+                        checked={lockPosition}
+                        onChange={e => {
+                          setLockPosition(e.target.checked);
+                          if (e.target.checked) setSelectedPosition(preflopExercise.position);
+                        }}
+                        className="rounded"
+                      />
+                      {t.training.lock_pos} {preflopExercise.position}
+                    </label>
+                  )}
                 </>
               ) : null}
             </motion.div>
