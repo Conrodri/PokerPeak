@@ -396,7 +396,7 @@ export function FullHandTrainer() {
       <Stepper phase={phase} lastStreet={scenario.lastStreet} isEn={isEn} />
 
       {/* ── Poker table ── */}
-      <div className="w-full max-w-xs sm:max-w-full mx-auto">
+      <div className="w-full max-w-xs sm:max-w-xl mx-auto">
         <PokerTable
           heroPosition={scenario.heroPosition as Position}
           interactive={false}
@@ -404,14 +404,14 @@ export function FullHandTrainer() {
           potDisplay={`${currentPotSize}bb`}
           heroCards={scenario.heroHand as string[]}
           boardCards={board as string[]}
-          boardCardSize="lg"
-          compact={false}
+          boardCardSize="md"
+          compact={true}
         />
       </div>
 
-      {/* Hero cards below the table */}
-      <div className="flex items-center justify-center gap-3 mt-2">
-        <Hand cards={scenario.heroHand as any} size="md" gap="gap-2" />
+      {/* Hero cards in a clearly separated info block */}
+      <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-4 py-3 flex items-center justify-center gap-3">
+        <Hand cards={scenario.heroHand as any} size="md" gap="gap-2" animate={false} />
       </div>
 
       {/* ── Stack info bar ── */}

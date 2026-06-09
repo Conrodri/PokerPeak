@@ -312,8 +312,8 @@ export function PostflopTrainer() {
               {isEn ? ex.streetLabel.en : ex.streetLabel.fr}
             </div>
 
-            {/* ── Poker table with cards + on-table stack / bet info ── */}
-            <div className="w-full max-w-xs sm:max-w-full mx-auto">
+            {/* ── Poker table ── */}
+            <div className="w-full max-w-xs sm:max-w-xl mx-auto">
               <PokerTable
                 heroPosition={ex.heroPosition as Position}
                 interactive={false}
@@ -321,8 +321,8 @@ export function PostflopTrainer() {
                 potDisplay={`${ex.potSize}bb`}
                 heroCards={ex.heroHand as string[]}
                 boardCards={ex.board as string[]}
-                boardCardSize="lg"
-                compact={false}
+                boardCardSize="md"
+                compact={true}
                 seatInfos={{
                   [ex.heroPosition]: { stack: `${ex.effectiveStack}bb` },
                   [ex.villainPosition]: {
@@ -333,9 +333,9 @@ export function PostflopTrainer() {
               />
             </div>
 
-            {/* Hero cards below the table */}
-            <div className="flex items-center justify-center gap-3 mt-2">
-              <Hand cards={ex.heroHand as CardStr[]} size="md" gap="gap-2" />
+            {/* Hero cards in a clearly separated info block */}
+            <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-4 py-3 flex items-center justify-center gap-3">
+              <Hand cards={ex.heroHand as CardStr[]} size="md" gap="gap-2" animate={false} />
             </div>
 
             {/* ── Bloc de contexte narratif ── */}

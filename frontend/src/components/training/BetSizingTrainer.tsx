@@ -608,7 +608,7 @@ export function BetSizingTrainer() {
             </div>
 
             {/* Poker table */}
-            <div className="w-full max-w-xs sm:max-w-full mx-auto">
+            <div className="w-full max-w-xs sm:max-w-xl mx-auto">
               <PokerTable
                 heroPosition={ex.heroPosition}
                 interactive={false}
@@ -616,8 +616,8 @@ export function BetSizingTrainer() {
                 potDisplay={`${ex.potSize}bb`}
                 heroCards={ex.heroHand}
                 boardCards={ex.board}
-                boardCardSize="lg"
-                compact={false}
+                boardCardSize="md"
+                compact={true}
                 seatInfos={{
                   [ex.heroPosition]:    { stack: `${ex.effectiveStack}bb` },
                   [ex.villainPosition]: { stack: `${ex.effectiveStack}bb` },
@@ -625,9 +625,9 @@ export function BetSizingTrainer() {
               />
             </div>
 
-            {/* Hero cards below the table */}
-            <div className="flex items-center justify-center gap-3 mt-2">
-              <Hand cards={ex.heroHand as any} size="md" gap="gap-2" />
+            {/* Hero cards in a clearly separated info block */}
+            <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-4 py-3 flex items-center justify-center gap-3">
+              <Hand cards={ex.heroHand as any} size="md" gap="gap-2" animate={false} />
             </div>
 
             {/* Context block */}

@@ -522,13 +522,13 @@ export function PreflopTrainer() {
                 <Spinner />
               ) : (
                 <>
-                  <div className="w-full max-w-xs sm:max-w-full mx-auto">
+                  <div className="w-full max-w-xs sm:max-w-xl mx-auto">
                     <PokerTable
                       heroPosition="BB"
                       interactive={false}
                       heroCards={bbExercise.hand as string[]}
-                      boardCardSize={isMobile ? 'md' : 'lg'}
-                      compact={isMobile}
+                      boardCardSize="md"
+                      compact={true}
                       seatInfos={{
                         [bbExercise.opener]: { bet: `${bbExercise.openSize}bb` },
                         ...(preflopEnabled ? { BB: { stack: `${heroStack} bb` } } : {}),
@@ -536,29 +536,20 @@ export function PreflopTrainer() {
                     />
                   </div>
 
-                  {/* Hero cards below the table */}
-                  <div className="flex flex-col items-center gap-1.5 mt-2">
-                    <Hand
-                      cards={bbExercise.hand as CardStr[]}
-                      size="md"
-                      gap="gap-3"
-                    />
+                  {/* Info block: hand + description in one visual unit */}
+                  <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-5 py-4 flex flex-col items-center gap-2">
+                    <Hand cards={bbExercise.hand as CardStr[]} size="md" gap="gap-3" animate={false} />
+                    <div className="flex items-center gap-2 flex-wrap justify-center">
+                      <span className="text-gray-400 text-sm">BB</span>
+                      <PositionInfo position="BB" />
+                      <span className="text-gold-400 font-mono font-bold text-lg">
+                        {handToDisplay(bbExercise.notation)}
+                      </span>
+                      <span className="text-gray-500 text-xs">
+                        — {bbExercise.opener} {isEn ? 'opens' : 'ouvre à'} {bbExercise.openSize}bb
+                      </span>
+                    </div>
                   </div>
-
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-2 flex-wrap justify-center"
-                  >
-                    <span className="text-gray-400 text-sm">BB</span>
-                    <PositionInfo position="BB" />
-                    <span className="text-gold-400 font-mono font-bold text-lg">
-                      {handToDisplay(bbExercise.notation)}
-                    </span>
-                    <span className="text-gray-500 text-xs">
-                      — {bbExercise.opener} {isEn ? 'opens' : 'ouvre à'} {bbExercise.openSize}bb
-                    </span>
-                  </motion.div>
 
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -586,44 +577,35 @@ export function PreflopTrainer() {
                 <Spinner />
               ) : preflopExercise ? (
                 <>
-                  <div className="w-full max-w-xs sm:max-w-full mx-auto">
+                  <div className="w-full max-w-xs sm:max-w-xl mx-auto">
                     <PokerTable
                       heroPosition={preflopExercise.position}
                       interactive={false}
                       heroCards={preflopExercise.hand as string[]}
-                      boardCardSize={isMobile ? 'md' : 'lg'}
-                      compact={isMobile}
+                      boardCardSize="md"
+                      compact={true}
                       seatInfos={preflopEnabled
                         ? { [preflopExercise.position]: { stack: `${heroStack} bb` } } as any
                         : undefined}
                     />
                   </div>
 
-                  {/* Hero cards below the table */}
-                  <div className="flex flex-col items-center gap-1.5 mt-2">
-                    <Hand
-                      cards={preflopExercise.hand as CardStr[]}
-                      size="md"
-                      gap="gap-3"
-                    />
+                  {/* Info block: hand + description in one visual unit */}
+                  <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-5 py-4 flex flex-col items-center gap-2">
+                    <Hand cards={preflopExercise.hand as CardStr[]} size="md" gap="gap-3" animate={false} />
                     {preflopEnabled && (
                       <span className="text-gold-400 text-xs font-semibold">{heroStack} bb</span>
                     )}
+                    <div className="flex items-center gap-2 flex-wrap justify-center">
+                      <span className="text-gray-400 text-sm">{t.training.position_lbl}</span>
+                      <span className="font-bold text-white text-lg">{preflopExercise.position}</span>
+                      <PositionInfo position={preflopExercise.position} />
+                      <span className="text-gold-400 font-mono font-bold text-lg">
+                        {handToDisplay(preflopExercise.notation)}
+                      </span>
+                      <span className="text-gray-500 text-xs">— {t.training.facing}</span>
+                    </div>
                   </div>
-
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-2 flex-wrap justify-center"
-                  >
-                    <span className="text-gray-400 text-sm">{t.training.position_lbl}</span>
-                    <span className="font-bold text-white text-lg">{preflopExercise.position}</span>
-                    <PositionInfo position={preflopExercise.position} />
-                    <span className="text-gold-400 font-mono font-bold text-lg">
-                      {handToDisplay(preflopExercise.notation)}
-                    </span>
-                    <span className="text-gray-500 text-xs">— {t.training.facing}</span>
-                  </motion.div>
 
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
