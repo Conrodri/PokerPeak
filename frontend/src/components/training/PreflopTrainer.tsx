@@ -537,7 +537,7 @@ export function PreflopTrainer() {
                   </div>
 
                   {/* Hero cards below the table */}
-                  <div className="flex flex-col items-center gap-1.5">
+                  <div className="flex flex-col items-center gap-1.5 mt-2">
                     <Hand
                       cards={bbExercise.hand as CardStr[]}
                       size="md"
@@ -600,7 +600,7 @@ export function PreflopTrainer() {
                   </div>
 
                   {/* Hero cards below the table */}
-                  <div className="flex flex-col items-center gap-1.5">
+                  <div className="flex flex-col items-center gap-1.5 mt-2">
                     <Hand
                       cards={preflopExercise.hand as CardStr[]}
                       size="md"

@@ -626,7 +626,7 @@ export function BetSizingTrainer() {
             </div>
 
             {/* Hero cards below the table */}
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-3 mt-2">
               <Hand cards={ex.heroHand as any} size="md" gap="gap-2" />
             </div>
 
