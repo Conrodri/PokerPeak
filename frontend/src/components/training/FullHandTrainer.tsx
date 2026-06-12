@@ -195,7 +195,7 @@ function EquityBadge({ equity, label }: { equity: number; label: string }) {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function FullHandTrainer() {
+export function FullHandTrainer({ locked = false }: { locked?: boolean } = {}) {
   const lang     = useLangStore(s => s.lang);
   const isEn     = lang === 'en';
   const isMobile = useIsMobile();
@@ -334,7 +334,7 @@ export function FullHandTrainer() {
           whatTitle={isEn ? 'The format' : 'Le format'}
           whatContent={
             <>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+              <p className="text-gray-400 text-xs leading-snug mb-2.5">
                 <RichLine text={isEn
                   ? 'Follow a complete hand across 2 to 4 streets. At each stage, choose the best action and see how each decision impacts the hand result.'
                   : 'Suivez une main complète sur 2 à 4 rues. À chaque étape, choisissez la meilleure action et voyez comment chaque décision impacte le résultat de la main.'} />
@@ -346,10 +346,10 @@ export function FullHandTrainer() {
                   { emoji: '🟡', label: 'Turn',  desc: isEn ? '4th card' : '4ème carte' },
                   { emoji: '🔴', label: 'River', desc: isEn ? 'Last card' : 'Dernière carte' },
                 ].map(s => (
-                  <div key={s.label} className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 text-center">
-                    <div className="text-xl mb-1">{s.emoji}</div>
+                  <div key={s.label} className="bg-gray-800/50 rounded-lg px-2 py-1.5 border border-gray-700 text-center">
+                    <div className="text-base mb-0.5">{s.emoji}</div>
                     <div className="text-white font-bold text-xs">{s.label}</div>
-                    <div className="text-gray-500 text-[10px] mt-1 leading-tight">{s.desc}</div>
+                    <div className="text-gray-500 text-[10px] mt-0.5 leading-tight">{s.desc}</div>
                   </div>
                 ))}
               </div>
@@ -373,6 +373,7 @@ export function FullHandTrainer() {
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
+          locked={locked}
         />
       </div>
     );

@@ -121,7 +121,7 @@ function EquityDetailPanel({ detail, equity, isEn }: {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function PostflopTrainer() {
+export function PostflopTrainer({ locked = false }: { locked?: boolean } = {}) {
   const lang     = useLangStore(s => s.lang);
   const isEn     = lang === 'en';
   const isMobile = useIsMobile();
@@ -190,13 +190,6 @@ export function PostflopTrainer() {
   if (showIntro) {
     return (
       <div className="flex flex-col gap-5 max-w-2xl mx-auto">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-1">
-              {isEn ? 'Post-flop Trainer' : 'Entraîneur Post-flop'}
-            </h2>
-          </div>
-        </div>
         <TrainerIntro
           emoji="🃏"
           title={isEn ? 'Post-flop Trainer' : 'Entraîneur Post-flop'}
@@ -206,7 +199,7 @@ export function PostflopTrainer() {
           whatTitle={isEn ? "What is post-flop play?" : "Qu'est-ce que le jeu post-flop ?"}
           whatContent={
             <>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+              <p className="text-gray-400 text-xs leading-snug mb-2.5">
                 <RichLine text={isEn
                   ? "After the preflop action (raises, calls), the dealer places community cards on the table. You must decide how to play your hand based on the visible board and your 2 hole cards."
                   : "Après l'action préflop (relances, appels), le dealer place des cartes communes sur la table. Vous devez décider comment jouer votre main selon le board visible et vos 2 cartes en main."} />
@@ -217,10 +210,10 @@ export function PostflopTrainer() {
                   { emoji: '🟡', label: isEn ? 'Turn' : 'Turn',  desc: isEn ? '4th card — bigger pot, bigger decisions' : '4ème carte — plus gros pot, décisions plus lourdes' },
                   { emoji: '🔴', label: isEn ? 'River' : 'River', desc: isEn ? '5th and final card — last chance to bet' : '5ème et dernière carte — dernière chance de miser' },
                 ].map(s => (
-                  <div key={s.label} className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 text-center">
-                    <div className="text-xl mb-1">{s.emoji}</div>
-                    <div className="text-white font-bold text-sm">{s.label}</div>
-                    <div className="text-gray-500 text-xs mt-1 leading-tight">{s.desc}</div>
+                  <div key={s.label} className="bg-gray-800/50 rounded-lg px-2 py-1.5 border border-gray-700 text-center">
+                    <div className="text-base mb-0.5">{s.emoji}</div>
+                    <div className="text-white font-bold text-xs">{s.label}</div>
+                    <div className="text-gray-500 text-[10px] mt-0.5 leading-tight">{s.desc}</div>
                   </div>
                 ))}
               </div>
@@ -244,6 +237,7 @@ export function PostflopTrainer() {
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
+          locked={locked}
         />
       </div>
     );

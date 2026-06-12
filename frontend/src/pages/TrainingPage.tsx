@@ -15,7 +15,6 @@ import { PostflopTrainer } from '../components/training/PostflopTrainer';
 import { FullHandTrainer } from '../components/training/FullHandTrainer';
 import { BetSizingTrainer } from '../components/training/BetSizingTrainer';
 
-import { PremiumGate } from '../components/ui/PremiumGate';
 import { RangeEditor } from '../components/poker/RangeEditor';
 import { useT } from '../i18n';
 import { useLangStore } from '../store/langStore';
@@ -991,15 +990,12 @@ export function TrainingPage() {
         {activeModule === 'equity'    && <EquityTrainer />}
         {activeModule === 'outs'      && <OutsTrainer />}
 
-        {activeModule === 'postflop'  && (
-          <PremiumGate><PostflopTrainer /></PremiumGate>
-        )}
-        {activeModule === 'fullhand'  && (
-          <PremiumGate><FullHandTrainer /></PremiumGate>
-        )}
-        {activeModule === 'betsizing' && (
-          <PremiumGate><BetSizingTrainer /></PremiumGate>
-        )}
+        {/* Premium modules: non-premium users still see the full intro
+            (to understand what they're missing); the start button becomes
+            a Premium upsell via the `locked` flag. */}
+        {activeModule === 'postflop'  && <PostflopTrainer  locked={!isPremium} />}
+        {activeModule === 'fullhand'  && <FullHandTrainer  locked={!isPremium} />}
+        {activeModule === 'betsizing' && <BetSizingTrainer locked={!isPremium} />}
       </motion.div>
     </div>
   );

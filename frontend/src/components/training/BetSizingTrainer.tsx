@@ -464,7 +464,7 @@ function SourcesFooter({ isEn }: { isEn: boolean }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function BetSizingTrainer() {
+export function BetSizingTrainer({ locked = false }: { locked?: boolean } = {}) {
   const lang     = useLangStore(s => s.lang);
   const isEn     = lang === 'en';
   const isMobile = useIsMobile();
@@ -516,12 +516,12 @@ export function BetSizingTrainer() {
         emoji="📐"
         title={isEn ? 'Bet Sizing Trainer' : 'Entraîneur Bet Sizing'}
         description={isEn
-          ? 'Choose the right bet size for every situation — the most underrated skill in poker.'
-          : 'Choisissez la bonne taille de mise dans chaque situation — la compétence la plus sous-estimée du poker.'}
+          ? 'Choose the right bet size — the most underrated skill in poker.'
+          : 'Choisissez la bonne taille de mise — la compétence la plus sous-estimée.'}
         whatTitle={isEn ? 'Why does sizing matter?' : 'Pourquoi le sizing est-il crucial ?'}
         whatContent={
           <>
-            <p className="text-gray-400 text-sm leading-relaxed mb-4">
+            <p className="text-gray-400 text-xs leading-snug mb-2.5">
               <RichLine text={isEn
                 ? 'The correct bet size depends on your range, the board texture, your position, and stack depth. A wrong size leaks EV on every single hand — even when you make the right strategic decision.'
                 : 'La bonne taille de mise dépend de votre range, la texture du board, votre position et la profondeur des stacks. Une mauvaise taille fait fuir de l\'EV sur chaque main — même quand la décision stratégique est correcte.'} />
@@ -533,10 +533,10 @@ export function BetSizingTrainer() {
                 { icon: '🔥', label: isEn ? 'Large (75-100%)' : 'Grande (75-100%)',  desc: isEn ? 'Protection, polarized, draws present' : 'Protection, polarisation, tirages présents' },
                 { icon: '🚀', label: isEn ? 'Overbet (130%+)' : 'Surenchère (130%+)', desc: isEn ? 'Nuts on polarized runouts, bluffs' : 'Nuts sur runouts polarisés, bluffs' },
               ].map(s => (
-                <div key={s.label} className="bg-gray-800/50 rounded-xl p-3 border border-gray-700">
-                  <div className="text-lg mb-1">{s.icon}</div>
+                <div key={s.label} className="bg-gray-800/50 rounded-lg px-2 py-1.5 border border-gray-700">
+                  <div className="text-base mb-0.5">{s.icon}</div>
                   <div className="text-white font-bold text-xs">{s.label}</div>
-                  <div className="text-gray-500 text-xs mt-0.5 leading-tight">{s.desc}</div>
+                  <div className="text-gray-500 text-[10px] mt-0.5 leading-tight">{s.desc}</div>
                 </div>
               ))}
             </div>
@@ -560,6 +560,7 @@ export function BetSizingTrainer() {
         startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
         onStart={handleStart}
         mode={mode}
+        locked={locked}
       />
       <SourcesFooter isEn={isEn} />
     </div>
