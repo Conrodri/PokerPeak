@@ -201,9 +201,10 @@ export const profilesApi = {
   deleteStackRange: (profileId: string, rangeId: string) =>
     api.delete(`/profiles/${profileId}/ranges/${rangeId}`).then(r => r.data),
 
-  /** Returns the 169-cell array for the active profile at the given stack & position. */
-  resolve: (position: string, stack: number) =>
-    api.get('/profiles/resolve', { params: { position, stack } })
+  /** Returns the cells for the active profile at the given stack & position.
+   *  Pass simpleOnly to skip complex profiles and resolve the simple range only. */
+  resolve: (position: string, stack: number, simpleOnly = false) =>
+    api.get('/profiles/resolve', { params: { position, stack, ...(simpleOnly && { simpleOnly: true }) } })
       .then(r => r.data.data) as Promise<ResolveResult>,
 };
 

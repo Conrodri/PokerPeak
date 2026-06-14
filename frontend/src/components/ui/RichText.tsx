@@ -183,13 +183,25 @@ function tokenize(text: string): Chunk[] {
  * Usage: <p className="text-sm text-gray-400"><RichLine text="..." /></p>
  */
 export function RichLine({ text }: { text: string }) {
+  // Split on **bold** markers, then tokenize plain segments for poker terms.
+  const boldParts = text.split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
-      {tokenize(text).map((chunk, i) =>
-        chunk.termId
-          ? <PokerTerm key={i} id={chunk.termId}>{chunk.text}</PokerTerm>
-          : chunk.text
-      )}
+      {boldParts.map((part, j) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          const inner = part.slice(2, -2);
+          return (
+            <strong key={j} className="text-white font-semibold">
+              {tokenize(inner).map((chunk, k) =>
+                chunk.termId ? <PokerTerm key={k} id={chunk.termId}>{chunk.text}</PokerTerm> : chunk.text
+              )}
+            </strong>
+          );
+        }
+        return tokenize(part).map((chunk, k) =>
+          chunk.termId ? <PokerTerm key={`${j}-${k}`} id={chunk.termId}>{chunk.text}</PokerTerm> : chunk.text
+        );
+      })}
     </>
   );
 }

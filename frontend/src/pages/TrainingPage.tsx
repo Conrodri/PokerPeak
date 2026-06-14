@@ -22,6 +22,7 @@ import { ExpertRangeEditor, gtoToExpertMix } from '../components/poker/ExpertRan
 import { HoverTip } from '../components/ui/HoverTip';
 import { useT } from '../i18n';
 import { useLangStore } from '../store/langStore';
+import { useModeStore } from '../store/modeStore';
 
 // Cell code → colour for the GTO BB-defense reference grid (0-4).
 const BB_GTO_CELL_COLOR = (code: number): string => ({
@@ -173,6 +174,8 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
   const isEn = useLangStore(s => s.lang) === 'en';
   const t = useT();
   const isExpert = !!useAuthStore(s => s.user?.isPremiumExpert);
+  // Complex ranges (profiles) are an Expert-mode-only feature.
+  const isExpertMode = useModeStore(s => s.mode) === 'expert';
   const [tab, setTab] = useState<'profiles' | 'simple' | 'gto'>('simple');
   const [gtoPos, setGtoPos] = useState<Position>(
     defaultPosition && positions.includes(defaultPosition) ? defaultPosition : positions[0]
@@ -364,8 +367,9 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
           setSelProfileId(sel.id);
           setSelRangeId(sel.stackRanges[0]?.id ?? null);
         }
-        // If a complex range (profile) is active, open straight onto its tab + profile.
-        if (activeProfile) setTab('profiles');
+        // If a complex range (profile) is active, open straight onto its tab + profile —
+        // but only in Expert mode, where complex ranges are usable.
+        if (activeProfile && isExpertMode) setTab('profiles');
       } catch {}
       setLoadingP(false);
     })();
@@ -643,14 +647,18 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
           {isEn ? 'Simple ranges' : 'Ranges simples'}
         </button>
         <button
-          onClick={() => setTab('profiles')}
+          onClick={() => isExpertMode && setTab('profiles')}
+          disabled={!isExpertMode}
+          title={isExpertMode ? undefined : (isEn ? 'Expert mode only' : 'Réservé au mode Expert')}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-bold border transition-all ${
-            tab === 'profiles'
-              ? 'bg-orange-900/30 text-orange-300 border-orange-700'
-              : 'text-gray-400 border-gray-700 hover:text-white hover:bg-gray-800'
+            !isExpertMode
+              ? 'text-gray-600 border-gray-800 cursor-not-allowed'
+              : tab === 'profiles'
+                ? 'bg-orange-900/30 text-orange-300 border-orange-700'
+                : 'text-gray-400 border-gray-700 hover:text-white hover:bg-gray-800'
           }`}
         >
-          <Layers size={13} />
+          {isExpertMode ? <Layers size={13} /> : <Lock size={12} />}
           {isEn ? 'Complex ranges' : 'Ranges complexes'}
         </button>
         <button

@@ -271,6 +271,16 @@ export async function resolveRange(req: Request, res: Response): Promise<void> {
       res.status(400).json({ success: false, error: 'position is required' }); return;
     }
 
+    // simpleOnly → skip complex profiles entirely, use the simple CustomRange.
+    // (Complex profiles are an Expert-mode-only feature.)
+    if (req.query.simpleOnly === 'true') {
+      const cr = await prisma.customRange.findUnique({
+        where: { userId_position: { userId, position } },
+      });
+      res.json({ success: true, data: { cells: cr ? JSON.parse(cr.cells) : null, source: 'custom' } });
+      return;
+    }
+
     const activeProfile = await prisma.rangeProfile.findFirst({
       where: { userId, isActive: true },
       include: { stackRanges: { orderBy: { stackMin: 'asc' } } },

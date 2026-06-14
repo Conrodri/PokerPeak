@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronDown, ChevronUp, RotateCcw, Info, Zap, Target, Sliders, Lightbulb } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronUp, RotateCcw, Info, Zap, Target, Sliders, Lightbulb, Check, X } from 'lucide-react';
 import { rangesApi, profilesApi } from '../../services/api';
 import { useTrainingStore } from '../../store/trainingStore';
 import { Position, ExerciseResult, BBDefenseExercise } from '../../types/poker';
@@ -188,6 +188,15 @@ function toPlayFrequencies(cells: number[]): number[] | null {
 /** Frequency presets offered in the expert quiz (covers quarters + thirds). */
 const EXPERT_FREQ_CHIPS = [25, 33, 50, 67, 75, 100];
 
+/** Colored pill styles for the open-action verdict (glanceable recap). */
+const OPEN_ACTION_PILL: Record<string, string> = {
+  raise: 'border-green-600 text-green-300 bg-green-900/30',
+  call:  'border-yellow-600 text-yellow-300 bg-yellow-900/30',
+  fold:  'border-red-600 text-red-300 bg-red-900/30',
+};
+const openActionLabel = (a: string) =>
+  a === 'raise' ? 'Raise' : a === 'fold' ? 'Fold' : a === 'call' ? 'Call' : a;
+
 /** Nearest preset chip to a stored frequency percentage. */
 function nearestChip(pct: number): number {
   return EXPERT_FREQ_CHIPS.reduce((a, b) => (Math.abs(b - pct) < Math.abs(a - pct) ? b : a), EXPERT_FREQ_CHIPS[0]);
@@ -215,6 +224,11 @@ export function PreflopTrainer() {
    *  rendered in the recap with the editor's stacked-bar scheme for consistency. */
   const [customMix,        setCustomMix]        = useState<number[] | null>(null);
   const [localResult,      setLocalResult]      = useState<ExerciseResult | null>(null);
+  const [openAnswer,       setOpenAnswer]       = useState<'raise' | 'fold' | null>(null);
+  /** Expert quiz verdict for the glanceable colored pills. */
+  const [expertVerdict,    setExpertVerdict]    = useState<
+    { action: number; userFreq: number; targetFreq: number; inRange: boolean; freqMatch: boolean } | null
+  >(null);
   const [showRange,        setShowRange]        = useState(true);
   const [heroStack,        setHeroStack]        = useState<number>(() => Math.floor(Math.random() * 96) + 5);
   const [resolvedLabel,    setResolvedLabel]    = useState<string | null>(null);
@@ -302,6 +316,8 @@ export function PreflopTrainer() {
 
   const resetExerciseState = () => {
     setLocalResult(null);
+    setOpenAnswer(null);
+    setExpertVerdict(null);
     setCustomMatrix(null);
     setCustomMix(null);
     setExpertTarget(null);
@@ -350,13 +366,14 @@ export function PreflopTrainer() {
   const handleAnswer = async (action: 'raise' | 'fold') => {
     if (!preflopExercise) return;
     const timeTaken = Date.now() - startTime.current;
+    setOpenAnswer(action);
 
     if (preflopEnabled) {
       let flat: number[] | null = null;
       let rangeLabel: string | undefined;
 
       try {
-        const resolved = await profilesApi.resolve(preflopExercise.position, heroStack);
+        const resolved = await profilesApi.resolve(preflopExercise.position, heroStack, mode !== 'expert');
         const play = resolved?.cells ? toPlayFrequencies(resolved.cells) : null;
         if (play) {
           flat = play;
@@ -381,9 +398,8 @@ export function PreflopTrainer() {
         setLocalResult({
           isCorrect,
           correctAction,
-          explanation: isEn
-            ? `${rangeLabel ? `[${rangeLabel}] ` : ''}Custom range: ${handToDisplay(preflopExercise.notation)} from ${preflopExercise.position} — correct action is ${correctAction}.`
-            : `${rangeLabel ? `[${rangeLabel}] ` : ''}Range personnalisée : ${handToDisplay(preflopExercise.notation)} en ${preflopExercise.position} — action correcte : ${correctAction === 'raise' ? 'Raise' : 'Fold'}.`,
+          // Kept short — the colored action pills convey the verdict at a glance.
+          explanation: '',
           xpEarned: xp,
         });
         await recordResult(isCorrect, xp, 'preflop', timeTaken);
@@ -427,27 +443,15 @@ export function PreflopTrainer() {
       .map(x => `${actLabel(x.a.key)} ${x.p}%`)
       .join(' · ');
 
-    // Verdict line: explicit on what the right frequency was vs. what was answered.
-    const verdictEn = !inRange
-      ? `${actLabel(action)} is not part of your range for this hand.`
-      : freqMatch
-        ? `Correct — you play ${actLabel(action)} ${target}% here.`
-        : `Right action, wrong frequency: you should ${actLabel(action)} **${target}%** here, you answered ${freqPct}%.`;
-    const verdictFr = !inRange
-      ? `${actLabel(action)} ne fait pas partie de ta range pour cette main.`
-      : freqMatch
-        ? `Correct — tu joues ${actLabel(action)} ${target}% ici.`
-        : `Bonne action, mauvaise fréquence : il fallait ${actLabel(action)} **${target}%** ici, tu as répondu ${freqPct}%.`;
-
+    // The verdict + range are shown visually via the mix bar, so no text panel.
     setLocalResult({
       isCorrect,
       partial: inRange && !freqMatch,   // right action, wrong frequency → orange
       correctAction: actLabel(action),
-      explanation: isEn
-        ? `Your range — ${handToDisplay(notation)} from ${position}: ${mixStr}.\n${verdictEn}`
-        : `Ta range — ${handToDisplay(notation)} en ${position} : ${mixStr}.\n${verdictFr}`,
+      explanation: '',
       xpEarned: xp,
     });
+    setExpertVerdict({ action, userFreq: freqPct, targetFreq: target, inRange, freqMatch });
     if (isBBSession) setBBSelected(action === 0 ? 'fold' : action === 1 ? 'call' : '3bet');
     await recordResult(isCorrect, xp, 'preflop', timeTaken);
     setPhase('result');
@@ -461,13 +465,17 @@ export function PreflopTrainer() {
     setBBSelected(action);
 
     let isCorrect: boolean;
+    // Defaults = GTO; overridden below when a custom range is used.
+    let resultAction: BBAction = bbExercise.correctAction;
+    let resultExplanation = bbExercise.explanation;
+    let resultIsMixed = bbExercise.isMixed;
 
     if (preflopEnabled) {
       let flat: number[] | null = null;
       let label: string | null = null;
 
       try {
-        const resolved = await profilesApi.resolve('BB', heroStack);
+        const resolved = await profilesApi.resolve('BB', heroStack, mode !== 'expert');
         const play = resolved?.cells ? toPlayFrequencies(resolved.cells) : null;
         if (play) {
           flat = play;
@@ -487,8 +495,13 @@ export function PreflopTrainer() {
         const [row, col] = getMatrixIndices(bbExercise.notation);
         const cellVal = grid[row]?.[col] ?? 0;
         isCorrect = cellVal > 0 ? action !== 'fold' : action === 'fold';
+        // Verdict comes from YOUR range, not GTO → map the BB code to an action.
+        const code = Math.round(cellVal);
+        resultAction = code === 0 ? 'fold' : code <= 2 ? 'call' : '3bet';
+        resultExplanation = '';   // shown via colored pills + your range grid
+        resultIsMixed = false;
       } else {
-        // No profile/custom range → evaluate against GTO
+        // No custom range → evaluate against GTO
         isCorrect = action === bbExercise.correctAction
           || (bbExercise.isMixed && action === bbExercise.altAction);
         try {
@@ -508,10 +521,10 @@ export function PreflopTrainer() {
     const xp = isCorrect ? 15 : 5;
     setLocalResult({
       isCorrect,
-      correctAction: bbExercise.correctAction,
-      explanation: bbExercise.explanation,
+      correctAction: resultAction,
+      explanation: resultExplanation,
       xpEarned: xp,
-      isMixed: bbExercise.isMixed,
+      isMixed: resultIsMixed,
     });
     await recordResult(isCorrect, xp, 'preflop', timeTaken);
     setPhase('result');
@@ -585,6 +598,55 @@ export function PreflopTrainer() {
 
   // Expert 2-step quiz active: expert mode + "Mes ranges" on an expert profile.
   const isExpertQuiz = mode === 'expert' && preflopEnabled && !!expertTarget;
+
+  // Visual recap of an expert-quiz verdict: the hand's mix shown as a colored
+  // stacked bar (same scheme as "Ta range") + the user's answer marked ✓/✗.
+  const renderExpertMixBar = () => {
+    if (!expertTarget || !expertVerdict || !result) return null;
+    const segs = EXPERT_ACTIONS
+      .map(a => ({ a, f: expertTarget[a.key] ?? 0 }))
+      .filter(s => s.f > 0);
+    const userAct = EXPERT_ACTIONS[expertVerdict.action];
+    return (
+      <div className="w-full max-w-md rounded-xl border border-gray-700 bg-gray-900/60 p-3 flex flex-col gap-2.5">
+        <p className="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
+          <Sliders size={12} /> {isEn ? 'Your range for this hand' : 'Ta range pour cette main'}
+        </p>
+        {/* Stacked mix bar */}
+        <div className="flex h-9 w-full rounded-lg overflow-hidden border border-black/40">
+          {segs.map(s => (
+            <div
+              key={s.a.key}
+              style={{ width: `${s.f * 100}%`, backgroundColor: s.a.color }}
+              className="flex items-center justify-center text-[11px] font-bold text-white whitespace-nowrap overflow-hidden"
+            >
+              {s.f >= 0.16 ? `${isEn ? s.a.labelEn : s.a.labelFr} ${Math.round(s.f * 100)}%` : ''}
+            </div>
+          ))}
+        </div>
+        {/* Legend (covers thin segments) + your answer */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex gap-2.5 flex-wrap">
+            {segs.map(s => (
+              <span key={s.a.key} className="flex items-center gap-1 text-[11px] text-gray-300">
+                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: s.a.color }} />
+                {isEn ? s.a.labelEn : s.a.labelFr} {Math.round(s.f * 100)}%
+              </span>
+            ))}
+          </div>
+          <span
+            className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full border"
+            style={{ color: userAct.accent, borderColor: userAct.accent }}
+          >
+            {isEn ? 'You' : 'Toi'}: {isEn ? userAct.labelEn : userAct.labelFr} {expertVerdict.userFreq}%
+            {result.isCorrect
+              ? <Check size={13} className="text-green-400" />
+              : <X size={13} className="text-red-400" />}
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   // Shared 2-step expert quiz UI (step 1 = action, step 2 = frequency chips).
   const renderExpertQuiz = () => (
@@ -841,17 +903,6 @@ export function PreflopTrainer() {
                 <Spinner />
               ) : (
                 <>
-                  <BeginnerGuide
-                    title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
-                    text={isEn
-                      ? `You are in the **big blind (BB)** — you already put 1 chip in the middle without seeing your cards.\n**${bbExercise.opener}** raised to **${bbExercise.openSize}bb** before you. Now it's your turn with **${handToDisplay(bbExercise.notation)}**.\nYou have 3 choices:\n🚫 **Fold** = give up, you lose only your 1 blind.\n✅ **Call** = pay to keep playing and see the flop.\n💰 **3-Bet** = re-raise to show you have a strong hand.\nAsk yourself: is my hand strong enough to keep playing against ${bbExercise.opener}?`
-                      : `Tu es à la **grosse blinde (BB)** — tu as déjà mis 1 jeton au milieu sans voir tes cartes.\n**${bbExercise.opener}** a relancé à **${bbExercise.openSize}bb** avant toi. C'est ton tour avec **${handToDisplay(bbExercise.notation)}**.\nTu as 3 choix :\n🚫 **Fold** = tu abandonnes, tu perds seulement ta blinde.\n✅ **Call** = tu paies pour continuer et voir le flop.\n💰 **3-Bet** = tu re-relances pour montrer que ta main est forte.\nPose-toi la question : est-ce que ma main est assez forte pour continuer contre ${bbExercise.opener} ?`}
-                  />
-
-                  <SpoilableHint resetKey={bbExercise.notation + bbExercise.opener} className="w-full max-w-md">
-                    <HandHintPanel notation={bbExercise.notation} isEn={isEn} />
-                  </SpoilableHint>
-
                   <div className="w-full max-w-xs sm:max-w-xl mx-auto">
                     <PokerTable
                       heroPosition="BB"
@@ -924,6 +975,18 @@ export function PreflopTrainer() {
                       </div>
                     )}
                   </motion.div>
+
+                  {/* Guidance below the buttons — no scrolling needed to answer. */}
+                  <BeginnerGuide
+                    title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
+                    text={isEn
+                      ? `You are in the **big blind (BB)** — you already put 1 chip in the middle without seeing your cards.\n**${bbExercise.opener}** raised to **${bbExercise.openSize}bb** before you. Now it's your turn with **${handToDisplay(bbExercise.notation)}**.\nYou have 3 choices:\n🚫 **Fold** = give up, you lose only your 1 blind.\n✅ **Call** = pay to keep playing and see the flop.\n💰 **3-Bet** = re-raise to show you have a strong hand.\nAsk yourself: is my hand strong enough to keep playing against ${bbExercise.opener}?`
+                      : `Tu es à la **grosse blinde (BB)** — tu as déjà mis 1 jeton au milieu sans voir tes cartes.\n**${bbExercise.opener}** a relancé à **${bbExercise.openSize}bb** avant toi. C'est ton tour avec **${handToDisplay(bbExercise.notation)}**.\nTu as 3 choix :\n🚫 **Fold** = tu abandonnes, tu perds seulement ta blinde.\n✅ **Call** = tu paies pour continuer et voir le flop.\n💰 **3-Bet** = tu re-relances pour montrer que ta main est forte.\nPose-toi la question : est-ce que ma main est assez forte pour continuer contre ${bbExercise.opener} ?`}
+                  />
+
+                  <SpoilableHint resetKey={bbExercise.notation + bbExercise.opener} className="w-full max-w-md">
+                    <HandHintPanel notation={bbExercise.notation} isEn={isEn} />
+                  </SpoilableHint>
                 </>
               )}
             </motion.div>
@@ -940,17 +1003,6 @@ export function PreflopTrainer() {
                 <Spinner />
               ) : preflopExercise ? (
                 <>
-                  <BeginnerGuide
-                    title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
-                    text={isEn
-                      ? `Nobody has played yet — it's your turn to open. You are sitting at **${preflopExercise.position}** and you got **${handToDisplay(preflopExercise.notation)}**.\nYou have 2 choices:\n💰 **Raise** = your hand is good enough, you bet to attack.\n🚫 **Fold** = your hand is too weak, you throw it away and wait for a better one.\n👉 Tip: the **earlier** you speak (UTG, HJ), the **stronger** your hand must be. The **later** you speak (CO, BTN), the **more** hands you can play.`
-                      : `Personne n'a encore joué — c'est à toi d'ouvrir. Tu es assis en **${preflopExercise.position}** et tu as reçu **${handToDisplay(preflopExercise.notation)}**.\nTu as 2 choix :\n💰 **Raise** = ta main est assez bonne, tu mises pour attaquer.\n🚫 **Fold** = ta main est trop faible, tu la jettes et tu attends mieux.\n👉 Astuce : plus tu parles **tôt** (UTG, HJ), plus ta main doit être **forte**. Plus tu parles **tard** (CO, BTN), plus tu peux jouer de mains.`}
-                  />
-
-                  <SpoilableHint resetKey={preflopExercise.notation + preflopExercise.position} className="w-full max-w-md">
-                    <HandHintPanel notation={preflopExercise.notation} isEn={isEn} />
-                  </SpoilableHint>
-
                   <div className="w-full max-w-xs sm:max-w-xl mx-auto">
                     <PokerTable
                       heroPosition={preflopExercise.position}
@@ -997,6 +1049,18 @@ export function PreflopTrainer() {
                   </motion.div>
                   )}
 
+                  {/* Guidance below the buttons — no scrolling needed to answer. */}
+                  <BeginnerGuide
+                    title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
+                    text={isEn
+                      ? `Nobody has played yet — it's your turn to open. You are sitting at **${preflopExercise.position}** and you got **${handToDisplay(preflopExercise.notation)}**.\nYou have 2 choices:\n💰 **Raise** = your hand is good enough, you bet to attack.\n🚫 **Fold** = your hand is too weak, you throw it away and wait for a better one.\n👉 Tip: the **earlier** you speak (UTG, HJ), the **stronger** your hand must be. The **later** you speak (CO, BTN), the **more** hands you can play.`
+                      : `Personne n'a encore joué — c'est à toi d'ouvrir. Tu es assis en **${preflopExercise.position}** et tu as reçu **${handToDisplay(preflopExercise.notation)}**.\nTu as 2 choix :\n💰 **Raise** = ta main est assez bonne, tu mises pour attaquer.\n🚫 **Fold** = ta main est trop faible, tu la jettes et tu attends mieux.\n👉 Astuce : plus tu parles **tôt** (UTG, HJ), plus ta main doit être **forte**. Plus tu parles **tard** (CO, BTN), plus tu peux jouer de mains.`}
+                  />
+
+                  <SpoilableHint resetKey={preflopExercise.notation + preflopExercise.position} className="w-full max-w-md">
+                    <HandHintPanel notation={preflopExercise.notation} isEn={isEn} />
+                  </SpoilableHint>
+
                   {!randomMode && (
                     <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
                       <input
@@ -1030,33 +1094,51 @@ export function PreflopTrainer() {
             >
               <VerdictBanner isCorrect={localResult.isCorrect} partial={localResult.partial} />
 
-              {/* Action pills — hidden in the expert quiz (correctness is mix-based,
-                  and the GTO recommendation would be misleading). */}
+              {/* Action pills. Custom range → verdict from YOUR range; otherwise GTO.
+                  Hidden in the expert quiz (shown via the mix bar instead). */}
               {!isExpertQuiz && (
-              <div className="flex gap-2 flex-wrap justify-center">
-                <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${BB_ACTION_PILL[bbExercise.correctAction]}`}>
-                  {isEn ? 'Recommended' : 'Recommandé'} : <strong>{
-                    bbExercise.kind === 'value3bet' ? (isEn ? '3-bet value' : '3-bet valeur')
-                      : bbExercise.kind === 'bluff3bet' ? '3-bet bluff'
-                      : bbExercise.kind === 'thincall'  ? (isEn ? 'thin call' : 'call fin')
-                      : bbExercise.correctAction
-                  }</strong>
-                </span>
-                {bbExercise.isMixed && bbExercise.altAction && bbExercise.altAction !== bbExercise.correctAction && (
-                  <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${BB_ACTION_PILL[bbExercise.altAction]}`}>
-                    {isEn ? 'Also ok' : 'Aussi ok'} : <strong>{bbExercise.altAction}</strong>
-                  </span>
-                )}
-                {bbSelected && (
-                  <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${localResult.isCorrect ? 'border-green-700 text-green-300 bg-green-900/20' : 'border-red-700 text-red-300 bg-red-900/20'}`}>
-                    {isEn ? 'Your action' : 'Ton action'} : <strong>{
-                      bbSelected === '3bet' && bb3betType ? (bb3betType === 'value' ? (isEn ? '3-bet value' : '3-bet valeur') : '3-bet bluff')
-                        : bbSelected === '3bet' && mode === 'beginner' ? 'Raise'
-                        : bbSelected
+                (preflopEnabled && customMatrix) ? (
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${BB_ACTION_PILL[localResult.correctAction as BBAction] ?? BB_ACTION_PILL.fold}`}>
+                      {isEn ? 'Your range' : 'Ta range'} : <strong>{
+                        localResult.correctAction === '3bet' ? (mode === 'beginner' ? 'Raise' : '3-Bet')
+                          : localResult.correctAction === 'call' ? 'Call' : 'Fold'
+                      }</strong>
+                    </span>
+                    {bbSelected && (
+                      <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${localResult.isCorrect ? 'border-green-700 text-green-300 bg-green-900/20' : 'border-red-700 text-red-300 bg-red-900/20'}`}>
+                        {isEn ? 'Your action' : 'Ton action'} : <strong>{
+                          bbSelected === '3bet' && mode === 'beginner' ? 'Raise' : bbSelected
+                        }</strong>
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                <div className="flex gap-2 flex-wrap justify-center">
+                  <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${BB_ACTION_PILL[bbExercise.correctAction]}`}>
+                    {isEn ? 'Recommended' : 'Recommandé'} : <strong>{
+                      bbExercise.kind === 'value3bet' ? (isEn ? '3-bet value' : '3-bet valeur')
+                        : bbExercise.kind === 'bluff3bet' ? '3-bet bluff'
+                        : bbExercise.kind === 'thincall'  ? (isEn ? 'thin call' : 'call fin')
+                        : bbExercise.correctAction
                     }</strong>
                   </span>
-                )}
-              </div>
+                  {bbExercise.isMixed && bbExercise.altAction && bbExercise.altAction !== bbExercise.correctAction && (
+                    <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${BB_ACTION_PILL[bbExercise.altAction]}`}>
+                      {isEn ? 'Also ok' : 'Aussi ok'} : <strong>{bbExercise.altAction}</strong>
+                    </span>
+                  )}
+                  {bbSelected && (
+                    <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${localResult.isCorrect ? 'border-green-700 text-green-300 bg-green-900/20' : 'border-red-700 text-red-300 bg-red-900/20'}`}>
+                      {isEn ? 'Your action' : 'Ton action'} : <strong>{
+                        bbSelected === '3bet' && bb3betType ? (bb3betType === 'value' ? (isEn ? '3-bet value' : '3-bet valeur') : '3-bet bluff')
+                          : bbSelected === '3bet' && mode === 'beginner' ? 'Raise'
+                          : bbSelected
+                      }</strong>
+                    </span>
+                  )}
+                </div>
+                )
               )}
 
               {/* Compact table recap */}
@@ -1110,6 +1192,9 @@ export function PreflopTrainer() {
                 xp={sessionStats.xp}
               />
 
+              {/* Expert quiz: visual mix bar of your range + your answer */}
+              {isExpertQuiz && renderExpertMixBar()}
+
               {/* Explanation (beginner, or always in the expert quiz) */}
               {localResult.explanation && (
                 <ExplanationPanel text={localResult.explanation} plain forceShow={isExpertQuiz} />
@@ -1149,6 +1234,20 @@ export function PreflopTrainer() {
               className="flex flex-col items-center gap-5"
             >
               <VerdictBanner isCorrect={result.isCorrect} partial={result.partial} />
+
+              {/* Colored verdict pills (non-expert). Expert mix bar is below the stats. */}
+              {!isExpertQuiz && (
+                <div className="flex gap-2 flex-wrap justify-center">
+                  <span className={`px-3 py-1.5 rounded-full border text-sm font-bold ${OPEN_ACTION_PILL[result.correctAction] ?? OPEN_ACTION_PILL.fold}`}>
+                    {isEn ? 'Correct' : 'Bon coup'} : <strong>{openActionLabel(result.correctAction)}</strong>
+                  </span>
+                  {openAnswer && !result.isCorrect && (
+                    <span className="px-3 py-1.5 rounded-full border text-sm font-bold border-red-700 text-red-300 bg-red-900/20">
+                      {isEn ? 'Your choice' : 'Ton choix'} : <strong>{openActionLabel(openAnswer)}</strong>
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Compact table recap */}
               <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
@@ -1196,6 +1295,9 @@ export function PreflopTrainer() {
                 streak={sessionStats.streak}
                 xp={sessionStats.xp}
               />
+
+              {/* Expert quiz: visual mix bar of your range + your answer */}
+              {isExpertQuiz && renderExpertMixBar()}
 
               {/* Explanation (beginner, or always in the expert quiz) */}
               <ExplanationPanel text={result.explanation} plain forceShow={isExpertQuiz} />

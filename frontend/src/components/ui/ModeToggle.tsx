@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useModeStore, TrainingMode } from '../../store/modeStore';
 import { useLangStore } from '../../store/langStore';
 import { useAuthStore } from '../../store/authStore';
+import { useTrainingStore } from '../../store/trainingStore';
 
 /**
  * Global beginner / advanced / expert toggle — reads from and writes to modeStore.
@@ -14,6 +15,8 @@ export function ModeToggle() {
   const { mode, setMode } = useModeStore();
   const isEn = useLangStore(s => s.lang) === 'en';
   const isExpert = !!useAuthStore(s => s.user?.isPremiumExpert);
+  // Lock the toggle while a question is on screen — no mid-exercise mode switching.
+  const isExercising = useTrainingStore(s => s.isExercising);
   const navigate = useNavigate();
 
   const options: { value: TrainingMode; label: string; icon: React.ReactNode; active: string }[] = [
@@ -23,17 +26,24 @@ export function ModeToggle() {
   ];
 
   return (
-    <div className="flex items-center gap-0.5 bg-gray-800/80 border border-gray-700 rounded-lg p-0.5">
+    <div className={`flex items-center gap-0.5 bg-gray-800/80 border border-gray-700 rounded-lg p-0.5 ${isExercising ? 'opacity-50' : ''}`}>
       {options.map(opt => {
         const locked = opt.value === 'expert' && !isExpert;
         return (
           <motion.button
             key={opt.value}
-            onClick={() => (locked ? navigate('/premium') : setMode(opt.value))}
-            whileTap={{ scale: 0.93 }}
-            title={locked ? (isEn ? 'Expert — premium tier' : 'Expert — offre premium') : undefined}
+            disabled={isExercising}
+            onClick={() => {
+              if (isExercising) return;
+              locked ? navigate('/premium') : setMode(opt.value);
+            }}
+            whileTap={isExercising ? undefined : { scale: 0.93 }}
+            title={isExercising
+              ? (isEn ? 'Finish the exercise to change mode' : "Termine l'exercice pour changer de mode")
+              : locked ? (isEn ? 'Expert — premium tier' : 'Expert — offre premium') : undefined}
             className={`
               flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all
+              ${isExercising ? 'cursor-not-allowed' : ''}
               ${mode === opt.value ? opt.active : 'text-gray-400 hover:text-white'}
             `}
           >
