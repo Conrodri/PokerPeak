@@ -172,6 +172,8 @@ export function validateProfileImport(raw: unknown): ValidatedProfile {
   const name = sanitizeStr(obj.name, 'name', MAX_STR_NAME);
   const mode: 'standard' | 'expert' = obj.mode === 'expert' ? 'expert' : 'standard';
   const cellCount = mode === 'expert' ? CELLS_COUNT * 4 : CELLS_COUNT; // 676 vs 169
+  // Expert mixes are frequencies (0-1); standard cells may carry BB defense codes (0-4).
+  const maxVal = mode === 'expert' ? 1 : 4;
 
   if (!Array.isArray(obj.stackRanges))
     throw new Error('stackRanges: expected an array.');
@@ -197,7 +199,7 @@ export function validateProfileImport(raw: unknown): ValidatedProfile {
       if (stackMax !== null && stackMax <= stackMin)
         throw new Error(`stackRanges[${i}]: stackMax (${stackMax}) must be greater than stackMin (${stackMin}).`);
 
-      const data = validatePositionData(srObj.data, `stackRanges[${i}].data`, 1, cellCount);
+      const data = validatePositionData(srObj.data, `stackRanges[${i}].data`, maxVal, cellCount);
 
       return { label, stackMin, stackMax, data };
     },
@@ -228,4 +230,23 @@ export function validateSimpleRangeImport(raw: unknown): ValidatedSimpleRange {
     throw new Error('data: must contain at least one position.');
 
   return { data };
+}
+
+/**
+ * Step 3c — validate an import for the COMPLEX (profiles) module.
+ * Accepts a profile export OR a simple-range export (converted to a one-tier
+ * standard profile). A simple range may be imported into the complex module,
+ * but NOT the reverse — the simple module only accepts simple-range files.
+ */
+export function validateComplexImport(raw: unknown): ValidatedProfile {
+  const isObj = typeof raw === 'object' && raw !== null && !Array.isArray(raw);
+  if (isObj && (raw as Record<string, unknown>).type === 'pokertrainer-simple-range') {
+    const simple = validateSimpleRangeImport(raw);
+    return {
+      name: 'Range simple',
+      mode: 'standard',
+      stackRanges: [{ label: 'Tous', stackMin: 0, stackMax: null, data: simple.data }],
+    };
+  }
+  return validateProfileImport(raw);
 }

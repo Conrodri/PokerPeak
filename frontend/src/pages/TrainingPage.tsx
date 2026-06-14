@@ -33,7 +33,7 @@ import { trainingApi, rangesApi, profilesApi, RangeProfile } from '../services/a
 import {
   validateFileMeta,
   safeJsonParse,
-  validateProfileImport,
+  validateComplexImport,
   validateSimpleRangeImport,
 } from '../utils/rangeImportValidator';
 import { useCustomRangeStore } from '../store/customRangeStore';
@@ -273,8 +273,9 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
       // Layer 2 — safe JSON parse (prototype-pollution scan + JSON validity)
       const raw = safeJsonParse(await file.text());
 
-      // Layer 3 — strict structural + value validation (returns sanitized data)
-      const validated = validateProfileImport(raw);
+      // Layer 3 — accepts a profile export, or a simple-range export converted
+      // to a standard profile (simple → complex is allowed; the reverse is not).
+      const validated = validateComplexImport(raw);
 
       const suffix  = isEn ? ' (imported)' : ' (importé)';
       const created = await profilesApi.create(validated.name + suffix, validated.mode);
@@ -373,6 +374,16 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
       setLoadingP(false);
     })();
   }, []);
+
+  // Leaving Expert mode while the panel is open: a complex profile can no longer
+  // be used → drop its active state locally and fall back to GTO.
+  useEffect(() => {
+    if (!isExpertMode && profiles.some(p => p.isActive)) {
+      setProfiles(prev => prev.map(p => ({ ...p, isActive: false })));
+      if (preflopEnabled) togglePreflopEnabled();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExpertMode]);
 
   // GTO reference for current profile position.
   // BB is a defense spot → its reference is the 5-category defense grid, not an
@@ -958,20 +969,10 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
       {/* ══ SIMPLE RANGE TAB ══ */}
       {tab === 'simple' && (
         <>
+          {/* Same layout as the Complex tab: title left, Export/Import + Activate on the right. */}
           <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-            <button onClick={handleActivateSimple}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                simpleActive
-                  ? 'bg-green-900/30 text-green-300 border-green-700 hover:bg-red-900/30 hover:text-red-300 hover:border-red-700'
-                  : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-felt-900/30 hover:text-felt-300 hover:border-felt-700'
-              }`}
-            >
-              {simpleActive
-                ? <><Check size={12} /> {isEn ? 'Active — click to deactivate' : 'Actives — cliquer pour désactiver'}</>
-                : <><Zap size={12} /> {isEn ? 'Use these ranges' : 'Activer ces ranges'}</>
-              }
-            </button>
-            <div className="flex items-center gap-2 shrink-0">
+            <p className="text-white font-semibold text-sm">{isEn ? 'Simple ranges' : 'Ranges simples'}</p>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               <button
                 onClick={exportSimpleRanges}
                 className="flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300 transition-colors"
@@ -986,6 +987,18 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
                 title={isEn ? 'Import ranges from JSON' : 'Importer des ranges depuis un JSON'}
               >
                 <Upload size={12} /> {isEn ? 'Import' : 'Importer'}
+              </button>
+              <button onClick={handleActivateSimple}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                  simpleActive
+                    ? 'bg-green-900/30 text-green-300 border-green-700 hover:bg-red-900/30 hover:text-red-300 hover:border-red-700'
+                    : 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-felt-900/30 hover:text-felt-300 hover:border-felt-700'
+                }`}
+              >
+                {simpleActive
+                  ? <><Check size={12} /> {isEn ? 'Active — click to deactivate' : 'Actives — cliquer pour désactiver'}</>
+                  : <><Zap size={12} /> {isEn ? 'Use these ranges' : 'Activer ces ranges'}</>
+                }
               </button>
             </div>
           </div>
