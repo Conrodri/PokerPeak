@@ -435,6 +435,15 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
     setActivating(false);
   };
 
+  // Toggle whether 100%-fold hands are quizzed in expert training for this profile.
+  const handleToggleFolds = async () => {
+    if (!selProfile) return;
+    const next = !(selProfile.includeFolds ?? true);
+    setProfiles(prev => prev.map(p => (p.id === selProfile.id ? { ...p, includeFolds: next } : p)));
+    try { await profilesApi.setIncludeFolds(selProfile.id, next); }
+    catch { setProfiles(prev => prev.map(p => (p.id === selProfile.id ? { ...p, includeFolds: !next } : p))); }
+  };
+
   // Simple ranges activation — mirrors profile activation (mutually exclusive).
   const handleActivateSimple = async () => {
     if (simpleActive) {
@@ -819,6 +828,32 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
                       </button>
                     </div>
                   </div>
+
+                  {/* Expert training option: quiz 100%-fold hands or skip them */}
+                  {isExpertMode && selProfile.mode === 'expert' && (
+                    <button
+                      onClick={handleToggleFolds}
+                      className="flex items-center gap-2.5 text-left rounded-lg border border-gray-700 bg-gray-800/40 px-3 py-2 hover:bg-gray-800 transition-colors"
+                    >
+                      <span className={`flex h-4 w-4 items-center justify-center rounded border shrink-0 ${
+                        (selProfile.includeFolds ?? true)
+                          ? 'bg-felt-700 border-felt-500'
+                          : 'bg-gray-900 border-gray-600'
+                      }`}>
+                        {(selProfile.includeFolds ?? true) && <Check size={11} className="text-white" />}
+                      </span>
+                      <span className="flex flex-col">
+                        <span className="text-xs font-semibold text-gray-200">
+                          {isEn ? 'Quiz 100%-fold hands' : 'Inclure les mains fold 100%'}
+                        </span>
+                        <span className="text-[11px] text-gray-500 leading-snug">
+                          {(selProfile.includeFolds ?? true)
+                            ? (isEn ? 'Exercises can ask about pure-fold hands.' : 'Les exercices peuvent porter sur des mains 100% fold.')
+                            : (isEn ? 'Only hands with a Call/Raise/All-in decision are quizzed.' : 'Seules les mains avec décision Call/Raise/All-in sont posées.')}
+                        </span>
+                      </span>
+                    </button>
+                  )}
 
                   {/* Stack ranges */}
                   <div className="flex items-center justify-between">

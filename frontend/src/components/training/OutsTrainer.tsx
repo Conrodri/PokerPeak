@@ -129,14 +129,6 @@ export function OutsTrainer() {
         </button>
       </div>
 
-      {/* Intro banner — beginner only */}
-      {mode === 'beginner' && (
-        <div className="bg-felt-900/40 border border-felt-800/50 rounded-xl px-4 py-2.5 text-xs text-felt-200 flex items-start gap-2">
-          <Lightbulb size={14} className="shrink-0 mt-0.5 text-gold-400" />
-          <span>{t.training.outs_intro}</span>
-        </div>
-      )}
-
       {/* ── Exercise ── */}
       {phase === 'exercise' && (
         <AnimatePresence mode="wait">
@@ -150,14 +142,6 @@ export function OutsTrainer() {
               <Spinner />
             ) : ex ? (
               <>
-                {/* Beginner explanation of the exercise — collapsed by default */}
-                <BeginnerGuide
-                  title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
-                  text={isEn
-                    ? `Your hand is **not finished yet** — but the next card could make it strong (a flush, a straight, a pair...).\nAn **out** is a card still hidden in the deck that would improve your hand.\n👉 Your job: look at your 2 cards + the board, and **count how many cards** can help you. Then pick that number below.\n💡 Example: if you need one more heart for a flush draw and you can see 4 hearts already, there are 9 hearts left = **9 outs**.`
-                    : `Ta main n'est **pas encore terminée** — mais la prochaine carte pourrait la rendre forte (une couleur, une suite, une paire...).\nUn **out**, c'est une carte encore cachée dans le paquet qui améliorerait ta main.\n👉 Ton travail : regarde tes 2 cartes + le board, et **compte combien de cartes** peuvent t'aider. Puis choisis ce nombre ci-dessous.\n💡 Exemple : s'il te manque un cœur pour un tirage couleur et que tu vois déjà 4 cœurs, il reste 9 cœurs = **9 outs**.`}
-                />
-
                 {/* Cards */}
                 <div
                   className="rounded-2xl border p-4 flex flex-col items-center gap-4"
@@ -200,6 +184,22 @@ export function OutsTrainer() {
                     </motion.button>
                   ))}
                 </div>
+
+                {/* Guidance below the decision — no scrolling needed to answer. */}
+                <BeginnerGuide
+                  title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
+                  text={isEn
+                    ? `Your hand is **not finished yet** — but the next card could make it strong (a flush, a straight, a pair...).\nAn **out** is a card still hidden in the deck that would improve your hand.\n👉 Your job: look at your 2 cards + the board, and **count how many cards** can help you. Then pick that number above.\n💡 Example: if you need one more heart for a flush draw and you can see 4 hearts already, there are 9 hearts left = **9 outs**.`
+                    : `Ta main n'est **pas encore terminée** — mais la prochaine carte pourrait la rendre forte (une couleur, une suite, une paire...).\nUn **out**, c'est une carte encore cachée dans le paquet qui améliorerait ta main.\n👉 Ton travail : regarde tes 2 cartes + le board, et **compte combien de cartes** peuvent t'aider. Puis choisis ce nombre ci-dessus.\n💡 Exemple : s'il te manque un cœur pour un tirage couleur et que tu vois déjà 4 cœurs, il reste 9 cœurs = **9 outs**.`}
+                />
+
+                {/* Quick tip — beginner only, below the decision */}
+                {mode === 'beginner' && (
+                  <div className="bg-felt-900/40 border border-felt-800/50 rounded-xl px-4 py-2.5 text-xs text-felt-200 flex items-start gap-2">
+                    <Lightbulb size={14} className="shrink-0 mt-0.5 text-gold-400" />
+                    <span>{t.training.outs_intro}</span>
+                  </div>
+                )}
               </>
             ) : null}
           </motion.div>

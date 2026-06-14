@@ -190,12 +190,15 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
   try {
     const userId = uid(req);
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, includeFolds } = req.body;
     const existing = await prisma.rangeProfile.findFirst({ where: { id, userId } });
     if (!existing) { res.status(404).json({ success: false, error: 'Profile not found' }); return; }
     const updated = await prisma.rangeProfile.update({
       where: { id },
-      data: { ...(typeof name === 'string' && { name: name.trim() }) },
+      data: {
+        ...(typeof name === 'string' && { name: name.trim() }),
+        ...(typeof includeFolds === 'boolean' && { includeFolds }),
+      },
       include: { stackRanges: true },
     });
     res.json({ success: true, data: parseProfile(updated) });
@@ -382,6 +385,7 @@ export async function resolveRange(req: Request, res: Response): Promise<void> {
         source: 'profile',
         profileName: activeProfile.name,
         stackRangeLabel: match.label,
+        includeFolds: activeProfile.includeFolds,
       },
     });
   } catch {

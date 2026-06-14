@@ -100,6 +100,9 @@ model RangeProfile {
   name        String           // "MTT 6 Max", "Cash Game", …
   mode        String           @default("standard") // "standard" | "expert" (multi-action freq mix)
   isActive    Boolean          @default(false)
+  // Expert training: when false, hands that are 100% fold in this profile are
+  // never quizzed (only hands with a real Call/Raise/All-in decision come up).
+  includeFolds Boolean         @default(true)
   sortOrder   Int              @default(0)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt

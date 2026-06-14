@@ -349,18 +349,6 @@ export function PostflopTrainer() {
               {isEn ? ex.streetLabel.en : ex.streetLabel.fr}
             </div>
 
-            {/* Beginner explanation of the exercise — collapsed by default */}
-            <BeginnerGuide
-              title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
-              text={isEn
-                ? `The first community cards are out. You hold **${handToDisplay(ex.heroNotation)}** and you're playing against **${ex.villainPosition}**.\n${ex.villainAction === 'bet'
-                    ? `${ex.villainPosition} just **bet ${ex.villainBetSize}bb**. You must react: **Fold** (give up), **Call** (pay to continue), or **Raise** (bet even more).`
-                    : `${ex.villainPosition} **checked** (bet nothing). It's your turn: **Check** (free card) or **Bet** (put chips in to attack).`}\n👉 Look at the hints below: how strong is your hand, your chance to win (equity), and what the board looks like. Then pick the action that makes the most sense.`
-                : `Les premières cartes communes sont sorties. Tu as **${handToDisplay(ex.heroNotation)}** et tu joues contre **${ex.villainPosition}**.\n${ex.villainAction === 'bet'
-                    ? `${ex.villainPosition} vient de **miser ${ex.villainBetSize}bb**. Tu dois réagir : **Fold** (abandonner), **Call** (payer pour continuer), ou **Raise** (miser encore plus).`
-                    : `${ex.villainPosition} a **checké** (rien misé). C'est ton tour : **Check** (carte gratuite) ou **Bet** (miser pour attaquer).`}\n👉 Regarde les indices ci-dessous : la force de ta main, ta chance de gagner (équité) et la tête du board. Puis choisis l'action la plus logique.`}
-            />
-
             {/* ── Poker table ── */}
             <div className="w-full max-w-xs sm:max-w-xl mx-auto">
               <PokerTable
@@ -464,7 +452,24 @@ export function PostflopTrainer() {
               )}
             </div>
 
-            {/* ── Indices (mode débutant) ── */}
+            {/* ── Action buttons ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+              className="flex flex-wrap gap-3 justify-center w-full"
+            >
+              {ex.options.map(opt => (
+                <Button
+                  key={opt.key} size="lg"
+                  variant={opt.key === 'fold' ? 'danger' : opt.key === 'raise' || opt.key === 'bet' ? 'gold' : 'secondary'}
+                  onClick={() => handleAnswer(opt.key)}
+                  className="min-w-[130px]"
+                >
+                  {isEn ? opt.labelEn : opt.labelFr}
+                </Button>
+              ))}
+            </motion.div>
+
+            {/* ── Indices (mode débutant) — below the decision ── */}
             {mode === 'beginner' && (
               <div className="flex flex-col gap-2 w-full">
                 <div className="grid grid-cols-2 gap-2">
@@ -493,22 +498,17 @@ export function PostflopTrainer() {
               </div>
             )}
 
-            {/* ── Action buttons ── */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="flex flex-wrap gap-3 justify-center w-full"
-            >
-              {ex.options.map(opt => (
-                <Button
-                  key={opt.key} size="lg"
-                  variant={opt.key === 'fold' ? 'danger' : opt.key === 'raise' || opt.key === 'bet' ? 'gold' : 'secondary'}
-                  onClick={() => handleAnswer(opt.key)}
-                  className="min-w-[130px]"
-                >
-                  {isEn ? opt.labelEn : opt.labelFr}
-                </Button>
-              ))}
-            </motion.div>
+            {/* Guidance below the decision — no scrolling needed to answer. */}
+            <BeginnerGuide
+              title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
+              text={isEn
+                ? `The first community cards are out. You hold **${handToDisplay(ex.heroNotation)}** and you're playing against **${ex.villainPosition}**.\n${ex.villainAction === 'bet'
+                    ? `${ex.villainPosition} just **bet ${ex.villainBetSize}bb**. You must react: **Fold** (give up), **Call** (pay to continue), or **Raise** (bet even more).`
+                    : `${ex.villainPosition} **checked** (bet nothing). It's your turn: **Check** (free card) or **Bet** (put chips in to attack).`}\n👉 Use the hints above: how strong is your hand, your chance to win (equity), and what the board looks like. Then pick the action that makes the most sense.`
+                : `Les premières cartes communes sont sorties. Tu as **${handToDisplay(ex.heroNotation)}** et tu joues contre **${ex.villainPosition}**.\n${ex.villainAction === 'bet'
+                    ? `${ex.villainPosition} vient de **miser ${ex.villainBetSize}bb**. Tu dois réagir : **Fold** (abandonner), **Call** (payer pour continuer), ou **Raise** (miser encore plus).`
+                    : `${ex.villainPosition} a **checké** (rien misé). C'est ton tour : **Check** (carte gratuite) ou **Bet** (miser pour attaquer).`}\n👉 Regarde les indices ci-dessus : la force de ta main, ta chance de gagner (équité) et la tête du board. Puis choisis l'action la plus logique.`}
+            />
           </motion.div>
         </AnimatePresence>
       )}

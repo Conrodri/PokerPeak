@@ -104,6 +104,87 @@ export const OUTS_SCENARIOS: OutsScenario[] = [
         en: 'Open-ended straight draw (8-9-10-J): a queen (×4) or a 7 (×4) on the river.' },
     ],
   },
+  // ── Pocket pair → set — 2 outs (nines) ───────────────────────────────────
+  {
+    heroCards: ['9c', '9d'], board: ['Ah', 'Ks', '4c'], street: 'flop',
+    outs: 2, difficulty: 'easy',
+    draws: [
+      { fr: 'Toucher ton brelan : il ne reste que 2 neuf dans le paquet.',
+        en: 'Hitting your set: only 2 nines remain in the deck.' },
+    ],
+  },
+  // ── Pocket pair → set — 2 outs (fives) ───────────────────────────────────
+  {
+    heroCards: ['5s', '5h'], board: ['Qd', '8c', '2h'], street: 'flop',
+    outs: 2, difficulty: 'easy',
+    draws: [
+      { fr: 'Toucher ton brelan : il ne reste que 2 cinq dans le paquet.',
+        en: 'Hitting your set: only 2 fives remain in the deck.' },
+    ],
+  },
+  // ── One overcard — 3 outs ────────────────────────────────────────────────
+  {
+    heroCards: ['Ac', '6d'], board: ['Qs', '9h', '3c'], street: 'flop',
+    outs: 3, difficulty: 'medium',
+    draws: [
+      { fr: 'Une seule surcarte qui compte : l\'As (le 6 est trop bas pour gagner). Toucher une paire d\'as = 3 as restants.',
+        en: 'Only one useful overcard: the ace (the 6 is too low to win). Pairing your ace = 3 aces left.' },
+    ],
+  },
+  // ── Pair + overcard kicker — 5 outs ──────────────────────────────────────
+  {
+    heroCards: ['Ad', '8c'], board: ['8h', '6s', '2d'], street: 'flop',
+    outs: 5, difficulty: 'medium',
+    draws: [
+      { fr: 'Paire de 8 avec kicker As : passer brelan (2 huit) ou toucher une paire d\'as (3 as) = 5 outs.',
+        en: 'Pair of eights, ace kicker: make trips (2 eights) or pair your ace (3 aces) = 5 outs.' },
+    ],
+  },
+  // ── Broadway gutshot — 4 outs ────────────────────────────────────────────
+  {
+    heroCards: ['Js', 'Ts'], board: ['Ad', 'Kc', '4h'], street: 'flop',
+    outs: 4, difficulty: 'easy',
+    draws: [
+      { fr: 'Tirage quinte par le ventre (A-K-_-J-10) : seule une dame (×4) complète la quinte Broadway.',
+        en: 'Gutshot straight draw (A-K-_-J-10): only a queen (×4) completes Broadway.' },
+    ],
+  },
+  // ── Open-ended low — 8 outs ──────────────────────────────────────────────
+  {
+    heroCards: ['6c', '5c'], board: ['7d', '4h', 'Ks'], street: 'flop',
+    outs: 8, difficulty: 'easy',
+    draws: [
+      { fr: 'Tirage quinte par les deux bouts (4-5-6-7) : un 3 (×4) ou un 8 (×4) complète la quinte.',
+        en: 'Open-ended straight draw (4-5-6-7): any 3 (×4) or any 8 (×4) makes the straight.' },
+    ],
+  },
+  // ── Flush draw (spades) — 9 outs ─────────────────────────────────────────
+  {
+    heroCards: ['8s', '3s'], board: ['Ks', '7s', '2d'], street: 'flop',
+    outs: 9, difficulty: 'easy',
+    draws: [
+      { fr: 'Tirage couleur (pique) : il reste 9 piques dans le paquet (13 − 4 visibles).',
+        en: 'Flush draw (spades): 9 spades left in the deck (13 − 4 visible).' },
+    ],
+  },
+  // ── Two overcards — 6 outs (K/Q) ─────────────────────────────────────────
+  {
+    heroCards: ['Ks', 'Qd'], board: ['8h', '5c', '2s'], street: 'flop',
+    outs: 6, difficulty: 'medium',
+    draws: [
+      { fr: 'Deux surcartes : toucher une paire de rois (3 rois) ou de dames (3 dames) = 6 outs.',
+        en: 'Two overcards: pairing your king (3 kings) or queen (3 queens) = 6 outs.' },
+    ],
+  },
+  // ── Flush draw on the turn (clubs) — 9 outs ──────────────────────────────
+  {
+    heroCards: ['Ac', 'Tc'], board: ['4c', '8c', 'Jd', '2h'], street: 'turn',
+    outs: 9, difficulty: 'medium',
+    draws: [
+      { fr: 'Tirage couleur (trèfle) : 9 trèfles restants, une seule carte à venir (la river).',
+        en: 'Flush draw (clubs): 9 clubs left, with only the river to come.' },
+    ],
+  },
 ];
 
 export function getRandomOutsScenario(): OutsScenario {
@@ -117,8 +198,12 @@ export function estimateEquityFromOuts(outs: number, street: 'flop' | 'turn'): n
 
 // Build 4 multiple-choice options around the correct answer.
 export function buildOutsOptions(correct: number): number[] {
-  const pool = [2, 4, 6, 8, 9, 12, 13, 15];
-  const distractors = pool.filter(n => n !== correct);
+  const pool = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15];
+  // Prefer distractors close to the correct answer so the choices stay plausible.
+  const distractors = pool
+    .filter(n => n !== correct)
+    .sort((a, b) => Math.abs(a - correct) - Math.abs(b - correct))
+    .slice(0, 5);
   // shuffle distractors
   for (let i = distractors.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

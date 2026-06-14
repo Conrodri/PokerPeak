@@ -252,6 +252,9 @@ export function PreflopTrainer() {
   const [bbIsLoading,  setBBIsLoading]  = useState(false);
 
   const startTime = useRef<number>(Date.now());
+  // Caps re-rolls when the active profile excludes 100%-fold hands, so an
+  // all-fold tier can never lock the trainer in an infinite skip loop.
+  const foldSkipRef = useRef(0);
   const mode = useModeStore(s => s.mode);
   const { preflopEnabled } = useCustomRangeStore();
 
@@ -297,10 +300,30 @@ export function PreflopTrainer() {
         const resolved = await profilesApi.resolve(position, heroStack);
         if (cancelled) return;
         if (resolved?.cells && resolved.cells.length === 676) {
-          setCustomMix(resolved.cells);
           const [row, col] = getMatrixIndices(notation);
           const idx = row * 13 + col;
-          setExpertTarget(resolved.cells.slice(idx * 4, idx * 4 + 4));
+          const targetMix = resolved.cells.slice(idx * 4, idx * 4 + 4);
+          const pureFold = (targetMix[0] ?? 0) >= 0.999;
+
+          // Profile set to skip 100%-fold hands → re-roll a fresh hand at the
+          // same position (capped so an all-fold tier can't loop forever).
+          if (resolved.includeFolds === false && pureFold && foldSkipRef.current < 30) {
+            foldSkipRef.current += 1;
+            if (isBBSession) {
+              setBBIsLoading(true);
+              try {
+                const ex = await trainingApi.getBBDefenseExercise();
+                if (!cancelled) setBBExercise(ex);
+              } catch { /* ignore */ }
+              if (!cancelled) setBBIsLoading(false);
+            } else if (preflopExercise) {
+              await fetchPreflopExercise(preflopExercise.position);
+            }
+            return;
+          }
+
+          setCustomMix(resolved.cells);
+          setExpertTarget(targetMix);
           setResolvedLabel(resolved.profileName
             ? `${resolved.profileName}${resolved.stackRangeLabel ? ` · ${resolved.stackRangeLabel}` : ''}`
             : null);
@@ -333,6 +356,7 @@ export function PreflopTrainer() {
     setBB3betType(null);
     setShowRange(true);
     setHeroStack(Math.floor(Math.random() * 96) + 5);
+    foldSkipRef.current = 0;
   };
 
   // ─── pickAndStart — shared routing logic for a given position ─────────────────
@@ -797,40 +821,6 @@ export function PreflopTrainer() {
           className="flex flex-col items-center gap-4 sm:gap-6"
         >
 
-          {/* Beginner explanation of the position-selection step */}
-          <BeginnerGuide
-            title={isEn ? 'What is this screen?' : 'C\'est quoi cet écran ?'}
-            text={isEn
-              ? `In poker, your **position** is your seat compared to the dealer button (the **D**). It decides the order in which you speak.\nThe later you speak, the more you know about your opponents — so the **more hands you can play**:\n🛡️ **BB** = you defend your blind against a raise.\n👉 Click a seat to pick your position, or hit **Random position** to practice them all.`
-              : `Au poker, ta **position** c'est ta place par rapport au bouton du donneur (le **D**). Elle décide dans quel ordre tu parles.\nPlus tu parles **tard**, plus tu as d'infos sur tes adversaires — donc **plus tu peux jouer de mains** :\n🛡️ **BB** = tu défends ta blinde face à une relance.\n👉 Clique une place pour choisir ta position, ou appuie sur **Position aléatoire** pour t'entraîner sur toutes.`}
-          >
-            <div className="flex flex-col gap-3">
-              {/* Early positions — tight */}
-              <div className="flex flex-col gap-1.5 rounded-xl border border-blue-800/30 bg-blue-950/30 px-3 py-2.5">
-                <p className="text-xs font-semibold text-blue-200">
-                  🪑 <strong>UTG / HJ</strong> — {isEn ? 'early, you speak first → only strong hands like:' : 'tôt, tu parles en premier → seulement de bonnes mains comme :'}
-                </p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <ExampleHand cards={['As', 'Ks']} label="AKs" />
-                  <ExampleHand cards={['Ah', 'Ad']} label="AA" />
-                  <ExampleHand cards={['Qh', 'Qs']} label="QQ" />
-                </div>
-              </div>
-              {/* Late positions — wide */}
-              <div className="flex flex-col gap-1.5 rounded-xl border border-green-800/30 bg-green-950/30 px-3 py-2.5">
-                <p className="text-xs font-semibold text-green-200">
-                  🪑 <strong>CO / BTN</strong> — {isEn ? 'late, you speak last → many more hands, even:' : 'tard, tu parles en dernier → beaucoup plus de mains, même :'}
-                </p>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <ExampleHand cards={['As', 'Ks']} label="AKs" />
-                  <ExampleHand cards={['Ad', '5d']} label="A5s" />
-                  <ExampleHand cards={['7c', '6c']} label="76s" />
-                  <ExampleHand cards={['Kh', '9c']} label="K9o" />
-                </div>
-              </div>
-            </div>
-          </BeginnerGuide>
-
           {/* Interactive poker table — compact on mobile */}
           <div className="w-full max-w-xs sm:max-w-xl">
             <PokerTable
@@ -892,6 +882,40 @@ export function PreflopTrainer() {
                 : `${t.training.play_pos} ${selectedPosition}`}
             </Button>
           </div>
+
+          {/* Guidance below the decision — no scrolling needed to choose a seat. */}
+          <BeginnerGuide
+            title={isEn ? 'What is this screen?' : 'C\'est quoi cet écran ?'}
+            text={isEn
+              ? `In poker, your **position** is your seat compared to the dealer button (the **D**). It decides the order in which you speak.\nThe later you speak, the more you know about your opponents — so the **more hands you can play**:\n🛡️ **BB** = you defend your blind against a raise.\n👉 Click a seat to pick your position, or hit **Random position** to practice them all.`
+              : `Au poker, ta **position** c'est ta place par rapport au bouton du donneur (le **D**). Elle décide dans quel ordre tu parles.\nPlus tu parles **tard**, plus tu as d'infos sur tes adversaires — donc **plus tu peux jouer de mains** :\n🛡️ **BB** = tu défends ta blinde face à une relance.\n👉 Clique une place pour choisir ta position, ou appuie sur **Position aléatoire** pour t'entraîner sur toutes.`}
+          >
+            <div className="flex flex-col gap-3">
+              {/* Early positions — tight */}
+              <div className="flex flex-col gap-1.5 rounded-xl border border-blue-800/30 bg-blue-950/30 px-3 py-2.5">
+                <p className="text-xs font-semibold text-blue-200">
+                  🪑 <strong>UTG / HJ</strong> — {isEn ? 'early, you speak first → only strong hands like:' : 'tôt, tu parles en premier → seulement de bonnes mains comme :'}
+                </p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <ExampleHand cards={['As', 'Ks']} label="AKs" />
+                  <ExampleHand cards={['Ah', 'Ad']} label="AA" />
+                  <ExampleHand cards={['Qh', 'Qs']} label="QQ" />
+                </div>
+              </div>
+              {/* Late positions — wide */}
+              <div className="flex flex-col gap-1.5 rounded-xl border border-green-800/30 bg-green-950/30 px-3 py-2.5">
+                <p className="text-xs font-semibold text-green-200">
+                  🪑 <strong>CO / BTN</strong> — {isEn ? 'late, you speak last → many more hands, even:' : 'tard, tu parles en dernier → beaucoup plus de mains, même :'}
+                </p>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <ExampleHand cards={['As', 'Ks']} label="AKs" />
+                  <ExampleHand cards={['Ad', '5d']} label="A5s" />
+                  <ExampleHand cards={['7c', '6c']} label="76s" />
+                  <ExampleHand cards={['Kh', '9c']} label="K9o" />
+                </div>
+              </div>
+            </div>
+          </BeginnerGuide>
         </motion.div>
       )}
 

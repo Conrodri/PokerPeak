@@ -648,25 +648,12 @@ export function BetSizingTrainer() {
             exit={{ opacity: 0, scale: 0.97 }}
             className="flex flex-col items-center gap-4"
           >
-            {/* Street + concept badges */}
+            {/* Street badge — scenario context */}
             <div className="flex items-center gap-2 flex-wrap justify-center">
               <div className={`px-3 py-1 rounded-full border text-xs font-bold ${STREET_COLORS[ex.street]}`}>
                 {isEn ? STREET_LABELS[ex.street].en : STREET_LABELS[ex.street].fr}
               </div>
-              {mode === 'beginner' && (
-                <div className={`px-3 py-1 rounded-full border text-xs font-bold ${CONCEPT_COLOR[isEn ? ex.conceptTag.en : ex.conceptTag.fr] ?? 'bg-gray-800 text-gray-400 border-gray-700'}`}>
-                  {isEn ? ex.conceptTag.en : ex.conceptTag.fr}
-                </div>
-              )}
             </div>
-
-            {/* Beginner explanation of the exercise — collapsed by default */}
-            <BeginnerGuide
-              title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
-              text={isEn
-                ? `You have decided to **bet** — but the big question is: **how much**?\nThe pot is **${ex.potSize}bb**. You can bet a small, medium or large slice of it (or sometimes more than the pot = an overbet). Each size sends a different message and gives your opponent different odds.\n👉 Your job: pick the bet size that fits the situation. Look at the hints — your hand strength and the board texture — to decide.\n💡 Rule of thumb: bet **small** on calm boards, **big** when there are draws to charge or when you have the nuts.`
-                : `Tu as décidé de **miser** — mais la grande question est : **combien** ?\nLe pot est de **${ex.potSize}bb**. Tu peux en miser une petite, moyenne ou grande part (ou parfois plus que le pot = une surenchère). Chaque taille envoie un message différent et donne des cotes différentes à l'adversaire.\n👉 Ton travail : choisis la taille de mise adaptée à la situation. Regarde les indices — la force de ta main et la texture du board — pour décider.\n💡 Règle simple : mise **petit** sur les boards calmes, **gros** quand il y a des tirages à faire payer ou quand tu as les nuts.`}
-            />
 
             {/* Poker table */}
             <div className="w-full max-w-xs sm:max-w-xl mx-auto">
@@ -726,20 +713,6 @@ export function BetSizingTrainer() {
               </div>
             </div>
 
-            {/* Beginner hints */}
-            {mode === 'beginner' && (
-              <div className="grid grid-cols-2 gap-2 w-full">
-                <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
-                  <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Your hand' : 'Votre main'}</p>
-                  <p className="text-white font-semibold text-sm">{isEn ? ex.handDescription.en : ex.handDescription.fr}</p>
-                </div>
-                <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
-                  <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Board texture' : 'Texture du board'}</p>
-                  <p className="text-white font-semibold text-sm">{isEn ? ex.boardTexture.en : ex.boardTexture.fr}</p>
-                </div>
-              </div>
-            )}
-
             {/* Sizing buttons */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -770,6 +743,35 @@ export function BetSizingTrainer() {
                 );
               })}
             </motion.div>
+
+            {/* ── Indices (mode débutant) — below the decision ── */}
+            {mode === 'beginner' && (
+              <div className="flex flex-col gap-2 w-full">
+                <div className="flex justify-center">
+                  <div className={`px-3 py-1 rounded-full border text-xs font-bold ${CONCEPT_COLOR[isEn ? ex.conceptTag.en : ex.conceptTag.fr] ?? 'bg-gray-800 text-gray-400 border-gray-700'}`}>
+                    {isEn ? ex.conceptTag.en : ex.conceptTag.fr}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 w-full">
+                  <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
+                    <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Your hand' : 'Votre main'}</p>
+                    <p className="text-white font-semibold text-sm">{isEn ? ex.handDescription.en : ex.handDescription.fr}</p>
+                  </div>
+                  <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
+                    <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Board texture' : 'Texture du board'}</p>
+                    <p className="text-white font-semibold text-sm">{isEn ? ex.boardTexture.en : ex.boardTexture.fr}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Guidance below the decision — no scrolling needed to answer. */}
+            <BeginnerGuide
+              title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
+              text={isEn
+                ? `You have decided to **bet** — but the big question is: **how much**?\nThe pot is **${ex.potSize}bb**. You can bet a small, medium or large slice of it (or sometimes more than the pot = an overbet). Each size sends a different message and gives your opponent different odds.\n👉 Your job: pick the bet size that fits the situation. Look at the hints above — your hand strength and the board texture — to decide.\n💡 Rule of thumb: bet **small** on calm boards, **big** when there are draws to charge or when you have the nuts.`
+                : `Tu as décidé de **miser** — mais la grande question est : **combien** ?\nLe pot est de **${ex.potSize}bb**. Tu peux en miser une petite, moyenne ou grande part (ou parfois plus que le pot = une surenchère). Chaque taille envoie un message différent et donne des cotes différentes à l'adversaire.\n👉 Ton travail : choisis la taille de mise adaptée à la situation. Regarde les indices ci-dessus — la force de ta main et la texture du board — pour décider.\n💡 Règle simple : mise **petit** sur les boards calmes, **gros** quand il y a des tirages à faire payer ou quand tu as les nuts.`}
+            />
           </motion.div>
         </AnimatePresence>
       )}

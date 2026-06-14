@@ -520,51 +520,80 @@ export function FullHandTrainer() {
             exit={{ opacity: 0, scale: 0.97 }}
             className="flex flex-col items-center gap-5"
           >
-            {/* Beginner explanation of the current step */}
-            <BeginnerGuide
-              title={isEn
-                ? `What you must do — ${STEP_LABELS[currentStep].en}`
-                : `Ce qu'on te demande — ${STEP_LABELS[currentStep].fr}`}
-              text={'preflop' in decision
-                ? (isEn
-                    ? `You're playing **one full hand** from start to finish. Right now it's the **pre-flop** step.\nYou got **${handToDisplay(scenario.heroNotation)}** in **${scenario.heroPosition}**. Decide if this hand is worth playing: **Raise** to attack, or **Fold** to wait for better.\n👉 If you fold, the hand stops. If you raise correctly, you move on to the flop and keep going.`
-                    : `Tu joues **une main complète** du début à la fin. Là, c'est l'étape **pré-flop**.\nTu as **${handToDisplay(scenario.heroNotation)}** en **${scenario.heroPosition}**. Décide si la main vaut la peine d'être jouée : **Raise** pour attaquer, ou **Fold** pour attendre mieux.\n👉 Si tu fold, la main s'arrête. Si tu raises correctement, tu passes au flop et tu continues.`)
-                : (isEn
-                    ? `Same hand continues — now on the **${STEP_LABELS[currentStep].en}**. New community cards are on the table.\n${decision.street.villainAction === 'bet'
-                        ? `**${decision.street.villainPosition}** bet **${decision.street.villainBetSize}bb**. React: **Fold**, **Call**, or **Raise**.`
-                        : `**${decision.street.villainPosition}** checked. It's your turn: **Check** for a free card, or **Bet** to attack.`}\n👉 Use the hints (your hand strength + equity) to pick the smart action and reach the showdown.`
-                    : `La même main continue — maintenant au **${STEP_LABELS[currentStep].fr}**. De nouvelles cartes communes sont sur la table.\n${decision.street.villainAction === 'bet'
-                        ? `**${decision.street.villainPosition}** a misé **${decision.street.villainBetSize}bb**. Réagis : **Fold**, **Call**, ou **Raise**.`
-                        : `**${decision.street.villainPosition}** a checké. C'est ton tour : **Check** pour une carte gratuite, ou **Bet** pour attaquer.`}\n👉 Sers-toi des indices (force de ta main + équité) pour choisir l'action maligne et atteindre le showdown.`)}
-            />
-
-            {/* Preflop-specific content */}
+            {/* Scenario context (above the decision) */}
             {'preflop' in decision && (
-              <>
-                {/* Range frequency — beginner only */}
-                {mode === 'beginner' && (
-                  <div className="grid grid-cols-2 gap-3 w-full">
-                    <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
-                      <p className="text-gray-500 text-xs mb-0.5">
-                        {isEn ? `${scenario.heroPosition} range` : `Range ${scenario.heroPosition}`}
-                      </p>
-                      <p className={`font-bold ${decision.preflop.isInRange ? 'text-green-400' : 'text-red-400'}`}>
-                        {Math.round(decision.preflop.rangeFreq * 100)}%
-                      </p>
-                    </div>
-                    <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
-                      <p className="text-gray-500 text-xs mb-0.5">
-                        {isEn ? 'In range?' : 'Dans la range ?'}
-                      </p>
-                      <p className={`font-bold ${decision.preflop.isInRange ? 'text-green-400' : 'text-red-400'}`}>
-                        {decision.preflop.isInRange ? (isEn ? 'Yes ✓' : 'Oui ✓') : (isEn ? 'No ✗' : 'Non ✗')}
-                      </p>
-                    </div>
-                  </div>
-                )}
+              <div className="text-xs text-gray-400 text-center">
+                {isEn ? 'Pot after raise: ' : 'Pot après raise : '}
+                <span className="text-yellow-400 font-bold">1.5bb</span>
+                {' · '}
+                {isEn ? 'Effective stack: ' : 'Stack effectif : '}
+                <span className="text-blue-400 font-bold">100bb</span>
+              </div>
+            )}
 
-                {/* Range matrix — beginner only, collapsible */}
-                {mode === 'beginner' && rangeMatrix && (
+            {/* Villain action — scenario context (above the decision) */}
+            {'street' in decision && (
+              decision.street.villainAction === 'bet' ? (
+                <div className="bg-red-900/20 border border-red-800/50 rounded-xl px-4 py-2.5 text-sm text-red-300 w-full text-center">
+                  <span className="font-bold">{decision.street.villainPosition}</span>{' '}
+                  {isEn ? `bets ${decision.street.villainBetSize}bb` : `mise ${decision.street.villainBetSize}bb`}
+                </div>
+              ) : (
+                <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-gray-400 w-full text-center">
+                  <span className="font-bold text-white">{decision.street.villainPosition}</span>{' '}
+                  {isEn ? 'checks' : 'check'}
+                </div>
+              )
+            )}
+
+            {/* Action buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex flex-wrap gap-3 justify-center w-full"
+            >
+              {('preflop' in decision ? decision.preflop.options : decision.street.options).map((opt) => (
+                <Button
+                  key={opt.key}
+                  size="lg"
+                  variant={
+                    opt.key === 'fold'  ? 'danger' :
+                    opt.key === 'raise' ? 'gold' :
+                    'secondary'
+                  }
+                  onClick={() => handleAnswer(opt.key)}
+                  className="min-w-[130px]"
+                >
+                  {isEn ? opt.labelEn : opt.labelFr}
+                </Button>
+              ))}
+            </motion.div>
+
+            {/* ── Indices (mode débutant) — below the decision ── */}
+            {'preflop' in decision && mode === 'beginner' && (
+              <>
+                <div className="grid grid-cols-2 gap-3 w-full">
+                  <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
+                    <p className="text-gray-500 text-xs mb-0.5">
+                      {isEn ? `${scenario.heroPosition} range` : `Range ${scenario.heroPosition}`}
+                    </p>
+                    <p className={`font-bold ${decision.preflop.isInRange ? 'text-green-400' : 'text-red-400'}`}>
+                      {Math.round(decision.preflop.rangeFreq * 100)}%
+                    </p>
+                  </div>
+                  <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
+                    <p className="text-gray-500 text-xs mb-0.5">
+                      {isEn ? 'In range?' : 'Dans la range ?'}
+                    </p>
+                    <p className={`font-bold ${decision.preflop.isInRange ? 'text-green-400' : 'text-red-400'}`}>
+                      {decision.preflop.isInRange ? (isEn ? 'Yes ✓' : 'Oui ✓') : (isEn ? 'No ✗' : 'Non ✗')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Range matrix — collapsible */}
+                {rangeMatrix && (
                   <div className="w-full">
                     <button
                       onClick={() => setShowRange(v => !v)}
@@ -599,80 +628,47 @@ export function FullHandTrainer() {
                     </AnimatePresence>
                   </div>
                 )}
+              </>
+            )}
 
-                {/* Preflop: blinds info */}
-                <div className="text-xs text-gray-400 text-center">
-                  {isEn ? 'Pot after raise: ' : 'Pot après raise : '}
-                  <span className="text-yellow-400 font-bold">1.5bb</span>
-                  {' · '}
-                  {isEn ? 'Effective stack: ' : 'Stack effectif : '}
-                  <span className="text-blue-400 font-bold">100bb</span>
+            {'street' in decision && mode === 'beginner' && (
+              <div className="grid grid-cols-2 gap-3 w-full">
+                <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
+                  <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Hand strength' : 'Force de main'}</p>
+                  <p className="text-white font-semibold text-sm">
+                    {isEn ? decision.street.heroHandLabel.en : decision.street.heroHandLabel.fr}
+                  </p>
                 </div>
-              </>
+                <EquityBadge
+                  equity={decision.street.heroEquity}
+                  label={isEn ? 'Equity' : 'Équité'}
+                />
+                <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center col-span-2">
+                  <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Board texture' : 'Texture'}</p>
+                  <p className="text-white font-semibold text-sm">
+                    {isEn ? decision.street.boardTexture.en : decision.street.boardTexture.fr}
+                  </p>
+                </div>
+              </div>
             )}
 
-            {/* Post-flop street-specific content */}
-            {'street' in decision && (
-              <>
-                {mode === 'beginner' && (
-                  <div className="grid grid-cols-2 gap-3 w-full">
-                    <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
-                      <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Hand strength' : 'Force de main'}</p>
-                      <p className="text-white font-semibold text-sm">
-                        {isEn ? decision.street.heroHandLabel.en : decision.street.heroHandLabel.fr}
-                      </p>
-                    </div>
-                    <EquityBadge
-                      equity={decision.street.heroEquity}
-                      label={isEn ? 'Equity' : 'Équité'}
-                    />
-                    <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center col-span-2">
-                      <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Board texture' : 'Texture'}</p>
-                      <p className="text-white font-semibold text-sm">
-                        {isEn ? decision.street.boardTexture.en : decision.street.boardTexture.fr}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Villain action */}
-                {decision.street.villainAction === 'bet' ? (
-                  <div className="bg-red-900/20 border border-red-800/50 rounded-xl px-4 py-2.5 text-sm text-red-300 w-full text-center">
-                    <span className="font-bold">{decision.street.villainPosition}</span>{' '}
-                    {isEn ? `bets ${decision.street.villainBetSize}bb` : `mise ${decision.street.villainBetSize}bb`}
-                  </div>
-                ) : (
-                  <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl px-4 py-2.5 text-sm text-gray-400 w-full text-center">
-                    <span className="font-bold text-white">{decision.street.villainPosition}</span>{' '}
-                    {isEn ? 'checks' : 'check'}
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Action buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex flex-wrap gap-3 justify-center w-full"
-            >
-              {('preflop' in decision ? decision.preflop.options : decision.street.options).map((opt) => (
-                <Button
-                  key={opt.key}
-                  size="lg"
-                  variant={
-                    opt.key === 'fold'  ? 'danger' :
-                    opt.key === 'raise' ? 'gold' :
-                    'secondary'
-                  }
-                  onClick={() => handleAnswer(opt.key)}
-                  className="min-w-[130px]"
-                >
-                  {isEn ? opt.labelEn : opt.labelFr}
-                </Button>
-              ))}
-            </motion.div>
+            {/* Guidance below the decision — no scrolling needed to answer. */}
+            <BeginnerGuide
+              title={isEn
+                ? `What you must do — ${STEP_LABELS[currentStep].en}`
+                : `Ce qu'on te demande — ${STEP_LABELS[currentStep].fr}`}
+              text={'preflop' in decision
+                ? (isEn
+                    ? `You're playing **one full hand** from start to finish. Right now it's the **pre-flop** step.\nYou got **${handToDisplay(scenario.heroNotation)}** in **${scenario.heroPosition}**. Decide if this hand is worth playing: **Raise** to attack, or **Fold** to wait for better.\n👉 If you fold, the hand stops. If you raise correctly, you move on to the flop and keep going.`
+                    : `Tu joues **une main complète** du début à la fin. Là, c'est l'étape **pré-flop**.\nTu as **${handToDisplay(scenario.heroNotation)}** en **${scenario.heroPosition}**. Décide si la main vaut la peine d'être jouée : **Raise** pour attaquer, ou **Fold** pour attendre mieux.\n👉 Si tu fold, la main s'arrête. Si tu raises correctement, tu passes au flop et tu continues.`)
+                : (isEn
+                    ? `Same hand continues — now on the **${STEP_LABELS[currentStep].en}**. New community cards are on the table.\n${decision.street.villainAction === 'bet'
+                        ? `**${decision.street.villainPosition}** bet **${decision.street.villainBetSize}bb**. React: **Fold**, **Call**, or **Raise**.`
+                        : `**${decision.street.villainPosition}** checked. It's your turn: **Check** for a free card, or **Bet** to attack.`}\n👉 Use the hints above (your hand strength + equity) to pick the smart action and reach the showdown.`
+                    : `La même main continue — maintenant au **${STEP_LABELS[currentStep].fr}**. De nouvelles cartes communes sont sur la table.\n${decision.street.villainAction === 'bet'
+                        ? `**${decision.street.villainPosition}** a misé **${decision.street.villainBetSize}bb**. Réagis : **Fold**, **Call**, ou **Raise**.`
+                        : `**${decision.street.villainPosition}** a checké. C'est ton tour : **Check** pour une carte gratuite, ou **Bet** pour attaquer.`}\n👉 Sers-toi des indices ci-dessus (force de ta main + équité) pour choisir l'action maligne et atteindre le showdown.`)}
+            />
           </motion.div>
         )}
       </AnimatePresence>

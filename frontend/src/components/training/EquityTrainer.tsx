@@ -148,14 +148,6 @@ export function EquityTrainer() {
               <Spinner />
             ) : equityExercise ? (
               <>
-                {/* Beginner explanation of the exercise — collapsed by default */}
-                <BeginnerGuide
-                  title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
-                  text={isEn
-                    ? `Two players show their cards. ${equityExercise.board.length > 0 ? 'Some shared cards (the board) are already on the table.' : 'No shared card yet — this is pre-flop.'}\n**Equity** = the chance a hand has to win if we go all the way to the end.\n👉 Your job: just guess **which of the two hands is more likely to win**. Tap on Hand 1 or Hand 2.\n💡 A bigger pair, two high cards, or cards that fit the board usually win more often.`
-                    : `Deux joueurs montrent leurs cartes. ${equityExercise.board.length > 0 ? 'Des cartes communes (le board) sont déjà sur la table.' : 'Aucune carte commune encore — on est pré-flop.'}\nL'**équité** = la chance qu'a une main de gagner si on va jusqu'au bout.\n👉 Ton travail : devine simplement **quelle main a le plus de chances de gagner**. Clique sur Main 1 ou Main 2.\n💡 Une plus grosse paire, deux grosses cartes, ou des cartes qui collent au board gagnent plus souvent.`}
-                />
-
                 {/* Board */}
                 {equityExercise.board.length > 0 && (
                   <div className="flex flex-col items-center gap-2">
@@ -208,6 +200,14 @@ export function EquityTrainer() {
                     ? (isEn ? 'Pre-flop equity' : 'Equity pré-flop')
                     : `${isEn ? 'Board with' : 'Board à'} ${equityExercise.board.length} ${isEn ? 'cards' : 'cartes'}`}
                 </p>
+
+                {/* Guidance below the decision — no scrolling needed to answer. */}
+                <BeginnerGuide
+                  title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
+                  text={isEn
+                    ? `Two players show their cards. ${equityExercise.board.length > 0 ? 'Some shared cards (the board) are already on the table.' : 'No shared card yet — this is pre-flop.'}\n**Equity** = the chance a hand has to win if we go all the way to the end.\n👉 Your job: just guess **which of the two hands is more likely to win**. Tap on Hand 1 or Hand 2.\n💡 A bigger pair, two high cards, or cards that fit the board usually win more often.`
+                    : `Deux joueurs montrent leurs cartes. ${equityExercise.board.length > 0 ? 'Des cartes communes (le board) sont déjà sur la table.' : 'Aucune carte commune encore — on est pré-flop.'}\nL'**équité** = la chance qu'a une main de gagner si on va jusqu'au bout.\n👉 Ton travail : devine simplement **quelle main a le plus de chances de gagner**. Clique sur Main 1 ou Main 2.\n💡 Une plus grosse paire, deux grosses cartes, ou des cartes qui collent au board gagnent plus souvent.`}
+                />
               </>
             ) : null}
           </motion.div>

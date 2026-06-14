@@ -155,6 +155,7 @@ export interface RangeProfile {
   name: string;
   mode?: 'standard' | 'expert';
   isActive: boolean;
+  includeFolds?: boolean;   // expert training: quiz 100%-fold hands or skip them
   sortOrder: number;
   stackRanges: RangeStackRange[];
   createdAt: string;
@@ -166,6 +167,7 @@ export interface ResolveResult {
   source: 'profile' | 'custom';
   profileName?: string;
   stackRangeLabel?: string;
+  includeFolds?: boolean;           // active profile setting (profile source only)
 }
 
 export const profilesApi = {
@@ -177,6 +179,9 @@ export const profilesApi = {
 
   update: (id: string, name: string) =>
     api.put(`/profiles/${id}`, { name }).then(r => r.data.data) as Promise<RangeProfile>,
+
+  setIncludeFolds: (id: string, includeFolds: boolean) =>
+    api.put(`/profiles/${id}`, { includeFolds }).then(r => r.data.data) as Promise<RangeProfile>,
 
   delete: (id: string) =>
     api.delete(`/profiles/${id}`).then(r => r.data),
