@@ -10,6 +10,7 @@ import { RichText, RichLine } from '../ui/RichText';
 import { Spinner } from '../ui/Spinner';
 import { ExplanationPanel } from '../ui/ExplanationPanel';
 import { BeginnerGuide } from '../ui/BeginnerGuide';
+import { SpoilableHint } from '../ui/SpoilableHint';
 import { TrainerIntro } from '../ui/TrainerIntro';
 import { useModeStore } from '../../store/modeStore';
 import { Hand } from '../poker/Card';
@@ -24,7 +25,7 @@ type Phase = 'exercise' | 'result';
 export function PotOddsTrainer() {
   const t = useT();
   const isEn = useLangStore(s => s.lang) === 'en';
-  const { potOddsExercise, lastResult, sessionStats, isLoading, fetchPotOddsExercise, checkPotOddsAnswer, setTrainerStarted } = useTrainingStore();
+  const { potOddsExercise, lastResult, sessionStats, isLoading, fetchPotOddsExercise, checkPotOddsAnswer, setTrainerStarted, setIsExercising } = useTrainingStore();
   const [showIntro, setShowIntro] = useState(true);
   const [phase, setPhase] = useState<Phase>('exercise');
   const [showFormula, setShowFormula] = useState(false);
@@ -34,6 +35,12 @@ export function PotOddsTrainer() {
 
   useEffect(() => { if (phase === 'exercise') startTime.current = Date.now(); }, [phase, potOddsExercise]);
   useEffect(() => { if (phase === 'result') window.scrollTo({ top: 0, behavior: 'smooth' }); }, [phase]);
+
+  // Lock mode switching while a question is on screen.
+  useEffect(() => {
+    setIsExercising(!showIntro && phase === 'exercise' && !!potOddsExercise && !isLoading);
+  }, [showIntro, phase, potOddsExercise, isLoading]);
+  useEffect(() => () => { setIsExercising(false); }, []);
 
   const handleAnswer = async (action: 'call' | 'fold') => {
     if (!potOddsExercise) return;
@@ -174,52 +181,54 @@ export function PotOddsTrainer() {
                     : `Il y a déjà **${ex.potSize}bb** au milieu (le pot). Ton adversaire mise **${ex.betSize}bb**.\nPour continuer à jouer tu dois payer ces **${ex.betSize}bb** — c'est un **Call**. Si tu ne veux pas payer, tu fais **Fold**.\n🎲 Ton **équité** (${ex.heroEquity}%) c'est ta chance de gagner la main.\n👉 La question : est-ce que tu gagnes **assez souvent** pour que ça vaille le coup de payer ? Si ta chance de gagner est plus grande que le prix à payer, fais **Call**. Sinon, fais **Fold**.`}
                 />
 
-                {/* Formula reminder (beginner only) — below the decision */}
-                {mode === 'beginner' && (
-                  <div className="bg-blue-950/30 border border-blue-900/40 rounded-xl p-3 text-sm text-blue-300 cursor-pointer w-full" onClick={() => setShowFormula(v => !v)}>
-                    <div className="flex items-center gap-2 font-semibold">
-                      <Calculator size={14} />
-                      {t.training.formula_hint} {showFormula ? '▲' : '▼'}
+                {/* Formula + EV reminders — beginner shows them; advanced reveals
+                    behind a streak-breaking spoiler; expert hides them. */}
+                <SpoilableHint resetKey={`${ex.potSize}-${ex.betSize}-${ex.heroEquity}`} className="w-full">
+                  <div className="flex flex-col gap-3 w-full">
+                    {/* Formula reminder */}
+                    <div className="bg-blue-950/30 border border-blue-900/40 rounded-xl p-3 text-sm text-blue-300 cursor-pointer w-full" onClick={() => setShowFormula(v => !v)}>
+                      <div className="flex items-center gap-2 font-semibold">
+                        <Calculator size={14} />
+                        {t.training.formula_hint} {showFormula ? '▲' : '▼'}
+                      </div>
+                      <AnimatePresence>
+                        {showFormula && (
+                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                            <div className="mt-3 space-y-1 font-mono text-xs border-t border-blue-800/40 pt-3">
+                              <p>{t.training.formula1}</p>
+                              <p>{t.training.formula2}</p>
+                              <p>{t.training.formula3}</p>
+                              <p className="text-blue-400 mt-1">{t.training.formula4}</p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <AnimatePresence>
-                      {showFormula && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                          <div className="mt-3 space-y-1 font-mono text-xs border-t border-blue-800/40 pt-3">
-                            <p>{t.training.formula1}</p>
-                            <p>{t.training.formula2}</p>
-                            <p>{t.training.formula3}</p>
-                            <p className="text-blue-400 mt-1">{t.training.formula4}</p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
 
-                {/* EV explainer (beginner only) — below the decision */}
-                {mode === 'beginner' && (
-                  <div className="bg-purple-950/25 border border-purple-900/40 rounded-xl p-3 text-sm text-purple-200 cursor-pointer w-full" onClick={() => setShowEv(v => !v)}>
-                    <div className="flex items-center gap-2 font-semibold">
-                      <TrendingUp size={14} />
-                      {t.training.ev_how} {showEv ? '▲' : '▼'}
+                    {/* EV explainer */}
+                    <div className="bg-purple-950/25 border border-purple-900/40 rounded-xl p-3 text-sm text-purple-200 cursor-pointer w-full" onClick={() => setShowEv(v => !v)}>
+                      <div className="flex items-center gap-2 font-semibold">
+                        <TrendingUp size={14} />
+                        {t.training.ev_how} {showEv ? '▲' : '▼'}
+                      </div>
+                      <AnimatePresence>
+                        {showEv && (
+                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                            <div className="mt-3 space-y-2 text-xs border-t border-purple-800/40 pt-3 leading-relaxed">
+                              <p>{t.training.ev_intro}</p>
+                              <p className="font-mono text-purple-300 bg-black/20 rounded px-2 py-1.5">{t.training.formula4}</p>
+                              <p>• {t.training.ev_win}</p>
+                              <p>• {t.training.ev_lose}</p>
+                              <p className="text-green-300">✓ {t.training.ev_pos}</p>
+                              <p className="text-red-300">✗ {t.training.ev_neg}</p>
+                              <p className="text-purple-400/80 italic">{t.training.ev_note}</p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <AnimatePresence>
-                      {showEv && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                          <div className="mt-3 space-y-2 text-xs border-t border-purple-800/40 pt-3 leading-relaxed">
-                            <p>{t.training.ev_intro}</p>
-                            <p className="font-mono text-purple-300 bg-black/20 rounded px-2 py-1.5">{t.training.formula4}</p>
-                            <p>• {t.training.ev_win}</p>
-                            <p>• {t.training.ev_lose}</p>
-                            <p className="text-green-300">✓ {t.training.ev_pos}</p>
-                            <p className="text-red-300">✗ {t.training.ev_neg}</p>
-                            <p className="text-purple-400/80 italic">{t.training.ev_note}</p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
-                )}
+                </SpoilableHint>
               </>
             ) : null}
           </motion.div>

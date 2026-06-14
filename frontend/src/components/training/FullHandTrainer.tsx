@@ -15,6 +15,7 @@ import { Spinner } from '../ui/Spinner';
 import { ExplanationPanel } from '../ui/ExplanationPanel';
 import { RichLine } from '../ui/RichText';
 import { BeginnerGuide } from '../ui/BeginnerGuide';
+import { SpoilableHint } from '../ui/SpoilableHint';
 import { TrainerIntro } from '../ui/TrainerIntro';
 import { QuotaLockPanel } from '../ui/QuotaLockPanel';
 import { StatChip } from '../ui/StatChip';
@@ -202,7 +203,7 @@ export function FullHandTrainer() {
   const lang     = useLangStore(s => s.lang);
   const isEn     = lang === 'en';
   const isMobile = useIsMobile();
-  const { sessionStats, recordResult, setTrainerStarted } = useTrainingStore();
+  const { sessionStats, recordResult, setTrainerStarted, setIsExercising } = useTrainingStore();
 
   // Premium access / daily free-quota for non-premium users
   const user      = useAuthStore(s => s.user);
@@ -263,6 +264,12 @@ export function FullHandTrainer() {
   useEffect(() => {
     if (phase.endsWith('_result')) window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [phase]);
+
+  // Lock mode switching while a decision is on screen.
+  useEffect(() => {
+    setIsExercising(!showIntro && phase !== 'loading' && !phase.endsWith('_result') && !!scenario);
+  }, [showIntro, phase, scenario]);
+  useEffect(() => () => { setIsExercising(false); }, []);
 
   // Fetch range matrix when scenario loads (or position changes)
   useEffect(() => {
@@ -570,9 +577,11 @@ export function FullHandTrainer() {
               ))}
             </motion.div>
 
-            {/* ── Indices (mode débutant) — below the decision ── */}
-            {'preflop' in decision && mode === 'beginner' && (
-              <>
+            {/* ── Indices — below the decision. Beginner shows them; advanced
+                reveals behind a streak-breaking spoiler; expert hides them. ── */}
+            {'preflop' in decision && (
+              <SpoilableHint resetKey={phase} className="w-full">
+                <div className="flex flex-col gap-3 w-full">
                 <div className="grid grid-cols-2 gap-3 w-full">
                   <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
                     <p className="text-gray-500 text-xs mb-0.5">
@@ -628,10 +637,12 @@ export function FullHandTrainer() {
                     </AnimatePresence>
                   </div>
                 )}
-              </>
+                </div>
+              </SpoilableHint>
             )}
 
-            {'street' in decision && mode === 'beginner' && (
+            {'street' in decision && (
+              <SpoilableHint resetKey={phase} className="w-full">
               <div className="grid grid-cols-2 gap-3 w-full">
                 <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
                   <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Hand strength' : 'Force de main'}</p>
@@ -650,6 +661,7 @@ export function FullHandTrainer() {
                   </p>
                 </div>
               </div>
+              </SpoilableHint>
             )}
 
             {/* Guidance below the decision — no scrolling needed to answer. */}

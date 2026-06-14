@@ -13,6 +13,7 @@ import { RichText, RichLine } from '../ui/RichText';
 import { Spinner } from '../ui/Spinner';
 import { ExplanationPanel } from '../ui/ExplanationPanel';
 import { BeginnerGuide } from '../ui/BeginnerGuide';
+import { SpoilableHint } from '../ui/SpoilableHint';
 import { TrainerIntro } from '../ui/TrainerIntro';
 import { QuotaLockPanel } from '../ui/QuotaLockPanel';
 import { useAuthStore } from '../../store/authStore';
@@ -128,7 +129,7 @@ export function PostflopTrainer() {
   const lang     = useLangStore(s => s.lang);
   const isEn     = lang === 'en';
   const isMobile = useIsMobile();
-  const { sessionStats, recordResult, setTrainerStarted } = useTrainingStore();
+  const { sessionStats, recordResult, setTrainerStarted, setIsExercising } = useTrainingStore();
 
   // Premium access / daily free-quota for non-premium users
   const user      = useAuthStore(s => s.user);
@@ -154,6 +155,12 @@ export function PostflopTrainer() {
   const [streetFilter, setStreetFilter] = useState<StreetFilter>(
     () => (localStorage.getItem(STREET_KEY) as StreetFilter) || 'random'
   );
+
+  // Lock mode switching while a question is on screen.
+  useEffect(() => {
+    setIsExercising(!showIntro && phase === 'exercise' && !!exercise && !isLoading);
+  }, [showIntro, phase, exercise, isLoading]);
+  useEffect(() => () => { setIsExercising(false); }, []);
 
   // Prevent double-fetch on mount via ref guard
   const hasStarted = useRef(false);
@@ -469,8 +476,9 @@ export function PostflopTrainer() {
               ))}
             </motion.div>
 
-            {/* ── Indices (mode débutant) — below the decision ── */}
-            {mode === 'beginner' && (
+            {/* ── Indices — below the decision. Beginner shows them; advanced
+                reveals behind a streak-breaking spoiler; expert hides them. ── */}
+            <SpoilableHint resetKey={ex.heroNotation + ex.street} className="w-full">
               <div className="flex flex-col gap-2 w-full">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
@@ -496,7 +504,7 @@ export function PostflopTrainer() {
                   <p className="text-white font-semibold text-sm">{isEn ? ex.boardTexture.en : ex.boardTexture.fr}</p>
                 </div>
               </div>
-            )}
+            </SpoilableHint>
 
             {/* Guidance below the decision — no scrolling needed to answer. */}
             <BeginnerGuide

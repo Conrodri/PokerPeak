@@ -24,7 +24,7 @@ type Phase = 'exercise' | 'result';
 export function EquityTrainer() {
   const t = useT();
   const isEn = useLangStore(s => s.lang) === 'en';
-  const { equityExercise, isLoading, sessionStats, fetchEquityExercise, recordResult, setTrainerStarted } = useTrainingStore();
+  const { equityExercise, isLoading, sessionStats, fetchEquityExercise, recordResult, setTrainerStarted, setIsExercising } = useTrainingStore();
 
   const [showIntro, setShowIntro] = useState(true);
   const [phase, setPhase] = useState<Phase>('exercise');
@@ -35,6 +35,12 @@ export function EquityTrainer() {
   useEffect(() => {
     if (phase === 'result') window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [phase]);
+
+  // Lock mode switching while a question is on screen.
+  useEffect(() => {
+    setIsExercising(!showIntro && phase === 'exercise' && !!equityExercise && !isLoading);
+  }, [showIntro, phase, equityExercise, isLoading]);
+  useEffect(() => () => { setIsExercising(false); }, []);
 
   const handleAnswer = (hand: 1 | 2) => {
     if (!equityExercise) return;

@@ -23,7 +23,7 @@ type Phase = 'exercise' | 'result';
 export function OutsTrainer() {
   const t = useT();
   const isEn = useLangStore(s => s.lang) === 'en';
-  const { outsExercise, isLoading, sessionStats, fetchOutsExercise, recordResult, setTrainerStarted } = useTrainingStore();
+  const { outsExercise, isLoading, sessionStats, fetchOutsExercise, recordResult, setTrainerStarted, setIsExercising } = useTrainingStore();
 
   const [showIntro, setShowIntro] = useState(true);
   const [phase, setPhase] = useState<Phase>('exercise');
@@ -33,6 +33,12 @@ export function OutsTrainer() {
   useEffect(() => {
     if (phase === 'result') window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [phase]);
+
+  // Lock mode switching while a question is on screen.
+  useEffect(() => {
+    setIsExercising(!showIntro && phase === 'exercise' && !!outsExercise && !isLoading);
+  }, [showIntro, phase, outsExercise, isLoading]);
+  useEffect(() => () => { setIsExercising(false); }, []);
 
   const handleAnswer = (value: number) => {
     if (!outsExercise) return;

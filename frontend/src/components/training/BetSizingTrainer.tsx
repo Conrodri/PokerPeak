@@ -10,6 +10,7 @@ import { VerdictBanner } from '../ui/VerdictBanner';
 import { ExplanationPanel } from '../ui/ExplanationPanel';
 import { RichLine } from '../ui/RichText';
 import { BeginnerGuide } from '../ui/BeginnerGuide';
+import { SpoilableHint } from '../ui/SpoilableHint';
 import { TrainerIntro } from '../ui/TrainerIntro';
 import { QuotaLockPanel } from '../ui/QuotaLockPanel';
 import { useAuthStore } from '../../store/authStore';
@@ -472,7 +473,7 @@ export function BetSizingTrainer() {
   const lang     = useLangStore(s => s.lang);
   const isEn     = lang === 'en';
   const isMobile = useIsMobile();
-  const { sessionStats, recordResult, setTrainerStarted } = useTrainingStore();
+  const { sessionStats, recordResult, setTrainerStarted, setIsExercising } = useTrainingStore();
   const mode     = useModeStore(s => s.mode);
 
   // Premium access / daily free-quota for non-premium users
@@ -495,6 +496,12 @@ export function BetSizingTrainer() {
     if (loggedIn && !isPremium) quota.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn, isPremium]);
+
+  // Lock mode switching while a question is on screen.
+  useEffect(() => {
+    setIsExercising(!showIntro && phase === 'exercise' && !!exercise);
+  }, [showIntro, phase, exercise]);
+  useEffect(() => () => { setIsExercising(false); }, []);
 
   // Bet sizing is generated client-side, so we explicitly spend a credit
   // server-side before revealing each exercise (premium users never consume).
@@ -744,8 +751,9 @@ export function BetSizingTrainer() {
               })}
             </motion.div>
 
-            {/* ── Indices (mode débutant) — below the decision ── */}
-            {mode === 'beginner' && (
+            {/* ── Indices — below the decision. Beginner shows them; advanced
+                reveals behind a streak-breaking spoiler; expert hides them. ── */}
+            <SpoilableHint resetKey={ex.id} className="w-full">
               <div className="flex flex-col gap-2 w-full">
                 <div className="flex justify-center">
                   <div className={`px-3 py-1 rounded-full border text-xs font-bold ${CONCEPT_COLOR[isEn ? ex.conceptTag.en : ex.conceptTag.fr] ?? 'bg-gray-800 text-gray-400 border-gray-700'}`}>
@@ -763,7 +771,7 @@ export function BetSizingTrainer() {
                   </div>
                 </div>
               </div>
-            )}
+            </SpoilableHint>
 
             {/* Guidance below the decision — no scrolling needed to answer. */}
             <BeginnerGuide
