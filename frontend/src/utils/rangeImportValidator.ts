@@ -36,6 +36,7 @@ export interface ValidatedStackRange {
 
 export interface ValidatedProfile {
   name:        string;
+  mode:        'standard' | 'expert';
   stackRanges: ValidatedStackRange[];
 }
 
@@ -84,17 +85,18 @@ function validateFiniteNumber(
 
 // `maxVal` is 1 for frequency ranges (open positions / profiles) and 4 for
 // simple ranges, whose BB position stores defense category codes (0-4).
-function validateCells(value: unknown, field: string, maxVal = 1): number[] {
+// `count` is 169 for standard ranges and 676 (169×4) for expert frequency mixes.
+function validateCells(value: unknown, field: string, maxVal = 1, count = CELLS_COUNT): number[] {
   if (!Array.isArray(value))
     throw new Error(`${field}: expected an array`);
-  if (value.length !== CELLS_COUNT)
-    throw new Error(`${field}: expected exactly ${CELLS_COUNT} values, got ${value.length}`);
+  if (value.length !== count)
+    throw new Error(`${field}: expected exactly ${count} values, got ${value.length}`);
 
   // Validate every cell in [0, maxVal] — no NaN, no Infinity
   return value.map((v, i) => validateFiniteNumber(v, `${field}[${i}]`, 0, maxVal));
 }
 
-function validatePositionData(value: unknown, field: string, maxVal = 1): Record<string, number[]> {
+function validatePositionData(value: unknown, field: string, maxVal = 1, count = CELLS_COUNT): Record<string, number[]> {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
     throw new Error(`${field}: expected a plain object`);
 
@@ -106,7 +108,7 @@ function validatePositionData(value: unknown, field: string, maxVal = 1): Record
   for (const [pos, cells] of Object.entries(obj)) {
     if (!VALID_POSITIONS.has(pos))
       throw new Error(`${field}: unknown position "${pos}" — allowed: ${[...VALID_POSITIONS].join(', ')}`);
-    result[pos] = validateCells(cells, `${field}.${pos}`, maxVal);
+    result[pos] = validateCells(cells, `${field}.${pos}`, maxVal, count);
   }
 
   return result;
@@ -168,6 +170,8 @@ export function validateProfileImport(raw: unknown): ValidatedProfile {
     throw new Error(`version: only version 1 is supported (got ${String(obj.version)}).`);
 
   const name = sanitizeStr(obj.name, 'name', MAX_STR_NAME);
+  const mode: 'standard' | 'expert' = obj.mode === 'expert' ? 'expert' : 'standard';
+  const cellCount = mode === 'expert' ? CELLS_COUNT * 4 : CELLS_COUNT; // 676 vs 169
 
   if (!Array.isArray(obj.stackRanges))
     throw new Error('stackRanges: expected an array.');
@@ -193,13 +197,13 @@ export function validateProfileImport(raw: unknown): ValidatedProfile {
       if (stackMax !== null && stackMax <= stackMin)
         throw new Error(`stackRanges[${i}]: stackMax (${stackMax}) must be greater than stackMin (${stackMin}).`);
 
-      const data = validatePositionData(srObj.data, `stackRanges[${i}].data`);
+      const data = validatePositionData(srObj.data, `stackRanges[${i}].data`, 1, cellCount);
 
       return { label, stackMin, stackMax, data };
     },
   );
 
-  return { name, stackRanges };
+  return { name, mode, stackRanges };
 }
 
 /**

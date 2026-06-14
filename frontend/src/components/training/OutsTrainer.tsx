@@ -102,6 +102,7 @@ export function OutsTrainer() {
           ]}
           beginnerHint={isEn ? "Shows draw type hints & rule of 2/4" : "Affiche le type de tirage & règle 2/4"}
           advancedHint={isEn ? 'No hints — count from scratch' : 'Sans indices — comptez de tête'}
+          expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}

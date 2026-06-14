@@ -24,17 +24,23 @@ interface RangeMatrixProps {
   legend?: LegendEntry[];
   /** Formats the tooltip value string. Receives the raw cell value. */
   tooltipValue?: (value: number) => string;
+  /** Overrides the in-cell label. Default: the hand notation (e.g. "AKs"). */
+  cellLabel?: (value: number, notation: string) => string;
+  /** Small bottom-right corner badge per cell (e.g. the GTO frequency "75%"). */
+  cellCorner?: (value: number, notation: string) => string;
+  /** Full-opacity, no hover scaling — crisp read-only display (matches editors). */
+  crisp?: boolean;
 }
 
 const cellSizes = {
-  sm: 'w-6 h-6 text-[8px]',
+  sm: 'w-7 h-7 text-[8px]',
   md: 'w-8 h-8 text-[9px]',
   lg: 'w-10 h-10 text-xs',
 };
 
 export function RangeMatrix({
   matrix, highlightNotation, onCellClick, size = 'md', showLegend = true,
-  title, cellColor, legend, tooltipValue,
+  title, cellColor, legend, tooltipValue, cellLabel, cellCorner, crisp,
 }: RangeMatrixProps) {
   const [hovered, setHovered] = useState<string | null>(null);
   const cellSize = cellSizes[size];
@@ -73,27 +79,51 @@ export function RangeMatrix({
               const isHovered = notation === hovered;
 
               const bg = getColor(freq);
-              const opacity = isHighlighted ? 1 : isHovered ? 0.9 : 0.75;
+              const opacity = crisp ? 1 : (isHighlighted ? 1 : isHovered ? 0.9 : 0.75);
+              const cls = `${cellSize} shrink-0 border border-black/30 cursor-pointer flex items-center justify-center relative ${isHighlighted ? 'ring-2 ring-gold-400 ring-inset z-10' : ''}`;
+              const corner = cellCorner ? cellCorner(freq, notation) : '';
+              const inner = (
+                <>
+                  <span className="text-white/90 font-bold leading-none tracking-tight pointer-events-none">
+                    {cellLabel ? cellLabel(freq, notation) : notation}
+                  </span>
+                  {corner && (
+                    <span className="absolute bottom-0 right-0.5 text-[6px] font-bold text-white/90 leading-none pointer-events-none">
+                      {corner}
+                    </span>
+                  )}
+                </>
+              );
+
+              // Crisp mode renders a plain <div> (no framer-motion compositing) so
+              // the in-cell text stays sharp — matching the editable grid.
+              if (crisp) {
+                return (
+                  <div
+                    key={`${rowIdx}-${colIdx}`}
+                    className={cls}
+                    style={{ backgroundColor: bg, opacity, backgroundClip: 'padding-box' }}
+                    onMouseEnter={() => setHovered(notation)}
+                    onMouseLeave={() => setHovered(null)}
+                    onClick={() => onCellClick?.(notation)}
+                  >
+                    {inner}
+                  </div>
+                );
+              }
 
               return (
                 <motion.div
                   key={`${rowIdx}-${colIdx}`}
-                  className={`
-                    ${cellSize} shrink-0 border border-black/30 cursor-pointer
-                    flex items-center justify-center font-mono relative
-                    transition-all duration-100
-                    ${isHighlighted ? 'ring-2 ring-gold-400 ring-inset z-10' : ''}
-                  `}
-                  style={{ backgroundColor: bg, opacity }}
+                  className={`${cls} transition-all duration-100`}
+                  style={{ backgroundColor: bg, opacity, backgroundClip: 'padding-box' }}
                   onMouseEnter={() => setHovered(notation)}
                   onMouseLeave={() => setHovered(null)}
                   onClick={() => onCellClick?.(notation)}
                   whileHover={{ scale: 1.15, zIndex: 20 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 >
-                  <span className="text-white/80 font-bold truncate px-px leading-none">
-                    {size !== 'sm' ? RANKS_ORDER[rowIdx === colIdx ? rowIdx : (rowIdx < colIdx ? rowIdx : colIdx)] : ''}
-                  </span>
+                  {inner}
                 </motion.div>
               );
             })}

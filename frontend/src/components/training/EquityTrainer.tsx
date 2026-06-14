@@ -108,6 +108,7 @@ export function EquityTrainer() {
           ]}
           beginnerHint={isEn ? "Shows hand strengths & equity hints" : "Affiche la force des mains & l'équité"}
           advancedHint={isEn ? 'No hints — trust your read' : 'Sans indices — faites confiance à votre lecture'}
+          expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}

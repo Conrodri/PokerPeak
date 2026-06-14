@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Lock, X, Sliders, Layers, Plus, Check, Zap, Upload, Download,
-  Target, ChevronDown, ChevronUp,
+  Target, Flame,
 } from 'lucide-react';
 import { useTrainingStore } from '../store/trainingStore';
 import { useAuthStore } from '../store/authStore';
@@ -18,6 +18,8 @@ import { BetSizingTrainer } from '../components/training/BetSizingTrainer';
 
 import { RangeEditor } from '../components/poker/RangeEditor';
 import { RangeMatrix } from '../components/poker/RangeMatrix';
+import { ExpertRangeEditor, gtoToExpertMix } from '../components/poker/ExpertRangeEditor';
+import { HoverTip } from '../components/ui/HoverTip';
 import { useT } from '../i18n';
 import { useLangStore } from '../store/langStore';
 
@@ -48,23 +50,64 @@ function flatToMatrix(flat: number[]): number[][] {
 
 // ─── Add-profile inline form ─────────────────────────────────────────────────
 
-function AddProfileForm({ isEn, onAdd, onCancel }: {
-  isEn: boolean; onAdd: (name: string) => void; onCancel: () => void;
+function AddProfileForm({ isEn, isExpert, onAdd, onCancel }: {
+  isEn: boolean;
+  isExpert: boolean;
+  onAdd: (name: string, mode: 'standard' | 'expert') => void;
+  onCancel: () => void;
 }) {
   const [name, setName] = useState('');
+  const [mode, setMode] = useState<'standard' | 'expert'>('standard');
+  const submit = () => { if (name.trim()) onAdd(name.trim(), mode); };
   return (
-    <div className="flex items-center gap-2 mt-1">
-      <input
-        autoFocus value={name} onChange={e => setName(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' && name.trim()) onAdd(name.trim()); if (e.key === 'Escape') onCancel(); }}
-        placeholder={isEn ? 'Profile name…' : 'Nom du profil…'}
-        className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-felt-500"
-      />
-      <button onClick={() => { if (name.trim()) onAdd(name.trim()); }}
-        className="px-3 py-1.5 bg-felt-700 hover:bg-felt-600 text-white rounded-lg text-sm font-semibold transition-colors">
-        {isEn ? 'Create' : 'Créer'}
-      </button>
-      <button onClick={onCancel} className="text-gray-500 hover:text-white"><X size={16} /></button>
+    <div className="flex flex-col gap-2 mt-1 bg-gray-800/40 border border-gray-700 rounded-xl p-3">
+      <div className="flex items-center gap-2">
+        <input
+          autoFocus value={name} onChange={e => setName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && name.trim()) submit(); if (e.key === 'Escape') onCancel(); }}
+          placeholder={isEn ? 'Profile name…' : 'Nom du profil…'}
+          className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-felt-500"
+        />
+        <button onClick={submit}
+          className="px-3 py-1.5 bg-felt-700 hover:bg-felt-600 text-white rounded-lg text-sm font-semibold transition-colors">
+          {isEn ? 'Create' : 'Créer'}
+        </button>
+        <button onClick={onCancel} className="text-gray-500 hover:text-white"><X size={16} /></button>
+      </div>
+
+      {/* Type: standard vs expert (frequency mixes) */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-gray-500">{isEn ? 'Type:' : 'Type :'}</span>
+        <button
+          onClick={() => setMode('standard')}
+          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
+            mode === 'standard' ? 'bg-felt-700 text-white border-felt-500' : 'text-gray-400 border-gray-700 hover:text-white'
+          }`}
+        >
+          {isEn ? 'Standard' : 'Standard'}
+        </button>
+        <HoverTip
+          title="Expert"
+          text={isEn
+            ? 'Expert mode: set a frequency mix per hand (Fold / Call / Raise / All-in, summing to 100%) instead of a single action. Reserved for the Premium Expert tier.'
+            : 'Mode expert : définis un mix de fréquences par main (Fold / Call / Raise / All-in, somme = 100%) au lieu d\'une seule action. Réservé à l\'offre Premium Expert.'}
+        >
+          <button
+            onClick={() => (isExpert ? setMode('expert') : undefined)}
+            disabled={!isExpert}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+              !isExpert ? 'text-gray-600 border-gray-800 cursor-not-allowed'
+                : mode === 'expert' ? 'bg-purple-700 text-white border-purple-500' : 'text-purple-300 border-purple-800 hover:bg-purple-900/20'
+            }`}
+          >
+            {!isExpert && <Lock size={10} />}
+            <Flame size={11} /> Expert
+          </button>
+        </HoverTip>
+        {!isExpert && (
+          <span className="text-[10px] text-gray-600">{isEn ? '(Premium Expert)' : '(Premium Expert)'}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -129,8 +172,38 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
 }) {
   const isEn = useLangStore(s => s.lang) === 'en';
   const t = useT();
-  const [tab, setTab] = useState<'profiles' | 'simple'>('simple');
-  const [showSimpleGto, setShowSimpleGto] = useState(false);
+  const isExpert = !!useAuthStore(s => s.user?.isPremiumExpert);
+  const [tab, setTab] = useState<'profiles' | 'simple' | 'gto'>('simple');
+  const [gtoPos, setGtoPos] = useState<Position>(
+    defaultPosition && positions.includes(defaultPosition) ? defaultPosition : positions[0]
+  );
+
+  // Read-only GTO reference matrix (BB = 5-category defense grid, others = open-raise).
+  const renderGtoRef = (matrix: number[][] | null | undefined, position: string) => {
+    if (!matrix) return null;
+    if (position === 'BB') {
+      return (
+        <RangeMatrix
+          matrix={matrix}
+          size="sm"
+          crisp
+          cellColor={BB_GTO_CELL_COLOR}
+          legend={[
+            { color: 'rgba(202,138,4,0.82)', label: t.training.bb_leg_bluff, tip: { title: t.training.bb_leg_bluff, text: t.training.bb_tip_bluff } },
+            { color: 'rgba(22,130,60,0.85)', label: t.training.bb_leg_value, tip: { title: t.training.bb_leg_value, text: t.training.bb_tip_value } },
+            { color: 'rgba(37,99,235,0.70)', label: t.training.bb_leg_call,  tip: { title: t.training.bb_leg_call,  text: t.training.bb_tip_call  } },
+            { color: 'rgba(37,99,235,0.32)', label: t.training.bb_leg_thin,  tip: { title: t.training.bb_leg_thin,  text: t.training.bb_tip_thin  } },
+            { color: '#1a202c',              label: t.training.bb_leg_fold,  tip: { title: t.training.bb_leg_fold,  text: t.training.bb_tip_fold  } },
+          ]}
+          tooltipValue={(code) => ({
+            0: t.training.bb_leg_fold, 1: t.training.bb_leg_call,
+            2: t.training.bb_leg_thin, 3: t.training.bb_leg_value, 4: t.training.bb_leg_bluff,
+          } as Record<number, string>)[code] ?? ''}
+        />
+      );
+    }
+    return <RangeMatrix matrix={matrix} size="sm" crisp />;
+  };
 
   // ══ PROFILES TAB STATE ══════════════════════════════════════════════════════
   const [profiles,   setProfiles]   = useState<RangeProfile[]>([]);
@@ -143,6 +216,7 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
     defaultPosition && positions.includes(defaultPosition) ? defaultPosition : positions[0]
   );
   const [profileMatrix, setProfileMatrix] = useState<number[][] | null>(null);
+  const [profileExpertMix, setProfileExpertMix] = useState<number[] | null>(null); // flat 169×4 for expert profiles
   const [profileGto,    setProfileGto]    = useState<number[][] | null>(null);
   const [savingP,  setSavingP]  = useState(false);
   const [savedP,   setSavedP]   = useState(false);
@@ -179,6 +253,7 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
       type: 'pokertrainer-profile',
       version: 1,
       name: selProfile.name,
+      mode: selProfile.mode ?? 'standard',
       stackRanges: selProfile.stackRanges.map(sr => ({
         label: sr.label,
         stackMin: sr.stackMin,
@@ -202,7 +277,7 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
       const validated = validateProfileImport(raw);
 
       const suffix  = isEn ? ' (imported)' : ' (importé)';
-      const created = await profilesApi.create(validated.name + suffix);
+      const created = await profilesApi.create(validated.name + suffix, validated.mode);
 
       for (const sr of validated.stackRanges) {
         const createdSr = await profilesApi.createStackRange(
@@ -283,29 +358,47 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
       try {
         const data = await profilesApi.list();
         setProfiles(data);
-        const active = data.find(p => p.isActive) ?? data[0] ?? null;
-        if (active) {
-          setSelProfileId(active.id);
-          setSelRangeId(active.stackRanges[0]?.id ?? null);
+        const activeProfile = data.find(p => p.isActive) ?? null;
+        const sel = activeProfile ?? data[0] ?? null;
+        if (sel) {
+          setSelProfileId(sel.id);
+          setSelRangeId(sel.stackRanges[0]?.id ?? null);
         }
+        // If a complex range (profile) is active, open straight onto its tab + profile.
+        if (activeProfile) setTab('profiles');
       } catch {}
       setLoadingP(false);
     })();
   }, []);
 
-  // GTO reference for current profile position
+  // GTO reference for current profile position.
+  // BB is a defense spot → its reference is the 5-category defense grid, not an
+  // open-raise frequency matrix (keeps profiles consistent with the rest of the app).
   useEffect(() => {
-    trainingApi.getRangeMatrix(profilePos)
-      .then(d => { const m = (d as any)?.matrix ?? d; setProfileGto(Array.isArray(m) ? m : null); })
-      .catch(() => setProfileGto(null));
+    if (profilePos === 'BB') {
+      trainingApi.getBBDefenseRange()
+        .then(d => { const g = (d as any)?.grid; setProfileGto(Array.isArray(g) ? g : null); })
+        .catch(() => setProfileGto(null));
+    } else {
+      trainingApi.getRangeMatrix(profilePos)
+        .then(d => { const m = (d as any)?.matrix ?? d; setProfileGto(Array.isArray(m) ? m : null); })
+        .catch(() => setProfileGto(null));
+    }
   }, [profilePos]);
 
-  // Sync editor matrix when range or position changes
+  // Sync editor data when range / position / profile changes (standard 13×13 vs expert 169×4 mix)
   useEffect(() => {
-    if (!selRange) { setProfileMatrix(profileGto); return; }
+    const isExp = selProfile?.mode === 'expert';
+    if (!selRange) { setProfileMatrix(isExp ? null : profileGto); setProfileExpertMix(null); return; }
     const flat = selRange.data[profilePos];
-    setProfileMatrix(flat && flat.length === 169 ? flatToMatrix(flat) : (profileGto ?? null));
-  }, [selRange, profilePos, profileGto]);
+    if (isExp) {
+      setProfileExpertMix(flat && flat.length === 676 ? flat : gtoToExpertMix(profileGto, profilePos === 'BB'));
+      setProfileMatrix(null);
+    } else {
+      setProfileMatrix(flat && flat.length === 169 ? flatToMatrix(flat) : (profileGto ?? null));
+      setProfileExpertMix(null);
+    }
+  }, [selRange, profilePos, profileGto, selProfile]);
 
   // Profile handlers
   const handleActivate = async () => {
@@ -323,9 +416,9 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
     setActivating(false);
   };
 
-  const handleCreateProfile = async (name: string) => {
+  const handleCreateProfile = async (name: string, mode: 'standard' | 'expert' = 'standard') => {
     try {
-      const created = await profilesApi.create(name);
+      const created = await profilesApi.create(name, mode);
       setProfiles(prev => [...prev, created]);
       setSelProfileId(created.id);
       setSelRangeId(null);
@@ -385,17 +478,20 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
   };
 
   const handleSaveProfile = async () => {
-    if (!selProfile || !selRange || !profileMatrix) return;
+    if (!selProfile || !selRange) return;
+    const isExp = selProfile.mode === 'expert';
+    const cells = isExp ? profileExpertMix : profileMatrix?.flat();
+    if (!cells) return;
     setSavingP(true);
     try {
       await profilesApi.updateStackRange(selProfile.id, selRange.id, {
-        position: profilePos, cells: profileMatrix.flat(),
+        position: profilePos, cells,
       });
       setProfiles(prev => prev.map(p =>
         p.id === selProfile.id ? {
           ...p,
           stackRanges: p.stackRanges.map(sr => sr.id === selRange.id
-            ? { ...sr, data: { ...sr.data, [profilePos]: profileMatrix.flat() } }
+            ? { ...sr, data: { ...sr.data, [profilePos]: cells } }
             : sr),
         } : p
       ));
@@ -533,19 +629,8 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
       {/* Tab content — locked if not premium */}
       <div className={locked ? 'pointer-events-none select-none opacity-50' : ''}>
 
-      {/* Tab switcher */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => setTab('profiles')}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-bold border transition-all ${
-            tab === 'profiles'
-              ? 'bg-orange-900/30 text-orange-300 border-orange-700'
-              : 'text-gray-400 border-gray-700 hover:text-white hover:bg-gray-800'
-          }`}
-        >
-          <Layers size={13} />
-          {isEn ? 'Profiles' : 'Profils'}
-        </button>
+      {/* Tab switcher — order: Simple, Complex (profiles), Expert, GTO */}
+      <div className="flex gap-2 mb-4 flex-wrap">
         <button
           onClick={() => setTab('simple')}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-bold border transition-all ${
@@ -555,7 +640,29 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
           }`}
         >
           <Sliders size={13} />
-          {isEn ? 'Simple range' : 'Range simple'}
+          {isEn ? 'Simple ranges' : 'Ranges simples'}
+        </button>
+        <button
+          onClick={() => setTab('profiles')}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-bold border transition-all ${
+            tab === 'profiles'
+              ? 'bg-orange-900/30 text-orange-300 border-orange-700'
+              : 'text-gray-400 border-gray-700 hover:text-white hover:bg-gray-800'
+          }`}
+        >
+          <Layers size={13} />
+          {isEn ? 'Complex ranges' : 'Ranges complexes'}
+        </button>
+        <button
+          onClick={() => setTab('gto')}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-bold border transition-all ${
+            tab === 'gto'
+              ? 'bg-felt-800/60 text-felt-300 border-felt-600'
+              : 'text-gray-400 border-gray-700 hover:text-white hover:bg-gray-800'
+          }`}
+        >
+          <Target size={13} />
+          GTO
         </button>
       </div>
 
@@ -599,7 +706,7 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
                 {showAddProf && (
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <AddProfileForm isEn={isEn} onAdd={handleCreateProfile} onCancel={() => setShowAddProf(false)} />
+                    <AddProfileForm isEn={isEn} isExpert={isExpert} onAdd={handleCreateProfile} onCancel={() => setShowAddProf(false)} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -631,6 +738,7 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
                           }`}
                         >
                           {p.isActive && <span className="text-green-400 text-xs">●</span>}
+                          {p.mode === 'expert' && <Flame size={11} className="text-purple-400 shrink-0" />}
                           {p.name}
                         </button>
                       )}
@@ -739,11 +847,61 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
                         ))}
                       </div>
 
-                      {profileMatrix ? (
+                      {selProfile.mode === 'expert' ? (
+                        profileExpertMix ? (
+                          <ExpertRangeEditor
+                            mix={profileExpertMix}
+                            onChange={setProfileExpertMix}
+                            onSave={handleSaveProfile}
+                            onReset={() => setProfileExpertMix(gtoToExpertMix(profileGto, profilePos === 'BB'))}
+                            resetLabel="Reset GTO"
+                            isSaving={savingP}
+                            title={`${isEn ? 'Your range' : 'Ta range'} — ${profilePos}`}
+                            gtoSlot={
+                              <div className="flex flex-col items-start gap-2">
+                                <p className="text-xs font-semibold text-felt-300 flex items-center gap-1.5">
+                                  <Target size={13} className="shrink-0" />
+                                  {isEn ? 'GTO reference' : 'Range GTO (référence)'}
+                                  <span className="text-gray-600">— {profilePos}</span>
+                                </p>
+                                {profileGto ? (
+                                  profilePos === 'BB'
+                                    // BB is a defense spot → use the 5-category defense rendering.
+                                    ? renderGtoRef(profileGto, 'BB')
+                                    : (() => {
+                                      // Shade mixed (call) cells by frequency, and list each distinct
+                                      // call frequency in the legend (e.g. "Call 75%", "Call 50%").
+                                      const callColor = (f: number) => `rgba(202,138,4,${(0.45 + f * 0.5).toFixed(2)})`;
+                                      const freqs = Array.from(new Set(profileGto.flat().filter(f => f > 0 && f < 1))).sort((a, b) => b - a);
+                                      return (
+                                        <RangeMatrix
+                                          matrix={profileGto}
+                                          size="sm"
+                                          crisp
+                                          cellColor={(v) => v >= 1 ? 'rgba(22,130,60,0.85)' : v <= 0 ? '#1a202c' : callColor(v)}
+                                          legend={[
+                                            { color: 'rgba(22,130,60,0.85)', label: 'Raise' },
+                                            ...freqs.map(f => ({ color: callColor(f), label: `Call ${Math.round(f * 100)}%` })),
+                                            { color: '#1a202c', label: 'Fold' },
+                                          ]}
+                                        />
+                                      );
+                                    })()
+                                ) : <p className="text-[11px] text-gray-600 py-8">{isEn ? 'Loading…' : 'Chargement…'}</p>}
+                              </div>
+                            }
+                          />
+                        ) : (
+                          <div className="h-32 flex items-center justify-center">
+                            <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full" />
+                          </div>
+                        )
+                      ) : profileMatrix ? (
                         <RangeEditor
                           matrix={profileMatrix}
                           onChange={setProfileMatrix}
                           position={profilePos}
+                          scheme={profilePos === 'BB' ? 'bb' : 'open'}
                           onSave={handleSaveProfile}
                           onReset={() => { if (profileGto) setProfileMatrix(profileGto.map(r => [...r])); }}
                           isSaving={savingP}
@@ -833,59 +991,39 @@ function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
               {isEn ? 'Saved!' : 'Sauvegardé !'}
             </p>
           )}
+        </>
+      )}
 
-          {/* GTO reference range — collapsible read-only view */}
-          {simpleGto && (
-            <div className="mt-4 border-t border-gray-800 pt-3">
+      {/* ══ GTO TAB — read-only reference range per position ══ */}
+      {tab === 'gto' && (
+        <>
+          <p className="text-xs text-gray-500 mb-3">
+            {isEn
+              ? 'The GTO reference range for each position (read-only). Open positions show raise/call/fold; BB shows the 5 defense categories.'
+              : 'La range GTO de référence pour chaque position (lecture seule). Les positions d\'ouverture affichent raise/call/fold ; la BB affiche les 5 catégories de défense.'}
+          </p>
+
+          {/* Position selector */}
+          <div className="flex gap-1.5 mb-3 flex-wrap">
+            {positions.map(pos => (
               <button
-                onClick={() => setShowSimpleGto(v => !v)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-felt-300 hover:text-felt-200 transition-colors"
-              >
-                <Target size={13} className="shrink-0" />
-                {isEn ? 'GTO reference range' : 'Range GTO (référence)'}
-                <span className="text-gray-600">— {simplePos}</span>
-                {showSimpleGto ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-              <AnimatePresence initial={false}>
-                {showSimpleGto && (
-                  <motion.div
-                    key="simple-gto"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="overflow-hidden flex flex-col items-center gap-2 pt-3"
-                  >
-                    <p className="text-[11px] text-gray-500 text-center max-w-sm">
-                      {isEn
-                        ? 'The GTO baseline for this position — your edits above are independent.'
-                        : 'La base GTO pour cette position — tes modifications ci-dessus sont indépendantes.'}
-                    </p>
-                    {simplePos === 'BB' ? (
-                      <RangeMatrix
-                        matrix={simpleGto}
-                        size="sm"
-                        cellColor={BB_GTO_CELL_COLOR}
-                        legend={[
-                          { color: 'rgba(202,138,4,0.82)', label: t.training.bb_leg_bluff, tip: { title: t.training.bb_leg_bluff, text: t.training.bb_tip_bluff } },
-                          { color: 'rgba(22,130,60,0.85)', label: t.training.bb_leg_value, tip: { title: t.training.bb_leg_value, text: t.training.bb_tip_value } },
-                          { color: 'rgba(37,99,235,0.70)', label: t.training.bb_leg_call,  tip: { title: t.training.bb_leg_call,  text: t.training.bb_tip_call  } },
-                          { color: 'rgba(37,99,235,0.32)', label: t.training.bb_leg_thin,  tip: { title: t.training.bb_leg_thin,  text: t.training.bb_tip_thin  } },
-                          { color: '#1a202c',              label: t.training.bb_leg_fold,  tip: { title: t.training.bb_leg_fold,  text: t.training.bb_tip_fold  } },
-                        ]}
-                        tooltipValue={(code) => ({
-                          0: t.training.bb_leg_fold, 1: t.training.bb_leg_call,
-                          2: t.training.bb_leg_thin, 3: t.training.bb_leg_value, 4: t.training.bb_leg_bluff,
-                        } as Record<number, string>)[code] ?? ''}
-                      />
-                    ) : (
-                      <RangeMatrix matrix={simpleGto} size="sm" />
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
+                key={pos}
+                onClick={() => setGtoPos(pos)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold border transition-all ${
+                  gtoPos === pos
+                    ? 'bg-felt-700 text-white border-felt-500'
+                    : 'text-gray-400 border-gray-700 hover:text-white hover:bg-gray-800'
+                }`}>{pos}</button>
+            ))}
+          </div>
+
+          {gtoCache[gtoPos]
+            ? <div className="flex justify-center">{renderGtoRef(gtoCache[gtoPos], gtoPos)}</div>
+            : (
+              <div className="h-32 flex items-center justify-center">
+                <div className="animate-spin h-8 w-8 border-2 border-felt-500 border-t-transparent rounded-full" />
+              </div>
+            )}
         </>
       )}
 
@@ -988,7 +1126,8 @@ export function TrainingPage() {
         ))}
       </div>
 
-      {/* Range toolbar — preflop only, and only once the trainer has started (hidden on the intro) */}
+      {/* Range toolbar — preflop only, once the trainer has started (intro
+          dismissed). Available from the position-selection screen onward. */}
       {isRangeModule && trainerStarted && (
         <div className="flex items-center gap-2 -mt-2 flex-wrap">
 

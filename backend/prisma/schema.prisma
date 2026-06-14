@@ -98,6 +98,7 @@ model RangeProfile {
   userId      String
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String           // "MTT 6 Max", "Cash Game", …
+  mode        String           @default("standard") // "standard" | "expert" (multi-action freq mix)
   isActive    Boolean          @default(false)
   sortOrder   Int              @default(0)
   createdAt   DateTime         @default(now())

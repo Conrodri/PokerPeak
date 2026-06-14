@@ -102,6 +102,7 @@ export function PotOddsTrainer() {
           ]}
           beginnerHint={isEn ? "Shows formula, equity hints & EV breakdown" : "Affiche formule, équité & décomposition EV"}
           advancedHint={isEn ? 'No hints — calculate on your own' : 'Sans indices — calculez par vous-même'}
+          expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Target, Zap, TrendingUp } from 'lucide-react';
+import { Target, Flame, TrendingUp } from 'lucide-react';
 import { StatChip } from './StatChip';
 import { ProgressBar } from './ProgressBar';
 import { useT } from '../../i18n';
@@ -40,7 +40,7 @@ export function SessionStatsBar({ total, correct, streak, xp, labels }: Props) {
         color={accuracy >= 70 ? 'text-green-400' : 'text-yellow-400'}
       />
       <StatChip
-        icon={<Zap size={14} />}
+        icon={<Flame size={14} />}
         label={resolvedLabels.streak}
         value={String(streak)}
         color="text-gold-400"

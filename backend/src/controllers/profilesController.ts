@@ -1,7 +1,49 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { getRangeMatrix } from '../services/poker/ranges';
+import { buildBBDefenseGrid } from '../services/poker/bbDefense';
 import { Position } from '../types';
+import { isRequestPremiumExpert } from '../middleware/auth';
+
+const ALL_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+
+/** Standard GTO prefill: per position a flat 169 array.
+ *  Open positions = raise-frequency; BB = the 5-category defense grid (codes 0-4). */
+function gtoStandardData(): Record<string, number[]> {
+  const data: Record<string, number[]> = {};
+  for (const pos of ALL_POSITIONS) {
+    data[pos] = pos === 'BB' ? buildBBDefenseGrid().flat() : getRangeMatrix(pos).flat();
+  }
+  return data;
+}
+
+/** Expert GTO prefill: per position a flat 169×4 mix [fold, call, raise3x, allin].
+ *  Open positions seeded from the raise frequency (raise = freq, fold = 1-freq);
+ *  BB seeded from the defense grid (fold / call(1,2) / raise(3,4 = 3-bet)). */
+function gtoExpertData(): Record<string, number[]> {
+  const data: Record<string, number[]> = {};
+  for (const pos of ALL_POSITIONS) {
+    if (pos === 'BB') {
+      const codes = buildBBDefenseGrid().flat(); // 0=fold,1=call,2=thin,3=value3bet,4=bluff3bet
+      const mix: number[] = [];
+      for (const code of codes) {
+        if (code === 0) mix.push(1, 0, 0, 0);          // fold
+        else if (code <= 2) mix.push(0, 1, 0, 0);      // call / thin call
+        else mix.push(0, 0, 1, 0);                     // 3-bet (value/bluff) → raise
+      }
+      data[pos] = mix;
+      continue;
+    }
+    const flat = getRangeMatrix(pos).flat();
+    const mix: number[] = [];
+    for (const f of flat) {
+      const raise = Math.max(0, Math.min(1, Math.round(f * 100) / 100));
+      mix.push(Math.round((1 - raise) * 100) / 100, 0, raise, 0);
+    }
+    data[pos] = mix;
+  }
+  return data;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -47,7 +89,7 @@ export async function listProfiles(req: Request, res: Response): Promise<void> {
   }
 }
 
-// POST /profiles   body: { name }
+// POST /profiles   body: { name, mode? }
 export async function createProfile(req: Request, res: Response): Promise<void> {
   try {
     const userId = uid(req);
@@ -56,9 +98,15 @@ export async function createProfile(req: Request, res: Response): Promise<void> 
       res.status(400).json({ success: false, error: 'name is required' });
       return;
     }
+    const mode = req.body?.mode === 'expert' ? 'expert' : 'standard';
+    // Expert profiles (multi-action frequency mixes) are reserved for the expert tier.
+    if (mode === 'expert' && !(await isRequestPremiumExpert(req))) {
+      res.status(403).json({ success: false, error: 'Premium Expert tier required' });
+      return;
+    }
     const count = await prisma.rangeProfile.count({ where: { userId } });
     const profile = await prisma.rangeProfile.create({
-      data: { userId, name: name.trim(), sortOrder: count },
+      data: { userId, name: name.trim(), mode, sortOrder: count },
       include: { stackRanges: true },
     });
     res.json({ success: true, data: parseProfile(profile) });
@@ -134,12 +182,8 @@ export async function createStackRange(req: Request, res: Response): Promise<voi
       res.status(400).json({ success: false, error: 'label is required' }); return;
     }
 
-    // Pre-fill data with GTO ranges as a starting point
-    const ALL_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
-    const gtoData: Record<string, number[]> = {};
-    for (const pos of ALL_POSITIONS) {
-      gtoData[pos] = getRangeMatrix(pos).flat();
-    }
+    // Pre-fill with GTO as a starting point — shape depends on the profile mode.
+    const gtoData = profile.mode === 'expert' ? gtoExpertData() : gtoStandardData();
 
     const count = await prisma.rangeStackRange.count({ where: { profileId } });
     const sr = await prisma.rangeStackRange.create({
@@ -176,8 +220,8 @@ export async function updateStackRange(req: Request, res: Response): Promise<voi
     if (data && typeof data === 'object') {
       // Full data replacement
       newData = data;
-    } else if (position && Array.isArray(cells) && cells.length === 169) {
-      // Partial update: only one position
+    } else if (position && Array.isArray(cells) && (cells.length === 169 || cells.length === 676)) {
+      // Partial update: only one position (169 = standard, 676 = expert mix)
       const current: Record<string, number[]> = JSON.parse(existing.data);
       current[position] = cells;
       newData = current;

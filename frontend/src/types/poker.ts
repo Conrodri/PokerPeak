@@ -101,6 +101,8 @@ export interface BBDefenseExercise {
 
 export interface ExerciseResult {
   isCorrect: boolean;
+  /** Expert quiz: right action but wrong frequency → orange "almost" verdict. */
+  partial?: boolean;
   correctAction: string;
   explanation: string;
   xpEarned: number;

@@ -153,6 +153,7 @@ export interface RangeStackRange {
 export interface RangeProfile {
   id: string;
   name: string;
+  mode?: 'standard' | 'expert';
   isActive: boolean;
   sortOrder: number;
   stackRanges: RangeStackRange[];
@@ -171,8 +172,8 @@ export const profilesApi = {
   list: () =>
     api.get('/profiles').then(r => r.data.data) as Promise<RangeProfile[]>,
 
-  create: (name: string) =>
-    api.post('/profiles', { name }).then(r => r.data.data) as Promise<RangeProfile>,
+  create: (name: string, mode: 'standard' | 'expert' = 'standard') =>
+    api.post('/profiles', { name, mode }).then(r => r.data.data) as Promise<RangeProfile>,
 
   update: (id: string, name: string) =>
     api.put(`/profiles/${id}`, { name }).then(r => r.data.data) as Promise<RangeProfile>,

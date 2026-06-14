@@ -6,6 +6,7 @@ import { useTrainingStore } from '../../store/trainingStore';
 import { Position, ExerciseResult, BBDefenseExercise } from '../../types/poker';
 import { trainingApi } from '../../services/api';
 import { RangeMatrix } from '../poker/RangeMatrix';
+import { ExpertRangeGrid, EXPERT_ACTIONS } from '../poker/ExpertRangeEditor';
 import { PokerTable } from '../poker/PokerTable';
 import { Hand } from '../poker/Card';
 import { CardStr } from '../../types/poker';
@@ -66,6 +67,8 @@ const BB_CELL_COLOR = (code: number): string => ({
 
 interface RangeSectionProps {
   matrix: number[][] | null;
+  /** When set, the range is an expert profile: render the stacked-bar mix grid. */
+  mix?: number[] | null;
   highlightNotation: string;
   position: string;
   isCustom: boolean;
@@ -77,8 +80,8 @@ interface RangeSectionProps {
   t: ReturnType<typeof useT>;
 }
 
-function RangeSection({ matrix, highlightNotation, position, isCustom, resolvedLabel, heroStack, isEn, showRange, setShowRange, t }: RangeSectionProps) {
-  if (!matrix) return null;
+function RangeSection({ matrix, mix, highlightNotation, position, isCustom, resolvedLabel, heroStack, isEn, showRange, setShowRange, t }: RangeSectionProps) {
+  if (!matrix && !mix) return null;
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -127,7 +130,10 @@ function RangeSection({ matrix, highlightNotation, position, isCustom, resolvedL
             transition={{ duration: 0.2 }}
             className="overflow-hidden flex flex-col items-center gap-3 pt-2"
           >
-            {position === 'BB' && !isCustom ? (
+            {mix ? (
+              // Expert profile: render the exact stacked-bar scheme of the editor.
+              <ExpertRangeGrid mix={mix} highlightNotation={highlightNotation} isEn={isEn} />
+            ) : position === 'BB' && !isCustom ? (
               // GTO BB-defense grid uses action CODES (0-4), not raise frequencies,
               // so it needs the BB-specific colouring/legend (call ≠ raise).
               <RangeMatrix
@@ -161,6 +167,32 @@ function RangeSection({ matrix, highlightNotation, position, isCustom, resolvedL
   );
 }
 
+/** Convert a resolved range into a flat 169 play-frequency array.
+ *  - 169-cell ranges (standard) are returned as-is.
+ *  - 676-cell ranges (expert mix: [fold, call, raise3x, allin] per hand) are
+ *    collapsed to a per-hand "play" frequency = 1 − fold (call+raise3x+allin),
+ *    so they score and display like any other range in the preflop trainer. */
+function toPlayFrequencies(cells: number[]): number[] | null {
+  if (cells.length === 169) return cells;
+  if (cells.length === 676) {
+    const out: number[] = [];
+    for (let i = 0; i < 169; i++) {
+      const fold = cells[i * 4] ?? 0;
+      out.push(Math.max(0, Math.min(1, 1 - fold)));
+    }
+    return out;
+  }
+  return null;
+}
+
+/** Frequency presets offered in the expert quiz (covers quarters + thirds). */
+const EXPERT_FREQ_CHIPS = [25, 33, 50, 67, 75, 100];
+
+/** Nearest preset chip to a stored frequency percentage. */
+function nearestChip(pct: number): number {
+  return EXPERT_FREQ_CHIPS.reduce((a, b) => (Math.abs(b - pct) < Math.abs(a - pct) ? b : a), EXPERT_FREQ_CHIPS[0]);
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function PreflopTrainer() {
@@ -169,7 +201,7 @@ export function PreflopTrainer() {
   const {
     preflopExercise, lastResult, sessionStats, isLoading,
     fetchPreflopExercise, checkPreflopAnswer, recordResult,
-    setIsExercising, setCurrentPosition, setTrainerStarted,
+    setIsExercising, setCurrentPosition, setTrainerStarted, setSelectingPosition,
   } = useTrainingStore();
 
   const [showIntro,        setShowIntro]        = useState(true);
@@ -179,10 +211,19 @@ export function PreflopTrainer() {
   const [randomMode,       setRandomMode]       = useState(false);
   const [rangeMatrix,      setRangeMatrix]      = useState<number[][] | null>(null);
   const [customMatrix,     setCustomMatrix]     = useState<number[][] | null>(null);
+  /** Raw expert mix (flat 169×4) when the resolved range is an expert profile —
+   *  rendered in the recap with the editor's stacked-bar scheme for consistency. */
+  const [customMix,        setCustomMix]        = useState<number[] | null>(null);
   const [localResult,      setLocalResult]      = useState<ExerciseResult | null>(null);
   const [showRange,        setShowRange]        = useState(true);
   const [heroStack,        setHeroStack]        = useState<number>(() => Math.floor(Math.random() * 96) + 5);
   const [resolvedLabel,    setResolvedLabel]    = useState<string | null>(null);
+
+  // ── Expert quiz (mode 'expert' + "Mes ranges" on an expert profile) ───────────
+  // 4-frequency mix [fold, call, raise3x, allin] of the current hand, resolved
+  // at exercise load; non-null ⇒ render the 2-step action+frequency quiz.
+  const [expertTarget,     setExpertTarget]     = useState<number[] | null>(null);
+  const [expertActionPick, setExpertActionPick] = useState<number | null>(null);
 
   // ── BB defense mode ──────────────────────────────────────────────────────────
   const [isBBSession,  setIsBBSession]  = useState(false);
@@ -200,6 +241,8 @@ export function PreflopTrainer() {
   // ─── Sync phase/exercise → store ─────────────────────────────────────────────
   useEffect(() => {
     if (phase === 'result') window.scrollTo({ top: 0, behavior: 'smooth' });
+    // The position-selection screen is part of the intro → hide the range toolbar there.
+    setSelectingPosition(phase === 'select_position');
 
     if (isBBSession) {
       if (phase === 'exercise' && bbExercise && !bbIsLoading) startTime.current = Date.now();
@@ -221,14 +264,48 @@ export function PreflopTrainer() {
     if (phase === 'select_position') setCurrentPosition(selectedPosition);
   }, [selectedPosition, phase]);
 
+  // Expert quiz: when an exercise loads in expert mode with "Mes ranges" on,
+  // resolve the active range. If it's an expert profile (676), keep the full mix
+  // for the recap and slice out the current hand's 4-frequency mix for the quiz.
+  // Applies to both the open exercise and BB defense.
+  useEffect(() => {
+    let cancelled = false;
+    const notation = isBBSession ? bbExercise?.notation : preflopExercise?.notation;
+    const position = isBBSession ? 'BB' : preflopExercise?.position;
+    (async () => {
+      if (phase !== 'exercise' || mode !== 'expert' || !preflopEnabled || !notation || !position) {
+        return;
+      }
+      try {
+        const resolved = await profilesApi.resolve(position, heroStack);
+        if (cancelled) return;
+        if (resolved?.cells && resolved.cells.length === 676) {
+          setCustomMix(resolved.cells);
+          const [row, col] = getMatrixIndices(notation);
+          const idx = row * 13 + col;
+          setExpertTarget(resolved.cells.slice(idx * 4, idx * 4 + 4));
+          setResolvedLabel(resolved.profileName
+            ? `${resolved.profileName}${resolved.stackRangeLabel ? ` · ${resolved.stackRangeLabel}` : ''}`
+            : null);
+        } else {
+          setExpertTarget(null);
+        }
+      } catch { if (!cancelled) setExpertTarget(null); }
+    })();
+    return () => { cancelled = true; };
+  }, [phase, isBBSession, mode, preflopEnabled, preflopExercise, bbExercise, heroStack]);
+
   // Reset on unmount (module change)
-  useEffect(() => () => { setIsExercising(false); setCurrentPosition(null); }, []);
+  useEffect(() => () => { setIsExercising(false); setCurrentPosition(null); setSelectingPosition(false); }, []);
 
   // ─── Helpers ──────────────────────────────────────────────────────────────────
 
   const resetExerciseState = () => {
     setLocalResult(null);
     setCustomMatrix(null);
+    setCustomMix(null);
+    setExpertTarget(null);
+    setExpertActionPick(null);
     setRangeMatrix(null);
     setResolvedLabel(null);
     setBBSelected(null);
@@ -280,8 +357,10 @@ export function PreflopTrainer() {
 
       try {
         const resolved = await profilesApi.resolve(preflopExercise.position, heroStack);
-        if (resolved?.cells && resolved.cells.length === 169) {
-          flat = resolved.cells;
+        const play = resolved?.cells ? toPlayFrequencies(resolved.cells) : null;
+        if (play) {
+          flat = play;
+          setCustomMix(resolved.cells.length === 676 ? resolved.cells : null);
           rangeLabel = resolved.profileName
             ? `${resolved.profileName}${resolved.stackRangeLabel ? ` · ${resolved.stackRangeLabel}` : ''}`
             : undefined;
@@ -325,6 +404,55 @@ export function PreflopTrainer() {
     setPhase('result');
   };
 
+  // ─── handleExpertAnswer (expert 2-step quiz: action + frequency) ──────────────
+
+  const handleExpertAnswer = async (action: number, freqPct: number) => {
+    const notation = isBBSession ? bbExercise?.notation : preflopExercise?.notation;
+    const position = isBBSession ? 'BB' : preflopExercise?.position;
+    if (!notation || !position || !expertTarget) return;
+    const timeTaken = Date.now() - startTime.current;
+
+    const storedPct = Math.round((expertTarget[action] ?? 0) * 100);
+    const inRange   = storedPct > 0;                       // is this action part of your mix?
+    const target    = nearestChip(storedPct);              // the chip closest to your stored freq
+    const freqMatch = inRange && freqPct === target;
+    const isCorrect = inRange && freqMatch;
+    const xp = isCorrect ? 20 : inRange ? 10 : 5;
+
+    const actLabel = (k: number) => (isEn ? EXPERT_ACTIONS[k].labelEn : EXPERT_ACTIONS[k].labelFr);
+    // Full mix breakdown, e.g. "Fold 67% · Raise 33%"
+    const mixStr = EXPERT_ACTIONS
+      .map(a => ({ a, p: Math.round((expertTarget[a.key] ?? 0) * 100) }))
+      .filter(x => x.p > 0)
+      .map(x => `${actLabel(x.a.key)} ${x.p}%`)
+      .join(' · ');
+
+    // Verdict line: explicit on what the right frequency was vs. what was answered.
+    const verdictEn = !inRange
+      ? `${actLabel(action)} is not part of your range for this hand.`
+      : freqMatch
+        ? `Correct — you play ${actLabel(action)} ${target}% here.`
+        : `Right action, wrong frequency: you should ${actLabel(action)} **${target}%** here, you answered ${freqPct}%.`;
+    const verdictFr = !inRange
+      ? `${actLabel(action)} ne fait pas partie de ta range pour cette main.`
+      : freqMatch
+        ? `Correct — tu joues ${actLabel(action)} ${target}% ici.`
+        : `Bonne action, mauvaise fréquence : il fallait ${actLabel(action)} **${target}%** ici, tu as répondu ${freqPct}%.`;
+
+    setLocalResult({
+      isCorrect,
+      partial: inRange && !freqMatch,   // right action, wrong frequency → orange
+      correctAction: actLabel(action),
+      explanation: isEn
+        ? `Your range — ${handToDisplay(notation)} from ${position}: ${mixStr}.\n${verdictEn}`
+        : `Ta range — ${handToDisplay(notation)} en ${position} : ${mixStr}.\n${verdictFr}`,
+      xpEarned: xp,
+    });
+    if (isBBSession) setBBSelected(action === 0 ? 'fold' : action === 1 ? 'call' : '3bet');
+    await recordResult(isCorrect, xp, 'preflop', timeTaken);
+    setPhase('result');
+  };
+
   // ─── handleAnswerBB ───────────────────────────────────────────────────────────
 
   const handleAnswerBB = async (action: BBAction) => {
@@ -340,8 +468,10 @@ export function PreflopTrainer() {
 
       try {
         const resolved = await profilesApi.resolve('BB', heroStack);
-        if (resolved?.cells && resolved.cells.length === 169) {
-          flat = resolved.cells;
+        const play = resolved?.cells ? toPlayFrequencies(resolved.cells) : null;
+        if (play) {
+          flat = play;
+          setCustomMix(resolved.cells.length === 676 ? resolved.cells : null);
           label = resolved.profileName
             ? `${resolved.profileName}${resolved.stackRangeLabel ? ` · ${resolved.stackRangeLabel}` : ''}`
             : null;
@@ -453,6 +583,67 @@ export function PreflopTrainer() {
   // Use localResult (custom range / BB) when available, fall back to GTO lastResult
   const result = localResult ?? lastResult;
 
+  // Expert 2-step quiz active: expert mode + "Mes ranges" on an expert profile.
+  const isExpertQuiz = mode === 'expert' && preflopEnabled && !!expertTarget;
+
+  // Shared 2-step expert quiz UI (step 1 = action, step 2 = frequency chips).
+  const renderExpertQuiz = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="flex flex-col items-center gap-3 w-full sm:w-auto"
+    >
+      {expertActionPick === null ? (
+        <>
+          <p className="text-sm text-gray-300 font-semibold text-center">
+            {isEn ? 'What do you do with this hand?' : 'Que fais-tu avec cette main ?'}
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            {EXPERT_ACTIONS.map(a => (
+              <button
+                key={a.key}
+                onClick={() => setExpertActionPick(a.key)}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 font-bold text-sm text-white transition-transform hover:scale-105 sm:min-w-[120px]"
+                style={{ borderColor: a.accent, backgroundColor: a.color }}
+              >
+                <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: a.accent }} />
+                {isEn ? a.labelEn : a.labelFr}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-gray-300 font-semibold text-center">
+            {isEn ? 'How often do you ' : 'À quelle fréquence joues-tu '}
+            <span style={{ color: EXPERT_ACTIONS[expertActionPick].accent }} className="font-bold">
+              {isEn ? EXPERT_ACTIONS[expertActionPick].labelEn : EXPERT_ACTIONS[expertActionPick].labelFr}
+            </span>
+            {isEn ? '?' : ' ?'}
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-3 max-w-md">
+            {EXPERT_FREQ_CHIPS.map(f => (
+              <button
+                key={f}
+                onClick={() => handleExpertAnswer(expertActionPick, f)}
+                className="px-4 py-2.5 rounded-xl border-2 border-gray-600 bg-gray-800 hover:bg-gray-700 hover:border-gray-400 font-bold text-white text-sm transition-colors min-w-[64px]"
+              >
+                {f}%
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setExpertActionPick(null)}
+            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            {isEn ? '← Back' : '← Retour'}
+          </button>
+        </>
+      )}
+    </motion.div>
+  );
+
   if (showIntro) {
     return (
       <div className="flex flex-col gap-5 max-w-2xl mx-auto">
@@ -501,6 +692,7 @@ export function PreflopTrainer() {
           ]}
           beginnerHint={isEn ? "Shows range frequency & hand context" : "Affiche la fréquence de range & contexte"}
           advancedHint={isEn ? "No hints — play by intuition & memory" : "Sans indices — jouez à l'intuition & mémoire"}
+          expertHint={isEn ? "Premium Expert — quizzed on your own ranges (Fold/Call/Raise/All-in mix)" : "Premium Expert — interrogé sur tes propres ranges (mix Fold/Call/Raise/All-in)"}
           startLabel={isEn ? 'Choose a position' : 'Choisir une position'}
           onStart={() => { setShowIntro(false); setTrainerStarted(true); }}
           mode={mode}
@@ -695,7 +887,8 @@ export function PreflopTrainer() {
                     transition={{ delay: 0.4 }}
                     className="flex flex-col items-center gap-2.5 w-full sm:w-auto"
                   >
-                    {mode === 'advanced' && bb3betStep ? (
+                    {isExpertQuiz ? renderExpertQuiz() :
+                     mode === 'advanced' && bb3betStep ? (
                       /* Advanced step 2 — classify the 3-bet */
                       <>
                         <p className="text-sm text-gray-300 font-semibold text-center">
@@ -788,6 +981,7 @@ export function PreflopTrainer() {
                     </div>
                   </div>
 
+                  {isExpertQuiz ? renderExpertQuiz() : (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -801,6 +995,7 @@ export function PreflopTrainer() {
                       Raise
                     </Button>
                   </motion.div>
+                  )}
 
                   {!randomMode && (
                     <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
@@ -833,18 +1028,11 @@ export function PreflopTrainer() {
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center gap-5"
             >
-              <VerdictBanner isCorrect={localResult.isCorrect} />
+              <VerdictBanner isCorrect={localResult.isCorrect} partial={localResult.partial} />
 
-              {/* Custom range badge */}
-              {customMatrix && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-900/30 border border-purple-700/50 rounded-lg text-xs text-purple-300 w-full justify-center flex-wrap">
-                  <Sliders size={12} />
-                  <span>{isEn ? 'Evaluated against your custom range' : 'Évalué selon votre range personnalisée'}</span>
-                  <span className="text-purple-400 font-bold">· {heroStack} bb</span>
-                </div>
-              )}
-
-              {/* Action pills */}
+              {/* Action pills — hidden in the expert quiz (correctness is mix-based,
+                  and the GTO recommendation would be misleading). */}
+              {!isExpertQuiz && (
               <div className="flex gap-2 flex-wrap justify-center">
                 <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${BB_ACTION_PILL[bbExercise.correctAction]}`}>
                   {isEn ? 'Recommended' : 'Recommandé'} : <strong>{
@@ -869,6 +1057,7 @@ export function PreflopTrainer() {
                   </span>
                 )}
               </div>
+              )}
 
               {/* Compact table recap */}
               <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
@@ -884,16 +1073,13 @@ export function PreflopTrainer() {
                   />
                 </div>
                 <div className="flex flex-col items-center sm:items-start gap-2">
-                  <p className="text-gray-400 text-sm text-center sm:text-left">
-                    <span className="text-gold-400 font-mono font-bold text-base">
-                      {handToDisplay(bbExercise.notation)}
-                    </span>
-                    {' — '}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Hand cards={bbExercise.hand as CardStr[]} size="sm" gap="gap-1.5" animate={false} />
                     <span className="text-white font-bold">BB</span>
-                    <span className="text-gray-500 text-xs ml-1">
+                    <span className="text-gray-500 text-xs">
                       vs {bbExercise.opener} {bbExercise.openSize}bb
                     </span>
-                  </p>
+                  </div>
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -924,17 +1110,27 @@ export function PreflopTrainer() {
                 xp={sessionStats.xp}
               />
 
-              {/* Explanation (beginner only) */}
+              {/* Explanation (beginner, or always in the expert quiz) */}
               {localResult.explanation && (
-                <ExplanationPanel text={localResult.explanation} plain />
+                <ExplanationPanel text={localResult.explanation} plain forceShow={isExpertQuiz} />
+              )}
+
+              {/* Custom range active badge */}
+              {(customMatrix || customMix) && preflopEnabled && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-900/30 border border-purple-700/50 rounded-lg text-xs text-purple-300 w-full justify-center flex-wrap">
+                  <Sliders size={12} />
+                  <span>{isEn ? 'Evaluated against your custom range' : 'Évalué selon votre range personnalisée'}</span>
+                  <span className="text-purple-400 font-bold">· {heroStack} bb</span>
+                </div>
               )}
 
               {/* Range matrix */}
               <RangeSection
                 matrix={(preflopEnabled && customMatrix) ? customMatrix : rangeMatrix}
+                mix={preflopEnabled ? customMix : null}
                 highlightNotation={bbExercise.notation}
                 position="BB"
-                isCustom={!!(preflopEnabled && customMatrix)}
+                isCustom={!!(preflopEnabled && (customMatrix || customMix))}
                 resolvedLabel={resolvedLabel}
                 heroStack={heroStack}
                 isEn={isEn}
@@ -952,18 +1148,7 @@ export function PreflopTrainer() {
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center gap-5"
             >
-              <VerdictBanner isCorrect={result.isCorrect} />
-
-              {/* Custom range active badge */}
-              {localResult && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-900/30 border border-purple-700/50 rounded-lg text-xs text-purple-300 w-full justify-center flex-wrap">
-                  <Sliders size={12} />
-                  <span>
-                    {isEn ? 'Evaluated against your custom range' : 'Évalué selon votre range personnalisée'}
-                  </span>
-                  <span className="text-purple-400 font-bold">· {heroStack} bb</span>
-                </div>
-              )}
+              <VerdictBanner isCorrect={result.isCorrect} partial={result.partial} />
 
               {/* Compact table recap */}
               <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
@@ -978,13 +1163,10 @@ export function PreflopTrainer() {
                   />
                 </div>
                 <div className="flex flex-col items-center sm:items-start gap-2">
-                  <p className="text-gray-400 text-sm text-center sm:text-left">
-                    <span className="text-gold-400 font-mono font-bold text-base">
-                      {handToDisplay(preflopExercise.notation)}
-                    </span>
-                    {' — '}
+                  <div className="flex items-center gap-2">
+                    <Hand cards={preflopExercise.hand as CardStr[]} size="sm" gap="gap-1.5" animate={false} />
                     <span className="text-white font-bold">{preflopExercise.position}</span>
-                  </p>
+                  </div>
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -1015,15 +1197,27 @@ export function PreflopTrainer() {
                 xp={sessionStats.xp}
               />
 
-              {/* Explanation (beginner only) */}
-              <ExplanationPanel text={result.explanation} plain />
+              {/* Explanation (beginner, or always in the expert quiz) */}
+              <ExplanationPanel text={result.explanation} plain forceShow={isExpertQuiz} />
+
+              {/* Custom range active badge */}
+              {localResult && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-900/30 border border-purple-700/50 rounded-lg text-xs text-purple-300 w-full justify-center flex-wrap">
+                  <Sliders size={12} />
+                  <span>
+                    {isEn ? 'Evaluated against your custom range' : 'Évalué selon votre range personnalisée'}
+                  </span>
+                  <span className="text-purple-400 font-bold">· {heroStack} bb</span>
+                </div>
+              )}
 
               {/* Range matrix */}
               <RangeSection
                 matrix={(preflopEnabled && customMatrix) ? customMatrix : rangeMatrix}
+                mix={preflopEnabled ? customMix : null}
                 highlightNotation={preflopExercise.notation}
                 position={preflopExercise.position}
-                isCustom={!!(preflopEnabled && customMatrix)}
+                isCustom={!!(preflopEnabled && (customMatrix || customMix))}
                 resolvedLabel={resolvedLabel}
                 heroStack={heroStack}
                 isEn={isEn}

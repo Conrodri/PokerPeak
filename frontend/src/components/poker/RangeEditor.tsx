@@ -113,21 +113,18 @@ export function RangeEditor({ matrix, onChange, position, onSave, onReset, isSav
               const bg = isBB ? BB_CATEGORIES[toCode(freq)].color : frequencyBg(freq);
 
               return (
-                <motion.div
+                <div
                   key={`${rowIdx}-${colIdx}`}
-                  className="w-7 h-7 shrink-0 border border-black/30 cursor-pointer flex items-center justify-center font-mono relative transition-all duration-100"
-                  style={{ backgroundColor: bg, opacity: isHovered ? 1 : 0.82 }}
+                  className={`w-7 h-7 shrink-0 border border-black/30 cursor-pointer flex items-center justify-center relative ${isHovered ? 'ring-1 ring-white/40' : ''}`}
+                  style={{ backgroundColor: bg, backgroundClip: 'padding-box' }}
                   onMouseEnter={() => setHovered(notation)}
                   onMouseLeave={() => setHovered(null)}
                   onClick={() => handleCellClick(rowIdx, colIdx)}
-                  whileHover={{ scale: 1.15, zIndex: 20 }}
-                  whileTap={{ scale: 0.9 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 >
-                  <span className="text-white/80 font-bold text-[7px] leading-none truncate px-px">
-                    {RANKS_ORDER[rowIdx === colIdx ? rowIdx : (rowIdx < colIdx ? rowIdx : colIdx)]}
+                  <span className="text-white/90 font-bold text-[8px] leading-none tracking-tight pointer-events-none">
+                    {notation}
                   </span>
-                </motion.div>
+                </div>
               );
             })}
           </div>

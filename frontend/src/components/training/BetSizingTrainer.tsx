@@ -594,6 +594,7 @@ export function BetSizingTrainer() {
         ]}
         beginnerHint={isEn ? 'Shows board texture, hand type & key hints' : 'Affiche texture, type de main & indices clés'}
         advancedHint={isEn ? 'No hints — raw decision-making' : 'Sans indices — décision brute'}
+        expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
         startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
         onStart={handleStart}
         mode={mode}

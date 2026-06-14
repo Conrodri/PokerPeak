@@ -399,6 +399,7 @@ export function FullHandTrainer() {
           ]}
           beginnerHint={isEn ? 'Shows equity & board texture hints' : 'Affiche équité & indices de texture'}
           advancedHint={isEn ? 'No hints — full immersion' : 'Sans indices — immersion totale'}
+          expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}

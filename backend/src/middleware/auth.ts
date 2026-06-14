@@ -24,7 +24,7 @@ async function isRequestPremium(req: Request): Promise<boolean> {
 }
 
 /** Resolve whether the authenticated request belongs to a premium-expert user. */
-async function isRequestPremiumExpert(req: Request): Promise<boolean> {
+export async function isRequestPremiumExpert(req: Request): Promise<boolean> {
   if ((req as any).user?.isPremiumExpert === true) return true;
   const userId: string | undefined = (req as any).user?.userId;
   if (!userId) return false;

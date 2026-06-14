@@ -263,6 +263,7 @@ export function PostflopTrainer() {
           ]}
           beginnerHint={isEn ? "Shows hand strength, equity & texture hints" : "Affiche force de main, équité & texture"}
           advancedHint={isEn ? 'No hints — for experienced players' : 'Sans indices — pour joueurs confirmés'}
+          expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
