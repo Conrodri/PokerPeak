@@ -88,6 +88,7 @@ model RangePreset {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@index([userId])
   @@map("range_presets")
 }
 
@@ -108,6 +109,7 @@ model RangeProfile {
   updatedAt   DateTime         @updatedAt
   stackRanges RangeStackRange[]
 
+  @@index([userId])
   @@map("range_profiles")
 }
 
@@ -124,6 +126,7 @@ model RangeStackRange {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
+  @@index([profileId])
   @@map("range_stack_ranges")
 }
 
@@ -227,6 +230,7 @@ model TrainingSession {
 
   exercises SessionExercise[]
 
+  @@index([userId])
   @@map("training_sessions")
 }
 
@@ -246,6 +250,7 @@ model SessionExercise {
 
   createdAt DateTime @default(now())
 
+  @@index([sessionId])
   @@map("session_exercises")
 }
 

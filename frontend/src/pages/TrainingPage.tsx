@@ -9,6 +9,7 @@ import { useTrainingStore } from '../store/trainingStore';
 import { useAuthStore } from '../store/authStore';
 import { TrainingModule, Position } from '../types/poker';
 import { Spinner } from '../components/ui/Spinner';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 
 // Each trainer is its own chunk: only the selected module's code is fetched.
 const PreflopTrainer = lazy(() => import('../components/training/PreflopTrainer').then(m => ({ default: m.PreflopTrainer })));
@@ -1268,19 +1269,21 @@ export function TrainingPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
       >
-        <Suspense fallback={<Spinner />}>
-          {activeModule === 'preflop'   && <PreflopTrainer />}
-          {activeModule === 'potodds'   && <PotOddsTrainer />}
-          {activeModule === 'equity'    && <EquityTrainer />}
-          {activeModule === 'outs'      && <OutsTrainer />}
+        <ErrorBoundary key={activeModule}>
+          <Suspense fallback={<Spinner />}>
+            {activeModule === 'preflop'   && <PreflopTrainer />}
+            {activeModule === 'potodds'   && <PotOddsTrainer />}
+            {activeModule === 'equity'    && <EquityTrainer />}
+            {activeModule === 'outs'      && <OutsTrainer />}
 
-          {/* Premium modules: non-premium users still see the full intro and get
-              a daily free allowance; the trainers handle access internally
-              (premium / logged-in free quota / locked). */}
-          {activeModule === 'postflop'  && <PostflopTrainer />}
-          {activeModule === 'fullhand'  && <FullHandTrainer />}
-          {activeModule === 'betsizing' && <BetSizingTrainer />}
-        </Suspense>
+            {/* Premium modules: non-premium users still see the full intro and get
+                a daily free allowance; the trainers handle access internally
+                (premium / logged-in free quota / locked). */}
+            {activeModule === 'postflop'  && <PostflopTrainer />}
+            {activeModule === 'fullhand'  && <FullHandTrainer />}
+            {activeModule === 'betsizing' && <BetSizingTrainer />}
+          </Suspense>
+        </ErrorBoundary>
       </motion.div>
     </div>
   );

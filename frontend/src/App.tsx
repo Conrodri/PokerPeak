@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Layout } from './components/layout/Layout';
 import { HomePage } from './pages/HomePage';
 import { Spinner } from './components/ui/Spinner';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { OnboardingModal } from './components/onboarding/OnboardingModal';
 import { isOnboardingDone } from './components/onboarding/onboardingState';
 import { useAuthStore } from './store/authStore';
@@ -44,20 +45,22 @@ export default function App() {
   return (
     <BrowserRouter>
       <Layout>
-        <Suspense fallback={<Spinner />}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/rules" element={<PokerRulesPage />} />
-            <Route path="/glossary" element={<GlossaryPage />} />
-            <Route path="/training" element={<TrainingPage />} />
-            <Route path="/table" element={<TablePage />} />
-            <Route path="/stats" element={<StatsPage />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/premium" element={<PremiumPage />} />
-          </Routes>
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<Spinner />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/rules" element={<PokerRulesPage />} />
+              <Route path="/glossary" element={<GlossaryPage />} />
+              <Route path="/training" element={<TrainingPage />} />
+              <Route path="/table" element={<TablePage />} />
+              <Route path="/stats" element={<StatsPage />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/premium" element={<PremiumPage />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </Layout>
 
       <AnimatePresence>
