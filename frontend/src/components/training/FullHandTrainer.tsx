@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
+import { useExamRunner } from '../../hooks/useExamRunner';
+import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
 import { Hand } from '../poker/Card';
@@ -274,6 +276,24 @@ export function FullHandTrainer() {
   // Lock mode switching while a decision is on screen.
   useExerciseLock(!showIntro && phase !== 'loading' && !phase.endsWith('_result') && !!scenario);
 
+  // Exam mode — premium only here (each hand consumes a credit for free users).
+  // Each street decision is one exam answer; auto-advance walks the streets.
+  const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('fullhand');
+
+  const handleStartExam = () => {
+    startRun();
+    setQuotaBlocked(false);
+    setShowIntro(false);
+    setTrainerStarted(true);
+    loadScenario();
+  };
+
+  const handleQuitExam = () => {
+    quitRun();
+    setShowIntro(true);
+    setTrainerStarted(false);
+  };
+
   // Fetch range matrix when scenario loads (or position changes)
   useEffect(() => {
     if (!scenario) { setRangeMatrix(null); return; }
@@ -317,6 +337,7 @@ export function FullHandTrainer() {
     if (ok) setXpTotal(prev => prev + xp);
     await recordResult(ok, xp, `fullhand_${currentStep}`);
     setPhase(`${currentStep}_result` as HandPhase);
+    if (examActive) recordAnswer(ok, handleContinue);
   };
 
   // ── Handle continue ──────────────────────────────────────────────────────────
@@ -418,7 +439,16 @@ export function FullHandTrainer() {
           freeInfo={!isPremium && loggedIn && freeRemaining > 0
             ? { remaining: freeRemaining, limit: quota.limit }
             : undefined}
+          examSlot={mode !== 'beginner' && isPremium ? <ExamLauncher module="fullhand" onStart={handleStartExam} /> : undefined}
         />
+      </div>
+    );
+  }
+
+  if (examFinished) {
+    return (
+      <div className="flex flex-col gap-5 max-w-2xl mx-auto pt-4">
+        <ExamResult module="fullhand" onRetry={handleStartExam} onQuit={handleQuitExam} />
       </div>
     );
   }
@@ -452,7 +482,8 @@ export function FullHandTrainer() {
   return (
     <div className="flex flex-col gap-5 max-w-2xl mx-auto">
 
-      {/* ── Header ── */}
+      {/* ── Header — lives HUD during an exam ── */}
+      {examActive ? <ExamHud /> : (
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white mb-1">
@@ -470,6 +501,7 @@ export function FullHandTrainer() {
           <Info size={14} />
         </button>
       </div>
+      )}
 
       {/* ── Stepper ── */}
       <Stepper phase={phase} lastStreet={scenario.lastStreet} isEn={isEn} />
@@ -766,6 +798,8 @@ export function FullHandTrainer() {
               )}
             </p>
 
+            {/* Continue / stats / explanation — hidden during an exam (auto-advances) */}
+            {!examActive && (<>
             {/* ── 3. Navigation CTA ── */}
             <div className="w-full max-w-xs">
               <Button size="lg" variant="gold" onClick={handleContinue} fullWidth>
@@ -803,6 +837,7 @@ export function FullHandTrainer() {
                   : ('preflop' in decision ? decision.preflop.explanation.fr : decision.street.explanation.fr)
               }
             />
+            </>)}
 
             {/* ── 6. River showdown ── */}
             {phase === 'river_result' && (
