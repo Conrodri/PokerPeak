@@ -76,12 +76,13 @@ export function TrainerIntro({
         <button
           type="button"
           onClick={() => setShowDetails(v => !v)}
-          className="self-center flex items-center gap-1.5 text-[11px] font-medium text-gray-500 hover:text-gray-300 transition-colors"
+          className="self-center flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-800/50 bg-blue-900/20 text-sm font-semibold text-blue-200 hover:text-white hover:border-blue-600 hover:bg-blue-900/40 transition-colors"
         >
-          {showDetails ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          <span className="text-base leading-none">📖</span>
           {showDetails
             ? (isEn ? 'Hide details' : 'Masquer les détails')
-            : (isEn ? "What it is & how it works" : "C'est quoi & comment ça marche")}
+            : (isEn ? 'What it is & how it works' : "C'est quoi & comment ça marche")}
+          {showDetails ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </button>
         {showDetails && (<>
         {/* What is X? */}

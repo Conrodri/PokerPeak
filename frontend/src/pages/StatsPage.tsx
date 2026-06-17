@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, Target, Flame, Zap } from 'lucide-react';
 import { DayDetailPanel } from '../components/stats/DayDetailPanel';
 import { useAuthStore } from '../store/authStore';
-import { statsApi } from '../services/api';
+import { statsApi, examApi } from '../services/api';
 import { Button } from '../components/ui/Button';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Link } from 'react-router-dom';
@@ -136,6 +136,7 @@ export function StatsPage() {
 
   const [stats,        setStats]        = useState<any>(null);
   const [history,      setHistory]      = useState<any>(null);
+  const [examRecords,  setExamRecords]  = useState<Record<string, number>>({});
   const [loading,      setLoading]      = useState(false);
   const [selectedDay,  setSelectedDay]  = useState<string | null>(null);
   const detailRef = useRef<HTMLDivElement>(null);
@@ -146,6 +147,7 @@ export function StatsPage() {
     Promise.all([statsApi.getMyStats(), statsApi.getHistory(730)])
       .then(([s, h]) => { setStats(s); setHistory(h); })
       .finally(() => setLoading(false));
+    examApi.records().then(setExamRecords).catch(() => {});
   }, [user]);
 
   // ── byDay map — recomputed from raw exercises in LOCAL timezone ───────────
@@ -261,15 +263,17 @@ export function StatsPage() {
     ? xpToLevel(playerStats.xp) : { level: 1, progressPct: 0, nextLevelXp: 100 };
   const overallAcc = playerStats?.totalExercises > 0
     ? Math.round((playerStats.totalCorrect / playerStats.totalExercises) * 100) : 0;
+  // Best exam run across all modules (the streak metric is now exam-based).
+  const bestExam = Object.values(examRecords).reduce((m, v) => Math.max(m, v), 0);
 
   const pct = (c: number, tot: number) => tot > 0 ? Math.round(c / tot * 100) : 0;
   const moduleData = [
-    { key: 'preflop',  name: t.training.tab_preflop,               correct: playerStats?.preflopCorrect  || 0, total: playerStats?.preflopTotal  || 0, streak: playerStats?.preflopStreak  || 0, best: playerStats?.preflopBest  || 0 },
-    { key: 'potodds',  name: t.training.tab_potodds,               correct: playerStats?.potoddsCorrect  || 0, total: playerStats?.potoddsTotal  || 0, streak: playerStats?.potoddsStreak  || 0, best: (playerStats as any)?.potoddssBest || 0 },
-    { key: 'equity',   name: t.training.tab_equity,                correct: playerStats?.equityCorrect   || 0, total: playerStats?.equityTotal   || 0, streak: playerStats?.equityStreak   || 0, best: playerStats?.equityBest   || 0 },
-    { key: 'outs',     name: t.training.tab_outs,                  correct: playerStats?.outsCorrect     || 0, total: playerStats?.outsTotal     || 0, streak: playerStats?.outsStreak     || 0, best: playerStats?.outsBest     || 0 },
-    { key: 'postflop', name: isEn ? 'Post-flop' : 'Post-flop',    correct: playerStats?.postflopCorrect || 0, total: playerStats?.postflopTotal || 0, streak: playerStats?.postflopStreak || 0, best: playerStats?.postflopBest || 0 },
-    { key: 'fullhand', name: isEn ? 'Full Hand' : 'Main Complète', correct: playerStats?.fullhandCorrect || 0, total: playerStats?.fullhandTotal || 0, streak: playerStats?.fullhandStreak || 0, best: playerStats?.fullhandBest || 0 },
+    { key: 'preflop',  name: t.training.tab_preflop,               correct: playerStats?.preflopCorrect  || 0, total: playerStats?.preflopTotal  || 0, best: examRecords['preflop']  ?? 0 },
+    { key: 'potodds',  name: t.training.tab_potodds,               correct: playerStats?.potoddsCorrect  || 0, total: playerStats?.potoddsTotal  || 0, best: examRecords['potodds']  ?? 0 },
+    { key: 'equity',   name: t.training.tab_equity,                correct: playerStats?.equityCorrect   || 0, total: playerStats?.equityTotal   || 0, best: examRecords['equity']   ?? 0 },
+    { key: 'outs',     name: t.training.tab_outs,                  correct: playerStats?.outsCorrect     || 0, total: playerStats?.outsTotal     || 0, best: examRecords['outs']     ?? 0 },
+    { key: 'postflop', name: isEn ? 'Post-flop' : 'Post-flop',    correct: playerStats?.postflopCorrect || 0, total: playerStats?.postflopTotal || 0, best: examRecords['postflop'] ?? 0 },
+    { key: 'fullhand', name: isEn ? 'Full Hand' : 'Main Complète', correct: playerStats?.fullhandCorrect || 0, total: playerStats?.fullhandTotal || 0, best: examRecords['fullhand'] ?? 0 },
   ].map(m => ({ ...m, accuracy: pct(m.correct, m.total) }));
 
   const positionData = [
@@ -342,13 +346,12 @@ export function StatsPage() {
             <ProgressBar value={progressPct} color="gold" size="lg" />
           </div>
         </div>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <StatBox label={t.stats.exercises}   value={playerStats?.totalExercises || 0} />
           <StatBox label={t.stats.accuracy}
             value={`${playerStats?.totalCorrect || 0}/${playerStats?.totalExercises || 0}`}
             sub={`${overallAcc}%`} color={overallAcc >= 70 ? 'text-green-400' : 'text-yellow-400'} />
-          <StatBox label={t.stats.streak_cur}  value={playerStats?.streak || 0} suffix="🔥" />
-          <StatBox label={t.stats.streak_best} value={playerStats?.longestStreak || 0} />
+          <StatBox label={isEn ? 'Best exam' : 'Meilleur examen'} value={bestExam} suffix="🎯" color="text-gold-400" />
         </div>
       </motion.div>
 
@@ -646,12 +649,13 @@ export function StatsPage() {
                     {m.correct}/{m.total}
                   </span>
                 </div>
-                {/* All-time best streak badge */}
+                {/* Best exam run (the streak metric is now exam-based) */}
                 {m.best > 0 && (
                   <div className="mt-0.5 ml-1">
                     <span className="text-[10px] text-gray-500">
-                      🔥 {isEn ? 'Best streak' : 'Meilleure série'} :&nbsp;
-                      <span className="text-orange-400 font-bold">{m.best}</span>
+                      🎯 {isEn ? 'Best exam' : 'Meilleur examen'} :&nbsp;
+                      <span className="text-gold-400 font-bold">{m.best}</span>
+                      &nbsp;{isEn ? 'correct' : 'réussis'}
                     </span>
                   </div>
                 )}

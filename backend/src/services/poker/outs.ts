@@ -187,8 +187,139 @@ export const OUTS_SCENARIOS: OutsScenario[] = [
   },
 ];
 
+// ─── Randomized scenario generation ──────────────────────────────────────────
+// Generators vary the actual cards while provably preserving the outs count, so
+// the same principle (e.g. pocket pair → set = 2 outs) shows up with different
+// hands instead of repeating the exact same cards (77→2, A8o→5, …).
+
+const RANK_ORDER = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
+const SUIT_CHARS = ['h', 'd', 'c', 's'];
+const rv   = (r: string) => RANK_ORDER.indexOf(r) + 2;          // 2..14
+const disp = (r: string) => (r === 'T' ? '10' : r);
+const randInt = (n: number) => Math.floor(Math.random() * n);
+const choice  = <T,>(a: T[]): T => a[randInt(a.length)];
+function shuffled<T>(a: T[]): T[] {
+  const b = [...a];
+  for (let i = b.length - 1; i > 0; i--) { const j = randInt(i + 1); [b[i], b[j]] = [b[j], b[i]]; }
+  return b;
+}
+const allDistinct = (cards: string[]) => new Set(cards).size === cards.length;
+
+// True if the distinct rank values contain a 4-card straight draw (open or gutshot).
+function hasStraightDraw(rankVals: number[]): boolean {
+  const set = new Set(rankVals);
+  if (set.has(14)) set.add(1);   // ace can play low (A-2-3-4-5)
+  for (let low = 1; low <= 10; low++) {
+    let count = 0;
+    for (let v = low; v <= low + 4; v++) if (set.has(v)) count++;
+    if (count >= 4) return true;
+  }
+  return false;
+}
+
+type Gen = () => OutsScenario;
+
+// Pocket pair → set: 2 outs. Rainbow board, no straight connection.
+const genPocketPairSet: Gen = () => {
+  for (;;) {
+    const R = choice(RANK_ORDER);
+    const [s1, s2] = shuffled(SUIT_CHARS);
+    const hero: [string, string] = [R + s1, R + s2];
+    const boardRanks = shuffled(RANK_ORDER.filter(r => r !== R)).slice(0, 3);
+    const bs = shuffled(SUIT_CHARS).slice(0, 3);                // 3 distinct suits → no flush
+    const board = boardRanks.map((r, i) => r + bs[i]);
+    if (!allDistinct([...hero, ...board])) continue;
+    if (hasStraightDraw([rv(R), ...boardRanks.map(rv)])) continue;
+    return {
+      heroCards: hero, board, street: 'flop', outs: 2, difficulty: 'easy',
+      draws: [{
+        fr: `Paire servie de ${disp(R)} → toucher ton brelan : il ne reste que 2 cartes de ${disp(R)} dans le paquet.`,
+        en: `Pocket pair of ${disp(R)}s → hitting your set: only 2 cards of rank ${disp(R)} remain.`,
+      }],
+    };
+  }
+};
+
+// Pair + overcard kicker: 5 outs (trips + pairing the overcard). E.g. K7o on 7-x-x.
+const genPairOver: Gen = () => {
+  for (;;) {
+    const P = choice(RANK_ORDER.filter(r => rv(r) <= 11));      // paired rank (≤ J)
+    const H = choice(RANK_ORDER.filter(r => rv(r) > rv(P)));    // overcard kicker
+    const [hs, ks] = shuffled(SUIT_CHARS);                      // hero offsuit
+    const hero: [string, string] = [H + hs, P + ks];
+    const pSuit = choice(SUIT_CHARS.filter(s => s !== ks));     // the board's matching P card
+    const lows  = shuffled(RANK_ORDER.filter(r => rv(r) < rv(H) && r !== P)).slice(0, 2);
+    if (lows.length < 2) continue;
+    const lowSuits = shuffled(SUIT_CHARS).slice(0, 2);
+    const board = [P + pSuit, lows[0] + lowSuits[0], lows[1] + lowSuits[1]];
+    if (!allDistinct([...hero, ...board])) continue;
+    if (hasStraightDraw([rv(H), rv(P), rv(lows[0]), rv(lows[1])])) continue;
+    const bySuit: Record<string, number> = {};
+    for (const c of [...hero, ...board]) bySuit[c[1]] = (bySuit[c[1]] || 0) + 1;
+    if (Object.values(bySuit).some(n => n >= 4)) continue;      // no flush draw
+    return {
+      heroCards: hero, board, street: 'flop', outs: 5, difficulty: 'medium',
+      draws: [{
+        fr: `Paire de ${disp(P)} avec kicker ${disp(H)} : passer brelan (2 ${disp(P)} restants) ou toucher une paire de ${disp(H)} (3 ${disp(H)} restants) = 5 outs.`,
+        en: `Pair of ${disp(P)}s, ${disp(H)} kicker: make trips (2 ${disp(P)} left) or pair your ${disp(H)} (3 ${disp(H)} left) = 5 outs.`,
+      }],
+    };
+  }
+};
+
+// Two overcards: 6 outs. Both hero cards above the board, rainbow, no straight.
+const genTwoOver: Gen = () => {
+  for (;;) {
+    const [h1, h2] = shuffled(RANK_ORDER.filter(r => rv(r) >= 9)).slice(0, 2);
+    if (!h1 || !h2) continue;
+    const hi = Math.min(rv(h1), rv(h2));
+    const [s1, s2] = shuffled(SUIT_CHARS);                      // offsuit
+    const hero: [string, string] = [h1 + s1, h2 + s2];
+    const boardRanks = shuffled(RANK_ORDER.filter(r => rv(r) < hi)).slice(0, 3);
+    if (boardRanks.length < 3) continue;
+    const bs = shuffled(SUIT_CHARS).slice(0, 3);
+    const board = boardRanks.map((r, i) => r + bs[i]);
+    if (!allDistinct([...hero, ...board])) continue;
+    if (hasStraightDraw([rv(h1), rv(h2), ...boardRanks.map(rv)])) continue;
+    return {
+      heroCards: hero, board, street: 'flop', outs: 6, difficulty: 'medium',
+      draws: [{
+        fr: `Deux surcartes : toucher une paire de ${disp(h1)} (3 restants) ou de ${disp(h2)} (3 restants) = 6 outs.`,
+        en: `Two overcards: pairing your ${disp(h1)} (3 left) or ${disp(h2)} (3 left) = 6 outs.`,
+      }],
+    };
+  }
+};
+
+// Flush draw: 9 outs. Four of one suit visible, no straight draw on top.
+const genFlush: Gen = () => {
+  for (;;) {
+    const S = choice(SUIT_CHARS);
+    const heroRanks = shuffled(RANK_ORDER).slice(0, 2);
+    const hero: [string, string] = [heroRanks[0] + S, heroRanks[1] + S];
+    const sRanks = shuffled(RANK_ORDER.filter(r => !heroRanks.includes(r))).slice(0, 2);
+    const offRank = choice(RANK_ORDER.filter(r => !heroRanks.includes(r) && !sRanks.includes(r)));
+    const offSuit = choice(SUIT_CHARS.filter(s => s !== S));
+    const board = [sRanks[0] + S, sRanks[1] + S, offRank + offSuit];
+    if (!allDistinct([...hero, ...board])) continue;
+    if (hasStraightDraw([...heroRanks.map(rv), ...sRanks.map(rv), rv(offRank)])) continue;
+    return {
+      heroCards: hero, board, street: 'flop', outs: 9, difficulty: 'easy',
+      draws: [{
+        fr: 'Tirage couleur : 4 cartes de la couleur sont visibles, il en reste donc 9 dans le paquet (13 − 4).',
+        en: 'Flush draw: 4 cards of the suit are visible, so 9 remain in the deck (13 − 4).',
+      }],
+    };
+  }
+};
+
+const GENERATORS: Gen[] = [genPocketPairSet, genPairOver, genTwoOver, genFlush];
+
 export function getRandomOutsScenario(): OutsScenario {
-  return OUTS_SCENARIOS[Math.floor(Math.random() * OUTS_SCENARIOS.length)];
+  // 70% freshly generated (varied cards), 30% from the hand-verified list
+  // (which covers the combos/gutshots/OESD that aren't auto-generated).
+  if (Math.random() < 0.7) return choice(GENERATORS)();
+  return OUTS_SCENARIOS[randInt(OUTS_SCENARIOS.length)];
 }
 
 // Estimated equity with the Rule of 2 & 4.
