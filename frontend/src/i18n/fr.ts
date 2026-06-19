@@ -25,7 +25,7 @@ export const fr = {
     start_arrow: 'Commencer →',
     preflop_title: 'Pré-flop',
     preflop_sub: 'Ranges & Positions',
-    preflop_desc: 'Apprends les bonnes mains à jouer selon ta position. Fold, call ou raise — maîtrise les ranges GTO.',
+    preflop_desc: '',
     potodds_title: 'Pot Odds',
     potodds_sub: 'Calcul de rentabilité',
     potodds_desc: 'Calcule si un appel est mathématiquement rentable. Compare ton équité aux pot odds instantanément.',

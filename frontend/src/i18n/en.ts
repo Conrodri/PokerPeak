@@ -27,7 +27,7 @@ export const en: Translations = {
     start_arrow: 'Start →',
     preflop_title: 'Pre-flop',
     preflop_sub: 'Ranges & Positions',
-    preflop_desc: 'Learn the right hands to play from each position. Fold, call or raise — master GTO ranges.',
+    preflop_desc: '',
     potodds_title: 'Pot Odds',
     potodds_sub: 'Profitability Calculation',
     potodds_desc: 'Calculate whether a call is mathematically profitable. Instantly compare your equity to pot odds.',

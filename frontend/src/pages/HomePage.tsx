@@ -1,60 +1,92 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calculator, BarChart2, Layers, ArrowRight, Star } from 'lucide-react';
+import { Calculator, BarChart2, Layers, ArrowRight, Star, GraduationCap, Zap, Flame } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useT } from '../i18n';
 
+// ─── Tier row helpers ──────────────────────────────────────────────────────────
+
+type Tier = { icon: React.ReactNode; label: string; desc: string; color: string };
+
+function TierRow({ tier }: { tier: Tier }) {
+  return (
+    <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs ${tier.color}`}>
+      <span className="shrink-0 flex items-center">{tier.icon}</span>
+      <span className="font-semibold shrink-0">{tier.label}</span>
+      <span className="text-gray-400 truncate">{tier.desc}</span>
+    </div>
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function HomePage() {
   const t = useT();
-
   const isEn = t.nav.home === 'Home';
+
+  // Shared tier definitions
+  const T_FREE = (desc: string): Tier => ({
+    icon: <GraduationCap size={11} />,
+    label: isEn ? 'Free' : 'Gratuit',
+    desc,
+    color: 'border-blue-800/50 bg-blue-950/30 text-blue-300',
+  });
+  const T_ADV = (desc: string): Tier => ({
+    icon: <Zap size={11} />,
+    label: isEn ? 'Advanced' : 'Avancé',
+    desc,
+    color: 'border-gold-700/40 bg-gold-950/20 text-gold-300',
+  });
+  const T_EXP = (desc: string): Tier => ({
+    icon: <Flame size={11} />,
+    label: 'Expert',
+    desc,
+    color: 'border-purple-700/40 bg-purple-950/20 text-purple-300',
+  });
 
   const FREE_MODULES = [
     {
       id: 'preflop',
       title: t.home.preflop_title,
       subtitle: t.home.preflop_sub,
-      description: t.home.preflop_desc,
       icon: '🎯',
       color: 'from-green-900/50 to-felt-900/50 border-green-700',
       badge: t.home.badge_core,
       badgeColor: 'bg-green-900 text-green-300',
       href: '/training?module=preflop',
+      tiers: [
+        T_FREE(isEn ? 'GTO ranges — fold / raise by position' : 'Ranges GTO — fold / raise par position'),
+        { ...T_ADV(isEn ? 'Custom simple ranges (169 hands, saveable profiles)' : 'Ranges simples perso (169 mains, profils sauvegardables)'), label: isEn ? 'Advanced 👑' : 'Avancé 👑' },
+        { ...T_EXP(isEn ? 'Multi-action frequency mixes (Fold / Call / Raise / All-in)' : 'Fréquences multi-actions (Fold / Call / Raise / All-in)'), label: 'Expert 👑' },
+      ] as Tier[],
     },
     {
       id: 'potodds',
       title: t.home.potodds_title,
       subtitle: t.home.potodds_sub,
-      description: t.home.potodds_desc,
       icon: '📐',
       color: 'from-blue-900/50 to-felt-900/50 border-blue-700',
       badge: t.home.badge_math,
       badgeColor: 'bg-blue-900 text-blue-300',
       href: '/training?module=potodds',
+      tiers: [
+        T_FREE(isEn ? 'Pot odds + call/fold decision with guidance' : 'Cote du pot + décision call/fold guidée'),
+        T_ADV(isEn ? 'EV shown, hints hidden — reveal resets streak' : 'EV affiché, indice caché — révéler remet la série à 0'),
+      ] as Tier[],
     },
     {
       id: 'equity',
       title: t.home.equity_title,
       subtitle: t.home.equity_sub,
-      description: t.home.equity_desc,
       icon: '⚖️',
       color: 'from-purple-900/50 to-felt-900/50 border-purple-700',
       badge: t.home.badge_mid,
       badgeColor: 'bg-purple-900 text-purple-300',
       href: '/training?module=equity',
-    },
-    {
-      id: 'table',
-      title: isEn ? 'Poker Table' : 'Table Interactive',
-      subtitle: isEn ? 'Positions & Roles' : 'Positions & Rôles',
-      description: isEn
-        ? "Visualize the 6-max table, understand each position's role, the dealer button, blinds, and range implications."
-        : 'Visualise la table 6-max, comprends le rôle de chaque position, le jeton dealer, les blindes et les ranges.',
-      icon: '🎲',
-      color: 'from-teal-900/50 to-felt-900/50 border-teal-700',
-      badge: isEn ? 'Visual' : 'Visuel',
-      badgeColor: 'bg-teal-900 text-teal-300',
-      href: '/table',
+      tiers: [
+        T_FREE(isEn ? 'Compare two hands, guided result' : 'Comparer deux mains, résultat guidé'),
+        T_ADV(isEn ? 'Hidden hints — estimate equity on your own' : 'Indice caché — estime l\'équité sans aide'),
+      ] as Tier[],
     },
   ];
 
@@ -63,39 +95,47 @@ export function HomePage() {
       id: 'postflop',
       title: t.home.postflop_title,
       subtitle: t.home.postflop_sub,
-      description: t.home.postflop_desc,
       icon: '🃏',
       badge: t.home.badge_adv,
       href: '/training?module=postflop',
+      tiers: [
+        T_FREE(isEn ? 'Hand, equity, texture & hint always visible' : 'Main, équité, texture et indice toujours visibles'),
+        T_ADV(isEn ? 'Hint hidden — reveal breaks your streak' : 'Indice caché — révéler casse la série'),
+      ] as Tier[],
     },
     {
       id: 'fullhand',
       title: t.home.fullhand_title,
       subtitle: t.home.fullhand_sub,
-      description: t.home.fullhand_desc,
       icon: '🎰',
       badge: isEn ? 'Full game' : 'Jeu complet',
       href: '/training?module=fullhand',
+      tiers: [
+        T_FREE(isEn ? 'Guided at each street with hints' : 'Guidé à chaque rue avec indices'),
+        T_ADV(isEn ? 'No hints — decisions judged globally at showdown' : 'Sans indice — décisions jugées au showdown'),
+      ] as Tier[],
     },
     {
       id: 'betsize',
       title: t.home.betsize_title,
       subtitle: t.home.betsize_sub,
-      description: t.home.betsize_desc,
       icon: '📏',
       badge: isEn ? 'Sizing' : 'Sizing',
-      href: '#',
-      comingSoon: true,
+      href: '/training?module=betsizing',
+      tiers: [
+        T_FREE(isEn ? 'Optimal size shown with justification' : 'Taille optimale affichée avec justification'),
+        T_ADV(isEn ? 'Choose the right size without help' : 'Choisir la bonne taille sans aide'),
+      ] as Tier[],
     },
     {
       id: 'bluff',
       title: t.home.bluff_title,
       subtitle: t.home.bluff_sub,
-      description: t.home.bluff_desc,
       icon: '🎭',
       badge: isEn ? 'Psychology' : 'Psychologie',
       href: '#',
       comingSoon: true,
+      tiers: [] as Tier[],
     },
   ];
 
@@ -146,7 +186,7 @@ export function HomePage() {
       {/* Free modules */}
       <section>
         <h2 className="text-2xl font-bold text-white mb-3 text-center">{t.home.modules_title}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {FREE_MODULES.map((module, i) => (
             <motion.div
               key={module.id}
@@ -155,8 +195,16 @@ export function HomePage() {
               transition={{ delay: 0.1 + i * 0.08 }}
             >
               <Link to={module.href} className="block group h-full">
-                <div className={`bg-gradient-to-br ${module.color} border rounded-2xl p-4 h-full transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-2xl`}>
-                  <FreeModuleCard module={module} startArrow={t.home.start_arrow} />
+                <div className={`bg-gradient-to-br ${module.color} border rounded-2xl p-4 h-full transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-2xl flex flex-col`}>
+                  <ModuleCard
+                    icon={module.icon}
+                    title={module.title}
+                    subtitle={module.subtitle}
+                    badge={module.badge}
+                    badgeColor={module.badgeColor}
+                    tiers={module.tiers}
+                    startArrow={t.home.start_arrow}
+                  />
                 </div>
               </Link>
             </motion.div>
@@ -186,7 +234,7 @@ export function HomePage() {
               transition={{ delay: 0.35 + i * 0.08 }}
             >
               {module.comingSoon ? (
-                <div className="bg-gradient-to-br from-gold-900/10 to-gray-900/80 border border-gold-700/30 rounded-2xl p-4 h-full opacity-70 cursor-default flex flex-col">
+                <div className="bg-gradient-to-br from-gold-900/10 to-gray-900/80 border border-gold-700/30 rounded-2xl p-4 h-full opacity-60 cursor-default flex flex-col">
                   <div className="flex items-center justify-end gap-1 mb-2 flex-wrap">
                     <span className="flex items-center gap-1 bg-gold-900/70 border border-gold-700/60 text-gold-300 text-[11px] font-bold px-2 py-0.5 rounded-full">
                       👑 {t.home.badge_premium}
@@ -195,7 +243,20 @@ export function HomePage() {
                       {t.home.coming_soon}
                     </span>
                   </div>
-                  <PremiumModuleCard module={module} startArrow={t.home.start_arrow} comingSoon />
+                  <ModuleCard
+                    icon={module.icon}
+                    title={module.title}
+                    subtitle={module.subtitle}
+                    badge={module.badge}
+                    badgeColor="bg-gray-800 text-gray-400"
+                    tiers={[]}
+                    startArrow="—"
+                    subtitleColor="text-gold-400/70"
+                    arrowColor="text-gray-600"
+                    description={module.id === 'bluff'
+                      ? (isEn ? 'Bluff frequency, hand selection, and unexploitable strategies.' : 'Fréquence de bluff, sélection de mains et stratégies non-exploitables.')
+                      : undefined}
+                  />
                 </div>
               ) : (
                 <Link to={module.href} className="block group h-full">
@@ -205,7 +266,16 @@ export function HomePage() {
                         👑 {t.home.badge_premium}
                       </span>
                     </div>
-                    <PremiumModuleCard module={module} startArrow={t.home.start_arrow} />
+                    <ModuleCard
+                      icon={module.icon}
+                      title={module.title}
+                      subtitle={module.subtitle}
+                      badge={module.badge}
+                      badgeColor="bg-gray-800 text-gray-400"
+                      tiers={module.tiers}
+                      startArrow={t.home.start_arrow}
+                      subtitleColor="text-gold-400/70"
+                    />
                   </div>
                 </Link>
               )}
@@ -240,43 +310,51 @@ export function HomePage() {
   );
 }
 
-function FreeModuleCard({ module, startArrow }: { module: any; startArrow: string }) {
-  return (
-    <>
-      <div className="flex items-start gap-3 mb-2">
-        <span className="text-3xl">{module.icon}</span>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-xl font-bold text-white">{module.title}</h3>
-            <span className={`text-xs px-2 py-0.5 rounded-full ${module.badgeColor}`}>{module.badge}</span>
-          </div>
-          <p className="text-sm text-gray-400">{module.subtitle}</p>
-        </div>
-      </div>
-      <p className="text-sm text-gray-300 leading-snug">{module.description}</p>
-      <div className="flex items-center gap-1 mt-3 text-gold-400 text-sm font-medium">
-        <span>{startArrow}</span>
-      </div>
-    </>
-  );
-}
+// ─── Shared card body ─────────────────────────────────────────────────────────
 
-function PremiumModuleCard({ module, startArrow, comingSoon }: { module: any; startArrow: string; comingSoon?: boolean }) {
+function ModuleCard({
+  icon, title, subtitle, badge, badgeColor, tiers, startArrow,
+  subtitleColor = 'text-gray-400',
+  arrowColor = 'text-gold-400',
+  description,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  badgeColor: string;
+  tiers: Tier[];
+  startArrow: string;
+  subtitleColor?: string;
+  arrowColor?: string;
+  description?: string;
+}) {
   return (
     <>
-      <div className="flex items-start gap-3 mb-2">
-        <span className="text-3xl">{module.icon}</span>
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-xl font-bold text-white">{module.title}</h3>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">{module.badge}</span>
+      {/* Header */}
+      <div className="flex items-start gap-3 mb-3">
+        <span className="text-3xl leading-none">{icon}</span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+            <h3 className="text-lg font-bold text-white leading-tight">{title}</h3>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${badgeColor}`}>{badge}</span>
           </div>
-          <p className="text-sm text-gold-400/70">{module.subtitle}</p>
+          <p className={`text-xs ${subtitleColor}`}>{subtitle}</p>
         </div>
       </div>
-      <p className="text-sm text-gray-300 leading-relaxed">{module.description}</p>
-      <div className={`flex items-center gap-1 mt-4 text-sm font-medium ${comingSoon ? 'text-gray-600' : 'text-gold-400'}`}>
-        <span>{comingSoon ? '— ' : startArrow}</span>
+
+      {/* Tier rows or description */}
+      <div className="flex flex-col gap-1 flex-1">
+        {tiers.length > 0
+          ? tiers.map((tier, i) => <TierRow key={i} tier={tier} />)
+          : description
+            ? <p className="text-sm text-gray-400 leading-snug">{description}</p>
+            : null}
+      </div>
+
+      {/* CTA */}
+      <div className={`flex items-center gap-1 mt-3 text-sm font-medium ${arrowColor}`}>
+        <span>{startArrow}</span>
       </div>
     </>
   );
