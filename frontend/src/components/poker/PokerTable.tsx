@@ -198,7 +198,7 @@ export function PokerTable({
               <div className="text-center opacity-10">
                 <div className="text-white font-serif font-black" style={{ fontSize: compact ? 14 : 20 }}>🃏</div>
                 {!compact && (
-                  <div className="text-white font-serif tracking-[0.3em]" style={{ fontSize: 8 }}>POKER TRAINER</div>
+                  <div className="text-white font-serif tracking-[0.3em]" style={{ fontSize: 8 }}>POKERPEAK</div>
                 )}
               </div>
             )}

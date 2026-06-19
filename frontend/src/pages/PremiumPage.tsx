@@ -56,7 +56,7 @@ export function PremiumPage() {
 
   // Manual activation for now (swapped for the checkout call once billing is wired).
   const subscribeHref = (tier: 'Premium' | 'Expert') =>
-    `mailto:contact@pokertrainer.app?subject=${encodeURIComponent(`Abonnement ${tier}`)}`;
+    `mailto:contact@pokerpeak.app?subject=${encodeURIComponent(`Abonnement ${tier}`)}`;
 
   const cell = (on: boolean) =>
     on

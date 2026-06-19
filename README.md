@@ -1,4 +1,4 @@
-# 🃏 PokerTrainer
+# 🃏 PokerPeak
 
 Application d'entraînement au poker Texas Hold'em — interactive, pédagogique, avec suivi de progression.
 
