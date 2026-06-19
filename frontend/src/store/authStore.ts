@@ -8,6 +8,7 @@ interface User {
   isPremium?: boolean;
   isPremiumExpert?: boolean;
   tutorialDone?: boolean;
+  avatarUrl?: string | null;
 }
 
 interface AuthState {

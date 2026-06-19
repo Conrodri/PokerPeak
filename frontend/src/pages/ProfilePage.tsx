@@ -192,8 +192,10 @@ export function ProfilePage() {
       >
         {/* Avatar */}
         <div className="relative shrink-0">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center text-2xl font-black text-gray-900 shadow-glow-gold">
-            {avatarLetter}
+          <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center text-2xl font-black text-gray-900 shadow-glow-gold">
+            {user.avatarUrl
+              ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              : avatarLetter}
           </div>
           {user.isPremium && (
             <div className="absolute -top-2 -right-1 bg-yellow-400 rounded-full p-0.5 shadow">

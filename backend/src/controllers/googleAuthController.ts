@@ -67,6 +67,7 @@ export async function googleCallback(req: Request, res: Response): Promise<void>
       email: string;
       name: string;
       given_name?: string;
+      picture?: string;
     };
 
     // Find existing user by Google ID or email
@@ -75,12 +76,12 @@ export async function googleCallback(req: Request, res: Response): Promise<void>
     });
 
     if (user) {
-      // Link Google ID if this email existed without OAuth
-      if (!user.googleId) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { googleId: gUser.id },
-        });
+      // Link Google ID + refresh avatar if needed
+      const updates: Record<string, unknown> = {};
+      if (!user.googleId) updates.googleId = gUser.id;
+      if (gUser.picture && user.avatarUrl !== gUser.picture) updates.avatarUrl = gUser.picture;
+      if (Object.keys(updates).length > 0) {
+        user = await prisma.user.update({ where: { id: user.id }, data: updates });
       }
     } else {
       // Build a unique username from Google display name
@@ -94,7 +95,7 @@ export async function googleCallback(req: Request, res: Response): Promise<void>
       if (taken) username = base + Math.floor(Math.random() * 9000 + 1000);
 
       user = await prisma.user.create({
-        data: { username, email: gUser.email, password: null, googleId: gUser.id },
+        data: { username, email: gUser.email, password: null, googleId: gUser.id, avatarUrl: gUser.picture ?? null },
       });
       await prisma.playerStats.create({ data: { userId: user.id } });
     }

@@ -207,8 +207,10 @@ export function Navbar() {
               <>
                 <Link to="/profile" className="flex items-center gap-1.5 group ml-1" title={isEn ? 'My profile' : 'Mon profil'}>
                   <div className="relative">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center text-xs font-black text-gray-900 shadow group-hover:ring-2 group-hover:ring-gold-400 transition-all">
-                      {avatarLetter}
+                    <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center text-xs font-black text-gray-900 shadow group-hover:ring-2 group-hover:ring-gold-400 transition-all">
+                      {user.avatarUrl
+                        ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        : avatarLetter}
                     </div>
                     {user.isPremium && (
                       <div className="absolute -top-2 -right-1 text-yellow-400" style={{ fontSize: 11, lineHeight: 1 }}>
