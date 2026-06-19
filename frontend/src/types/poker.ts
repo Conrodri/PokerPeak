@@ -140,7 +140,6 @@ export interface LeaderboardEntry {
   level: number;
   totalExercises: number;
   accuracy: number;
-  streak: number;
   modules?: {
     preflop:  LeaderboardModuleStat;
     potodds:  LeaderboardModuleStat;

@@ -61,7 +61,6 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
       level: l.level,
       totalExercises: l.totalExercises,
       accuracy: l.totalExercises > 0 ? Math.round((l.totalCorrect / l.totalExercises) * 100) : 0,
-      streak: l.streak,
       modules: {
         preflop:  { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal,  bestStreak: l.preflopBest  },
         potodds:  { accuracy: acc(l.potoddsCorrect,  l.potoddsTotal),  total: l.potoddsTotal,  bestStreak: l.potoddssBest },

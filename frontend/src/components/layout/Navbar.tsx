@@ -198,14 +198,15 @@ export function Navbar() {
 
           {/* ── Right side ── */}
           <div className="flex items-center gap-1 shrink-0">
-            {/* Premium CTA — only for logged-in non-premium users */}
-            {user && !user.isPremium && (
+            {/* Premium CTA — logged-in non-premium OR non-logged */}
+            {(!user || !user.isPremium) && (
               <Link
-                to="/premium"
-                className="hidden min-[560px]:flex items-center gap-1 px-2 py-1 rounded-lg bg-gold-600/20 hover:bg-gold-600/30 border border-gold-600/40 text-gold-400 hover:text-gold-300 text-xs font-bold transition-colors"
-                title={isEn ? 'Go Premium' : 'Passer Premium'}
+                to={user ? '/premium' : '/login'}
+                className="hidden min-[560px]:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gold-600/20 hover:bg-gold-600/30 border border-gold-600/40 text-gold-400 hover:text-gold-300 text-xs font-bold transition-colors"
+                title={isEn ? (user ? 'Go Premium' : 'Sign up') : (user ? 'Passer Premium' : "S'inscrire")}
               >
                 <Crown size={12} fill="currentColor" />
+                {!user && <span className="hidden lg:inline">{isEn ? 'Sign up' : "S'inscrire"}</span>}
               </Link>
             )}
             <ModeToggle />

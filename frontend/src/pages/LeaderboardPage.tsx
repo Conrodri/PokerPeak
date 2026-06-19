@@ -213,9 +213,6 @@ export function LeaderboardPage() {
                     <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500">
                       <span>{t.stats.level} {entry.level}</span>
                       <span>{entry.totalExercises} ex.</span>
-                      {entry.streak > 0 && (
-                        <span className="text-orange-400 font-semibold">{entry.streak}🔥</span>
-                      )}
                     </div>
                   </div>
 

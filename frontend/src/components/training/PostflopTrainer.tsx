@@ -269,6 +269,7 @@ export function PostflopTrainer() {
   const hasStarted = useRef(false);
 
   const handleStreetChange = (sf: StreetFilter) => {
+    if (sf === streetFilter) return; // same filter — don't re-generate
     setStreetFilter(sf);
     localStorage.setItem(STREET_KEY, sf);
     // Only re-fetch if already past intro
