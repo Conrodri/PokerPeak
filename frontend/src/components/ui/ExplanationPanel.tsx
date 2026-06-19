@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Lightbulb, ChevronDown } from 'lucide-react';
 import { useLangStore } from '../../store/langStore';
 import { useModeStore, TrainingMode } from '../../store/modeStore';
+import { useExamStore } from '../../store/examStore';
 import { RichLine } from './RichText';
 
 interface Props {
@@ -24,8 +25,13 @@ interface Props {
 export function ExplanationPanel({ text, mode: modeProp, forceShow, className }: Props) {
   const isEn = useLangStore(s => s.lang) === 'en';
   const storeMode = useModeStore(s => s.mode);
+  const examActive = useExamStore(s => s.active);
   const mode = modeProp ?? storeMode;
   const [open, setOpen] = useState(false);
+
+  // During an exam (sprint) → no explanation at all, in any mode. We're here to
+  // work the module, not to learn.
+  if (examActive) return null;
 
   // Expert (without forceShow) → no explanation at all.
   if (mode === 'expert' && !forceShow) return null;

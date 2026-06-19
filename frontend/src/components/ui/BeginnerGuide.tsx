@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, GraduationCap } from 'lucide-react';
 import { useModeStore } from '../../store/modeStore';
+import { useExamStore } from '../../store/examStore';
 import { useLangStore } from '../../store/langStore';
 import { RichText } from './RichText';
 
@@ -35,9 +36,12 @@ export function BeginnerGuide({
   className,
 }: BeginnerGuideProps) {
   const mode = useModeStore(s => s.mode);
+  const examActive = useExamStore(s => s.active);
   const isEn = useLangStore(s => s.lang) === 'en';
   const [open, setOpen] = useState(defaultOpen);
 
+  // During an exam (sprint) → no guidance, in any mode. Work the module, don't learn.
+  if (examActive) return null;
   if (mode !== 'beginner' && !forceShow) return null;
 
   return (
