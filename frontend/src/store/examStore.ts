@@ -11,6 +11,7 @@ interface ExamState {
   errors: number;         // wrong answers this run (run ends at EXAM_MAX_ERRORS)
   finished: boolean;      // run ended → show result card
   isNewRecord: boolean;   // the finished run beat the stored record
+  isForfeited: boolean;   // run was stopped early (no score saved)
   records: Record<string, number>;  // best correct-count per module (from backend)
   history: { score: number; createdAt: string }[];  // recent runs for the last-played module
 
@@ -18,7 +19,9 @@ interface ExamState {
   start: (module: string) => void;
   /** Record one answer. Returns true if this answer ended the run. */
   answer: (isCorrect: boolean) => boolean;
-  /** Abandon the current run (no score saved) and leave exam mode. */
+  /** Stop early — shows the recap card without saving the score. */
+  forfeit: () => void;
+  /** Fully exit exam mode (called from the recap card's Quit button). */
   quit: () => void;
 }
 
@@ -29,6 +32,7 @@ export const useExamStore = create<ExamState>((set, get) => ({
   errors: 0,
   finished: false,
   isNewRecord: false,
+  isForfeited: false,
   records: {},
   history: [],
 
@@ -42,7 +46,8 @@ export const useExamStore = create<ExamState>((set, get) => ({
   },
 
   start: (module) => set({
-    active: true, module, correct: 0, errors: 0, finished: false, isNewRecord: false, history: [],
+    active: true, module, correct: 0, errors: 0, finished: false,
+    isNewRecord: false, isForfeited: false, history: [],
   }),
 
   answer: (isCorrect) => {
@@ -75,5 +80,7 @@ export const useExamStore = create<ExamState>((set, get) => ({
     return true;
   },
 
-  quit: () => set({ active: false, module: null, correct: 0, errors: 0, finished: false, isNewRecord: false, history: [] }),
+  forfeit: () => set({ finished: true, isForfeited: true }),
+
+  quit: () => set({ active: false, module: null, correct: 0, errors: 0, finished: false, isNewRecord: false, isForfeited: false, history: [] }),
 }));

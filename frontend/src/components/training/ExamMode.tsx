@@ -51,11 +51,12 @@ export function ExamLauncher({ module, onStart }: { module: string; onStart: () 
 }
 
 // ── Lives + live score (during a run) ───────────────────────────────────────────
-// `onQuit` (optional) wires a Stop button that abandons the run — the chain is
-// lost and no score is saved.
-export function ExamHud({ onQuit }: { onQuit?: () => void }) {
+// `onQuit` is kept for API compatibility but no longer called; stop now shows
+// the recap card via forfeit() instead of immediately exiting.
+export function ExamHud({ onQuit: _onQuit }: { onQuit?: () => void }) {
   const isEn = useLangStore(s => s.lang) === 'en';
   const { correct, errors } = useExamStore(useShallow(s => ({ correct: s.correct, errors: s.errors })));
+  const forfeit = useExamStore(s => s.forfeit);
   const lives = Math.max(0, EXAM_MAX_ERRORS - errors);
   const [confirmQuit, setConfirmQuit] = useState(false);
 
@@ -80,11 +81,11 @@ export function ExamHud({ onQuit }: { onQuit?: () => void }) {
             />
           ))}
         </div>
-        {onQuit && (
+        {(
           confirmQuit ? (
             <div className="flex items-center gap-1">
               <button
-                onClick={onQuit}
+                onClick={forfeit}
                 className="text-[11px] font-bold px-2 py-1 rounded-lg bg-red-700 hover:bg-red-600 text-white transition-colors"
               >
                 {isEn ? 'Stop?' : 'Arrêter ?'}
@@ -116,27 +117,68 @@ export function ExamHud({ onQuit }: { onQuit?: () => void }) {
 // ── End card ────────────────────────────────────────────────────────────────────
 export function ExamResult({ module, onRetry, onQuit }: { module: string; onRetry: () => void; onQuit: () => void }) {
   const isEn = useLangStore(s => s.lang) === 'en';
-  const { correct, isNewRecord, record, history } = useExamStore(useShallow(s => ({
-    correct: s.correct, isNewRecord: s.isNewRecord, record: s.records[module] ?? 0, history: s.history,
+  const { correct, errors, isNewRecord, isForfeited, record, history } = useExamStore(useShallow(s => ({
+    correct: s.correct, errors: s.errors, isNewRecord: s.isNewRecord,
+    isForfeited: s.isForfeited, record: s.records[module] ?? 0, history: s.history,
   })));
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString(isEn ? 'en-US' : 'fr-FR', { day: '2-digit', month: '2-digit' });
+
+  const total = correct + errors;
+  const pct   = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const correctPct = total > 0 ? (correct / total) * 100 : 0;
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="w-full max-w-md mx-auto rounded-2xl border border-gray-700 bg-gray-900/80 p-5 sm:p-6 flex flex-col items-center gap-3 text-center"
+      className="w-full max-w-md mx-auto rounded-2xl border border-gray-700 bg-gray-900/80 p-5 sm:p-6 flex flex-col items-center gap-4 text-center"
     >
-      <div className="text-3xl">{isNewRecord ? '🏆' : '🎯'}</div>
+      <div className="text-3xl">{isForfeited ? '⏹️' : isNewRecord ? '🏆' : '🎯'}</div>
       <h3 className="text-lg font-bold text-white">
-        {sprintName(module, isEn)} {isEn ? '— over' : '— terminé'}
+        {sprintName(module, isEn)}{' '}
+        {isForfeited
+          ? (isEn ? '— stopped early' : '— arrêté en cours')
+          : (isEn ? '— over' : '— terminé')}
       </h3>
-      <div className="flex flex-col items-center">
-        <span className="text-4xl font-black text-gold-400 leading-none">{correct}</span>
-        <span className="text-xs text-gray-400 mt-1">{isEn ? 'correct answers' : 'bonnes réponses'}</span>
+
+      {/* Score + accuracy */}
+      <div className="flex items-end justify-center gap-4">
+        <div className="flex flex-col items-center">
+          <span className="text-4xl font-black text-gold-400 leading-none">{correct}</span>
+          <span className="text-xs text-gray-400 mt-1">{isEn ? 'correct' : 'réussis'}</span>
+        </div>
+        <div className="flex flex-col items-center pb-0.5">
+          <span className="text-2xl font-black text-white/70 leading-none">{pct}%</span>
+          <span className="text-xs text-gray-500 mt-1">{isEn ? 'accuracy' : 'précision'}</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-4xl font-black text-red-400/80 leading-none">{errors}</span>
+          <span className="text-xs text-gray-400 mt-1">{isEn ? 'errors' : 'erreurs'}</span>
+        </div>
       </div>
-      {isNewRecord ? (
+
+      {/* Visual bar */}
+      <div className="w-full flex flex-col gap-1">
+        <div className="w-full h-2.5 rounded-full overflow-hidden bg-gray-800 flex">
+          <div
+            className="h-full bg-gold-500 transition-all duration-700"
+            style={{ width: `${correctPct}%` }}
+          />
+          <div className="h-full bg-red-600/70 flex-1" />
+        </div>
+        <div className="flex justify-between text-[10px] text-gray-600 px-0.5">
+          <span>{total} {isEn ? 'questions' : 'questions'}</span>
+          <span>{isEn ? `${EXAM_MAX_ERRORS} errors max` : `${EXAM_MAX_ERRORS} erreurs max`}</span>
+        </div>
+      </div>
+
+      {/* Record — hidden for forfeited runs (score not saved) */}
+      {isForfeited ? (
+        <p className="text-xs text-gray-500 italic">
+          {isEn ? 'Score not saved — sprint abandoned' : 'Score non sauvegardé — sprint abandonné'}
+        </p>
+      ) : isNewRecord ? (
         <div className="flex items-center gap-1.5 text-sm font-bold text-gold-300">
           <Trophy size={15} /> {isEn ? 'New record!' : 'Nouveau record !'}
         </div>
@@ -145,8 +187,10 @@ export function ExamResult({ module, onRetry, onQuit }: { module: string; onRetr
           <Trophy size={13} /> {isEn ? 'Record' : 'Record'} : {record}
         </div>
       )}
-      {history.length > 0 && (
-        <div className="w-full mt-1">
+
+      {/* History — hidden for forfeited runs */}
+      {!isForfeited && history.length > 0 && (
+        <div className="w-full">
           <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 text-center">
             {isEn ? 'Recent sprints' : 'Sprints récents'}
           </p>
@@ -162,7 +206,8 @@ export function ExamResult({ module, onRetry, onQuit }: { module: string; onRetr
           </ul>
         </div>
       )}
-      <div className="flex flex-col sm:flex-row gap-2 w-full mt-1">
+
+      <div className="flex flex-col sm:flex-row gap-2 w-full">
         <Button variant="gold" size="md" fullWidth onClick={onRetry} className="flex items-center justify-center gap-2">
           <RotateCcw size={15} /> {isEn ? 'Try again' : 'Recommencer'}
         </Button>
