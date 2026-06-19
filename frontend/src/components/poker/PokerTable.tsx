@@ -38,6 +38,7 @@ function MiniCard({ card, size = 'xs' }: { card: string; size?: 'xs' | 'sm' | 'm
   const rank = raw === 'T' ? '10' : raw;
   const sym  = SUIT_SYM[suit] ?? suit;
   const color = SUIT_COLORS[cardStyle][suit] ?? '#111827';
+  const isDark = cardStyle === 'dark';
 
   const dims = size === 'lg' ? { w: 52, h: 72, r: 8, fs: 24 }
              : size === 'md' ? { w: 40, h: 55, r: 5, fs: 16 }
@@ -49,9 +50,13 @@ function MiniCard({ card, size = 'xs' }: { card: string; size?: 'xs' | 'sm' | 'm
       width:          dims.w,
       height:         dims.h,
       borderRadius:   dims.r,
-      background:     'linear-gradient(160deg, #ffffff 0%, #e8edf4 100%)',
-      border:         '1.5px solid rgba(0,0,0,0.30)',
-      boxShadow:      '0 3px 8px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.9)',
+      background:     isDark
+        ? 'linear-gradient(160deg, #4b5563 0%, #374151 100%)'
+        : 'linear-gradient(160deg, #ffffff 0%, #e8edf4 100%)',
+      border:         isDark ? '1.5px solid rgba(255,255,255,0.18)' : '1.5px solid rgba(0,0,0,0.30)',
+      boxShadow:      isDark
+        ? '0 3px 8px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.12)'
+        : '0 3px 8px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.9)',
       display:        'flex',
       flexDirection:  'column',
       alignItems:     'center',
