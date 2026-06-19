@@ -7,6 +7,10 @@ import routes from './routes';
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001');
 
+// Trust the reverse proxy on Render/Heroku so express-rate-limit can read
+// the real client IP from X-Forwarded-For without throwing ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+app.set('trust proxy', 1);
+
 // Support multiple origins separated by comma in CORS_ORIGIN env var
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
   .split(',')
