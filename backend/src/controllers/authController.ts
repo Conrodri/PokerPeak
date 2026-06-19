@@ -63,6 +63,11 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    if (!user.password) {
+      res.status(401).json({ success: false, error: 'Ce compte utilise la connexion Google. Connecte-toi via le bouton Google.' } as ApiResponse);
+      return;
+    }
+
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       res.status(401).json({ success: false, error: 'Invalid credentials' } as ApiResponse);

@@ -23,6 +23,7 @@ const PokerRulesPage = lazy(() => import('./components/training/PokerRulesPage')
 const GlossaryPage = lazy(() => import('./pages/GlossaryPage').then(m => ({ default: m.GlossaryPage })));
 const LearningPathPage = lazy(() => import('./pages/LearningPathPage').then(m => ({ default: m.LearningPathPage })));
 const PremiumPage = lazy(() => import('./pages/PremiumPage').then(m => ({ default: m.PremiumPage })));
+const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage').then(m => ({ default: m.AuthCallbackPage })));
 
 export default function App() {
   const fetchMe = useAuthStore(s => s.fetchMe);
@@ -60,6 +61,7 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/premium" element={<PremiumPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>

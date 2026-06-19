@@ -17,6 +17,7 @@ interface AuthState {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
+  loginWithToken: (token: string) => Promise<void>;
   logout: () => void;
   fetchMe: () => Promise<void>;
   dismissTutorial: () => Promise<void>;
@@ -50,6 +51,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (err: any) {
       set({ error: err.response?.data?.error || 'Inscription échouée', isLoading: false });
       throw err;
+    }
+  },
+
+  loginWithToken: async (token: string) => {
+    localStorage.setItem('token', token);
+    set({ token, isLoading: true });
+    try {
+      const data = await authApi.me();
+      set({ user: data, isLoading: false });
+    } catch {
+      localStorage.removeItem('token');
+      set({ user: null, token: null, isLoading: false });
     }
   },
 
