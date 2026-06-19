@@ -4,7 +4,21 @@ import {
   ChevronRight, ChevronDown, ChevronUp, Zap, Target,
   Check, Lock, Trophy, Shuffle, Info, Lightbulb,
 } from 'lucide-react';
+import { SourcesFooter } from '../ui/SourcesFooter';
+import type { Source } from '../ui/SourcesFooter';
 import { useIsMobile } from '../../hooks/useIsMobile';
+
+const FULLHAND_SOURCES: Source[] = [
+  { authors: 'Sklansky, D. & Malmuth, M.', title: "Hold'em Poker for Advanced Players", year: '1999', note: { fr: 'Sélection de mains pré-flop et stratégie de position', en: 'Preflop hand selection and position strategy' } },
+  { authors: 'Janda, M.', title: 'Applications of No-Limit Hold\'em', year: '2013', note: { fr: 'Continuité de la range du pré-flop à la river, polarisation et protection', en: 'Range continuity from preflop to river, polarization and protection' } },
+  { authors: 'Acevedo, M.', title: 'Modern Poker Theory', year: '2019', note: { fr: 'Construction de strategy GTO sur toutes les rues, dérivée de solveurs', en: 'GTO strategy construction across all streets, solver-derived' } },
+  { authors: 'Miller, E.', title: "Poker's 1%", year: '2014', note: { fr: 'Prise de décision à haute fréquence sur l\'ensemble d\'une main', en: 'High-frequency decision making across a complete hand' } },
+  { authors: 'GTO Wizard', title: 'Full hand solver trees', year: '2023', note: { fr: 'Arbres de décision GTO du pré-flop à la river en cash game 6-max 100bb', en: 'GTO decision trees from preflop to river in 6-max cash game at 100bb' }, url: 'https://gtowizard.com' },
+];
+const FULLHAND_METHODOLOGY = {
+  fr: 'Les scénarios de mains complètes couvrent les 4 rues (pré-flop, flop, turn, river). Les décisions correctes sont issues de solutions de solveurs GTO pour du cash game 6-max à 100bb effectifs. L\'évaluation des mains au showdown utilise l\'algorithme de meilleure main à 5 cartes sur 7.',
+  en: 'Full hand scenarios cover all 4 streets (preflop, flop, turn, river). Correct decisions are drawn from GTO solver solutions for 6-max cash games at 100bb effective stacks. Showdown hand evaluation uses the best 5-card hand from 7 algorithm.',
+};
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
@@ -900,7 +914,7 @@ export function FullHandTrainer() {
           </motion.div>
         )}
       </AnimatePresence>
-
+      <SourcesFooter isEn={isEn} sources={FULLHAND_SOURCES} methodology={FULLHAND_METHODOLOGY} />
     </div>
   );
 }

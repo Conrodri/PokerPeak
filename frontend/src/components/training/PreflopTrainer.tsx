@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronDown, ChevronUp, RotateCcw, Info, Zap, Target, Sliders, Lightbulb, Check, X } from 'lucide-react';
+import { SourcesFooter } from '../ui/SourcesFooter';
+import type { Source } from '../ui/SourcesFooter';
+
+const PREFLOP_SOURCES: Source[] = [
+  { authors: 'Sklansky, D. & Malmuth, M.', title: "Hold'em Poker for Advanced Players", year: '1999', note: { fr: `Classification des mains par position, fondements des ranges d'ouverture`, en: 'Hand grouping by position, open-raise range foundations' } },
+  { authors: 'Chen, B. & Ankenman, J.', title: 'The Mathematics of Poker', year: '2006', note: { fr: `Théorie GTO en heads-up et construction des ranges d'équilibre`, en: 'GTO theory in HU and equilibrium range construction' } },
+  { authors: 'Acevedo, M.', title: 'Modern Poker Theory', year: '2019', note: { fr: `Ranges GTO 6-max dérivées de solveurs, fréquences d'ouverture par position`, en: 'Solver-derived 6-max GTO ranges, open frequencies by position' } },
+  { authors: 'GTO Wizard', title: 'Preflop solver solutions database', year: '2023', note: { fr: `Fréquences d'ouverture, 3-bet et défense par position — 100bb cash game 6-max`, en: 'Open, 3-bet and defense frequencies by position — 100bb 6-max cash game' }, url: 'https://gtowizard.com' },
+  { authors: 'PioSolver', title: 'GTO preflop equilibria', year: '2015–', note: { fr: `Calcul des ranges d'équilibre Nash pré-flop`, en: 'Nash equilibrium preflop range computation' }, url: 'https://piosolver.com' },
+];
+const PREFLOP_METHODOLOGY = {
+  fr: `Les mains et fréquences correctes sont calibrées sur des solutions de solveurs GTO (PioSolver, GTO Wizard) pour du cash game 6-max à 100bb effectifs. Les ranges d'ouverture reflètent les fréquences d'équilibre Nash ; les spots mixtes (fréquence > 0 et < 1) sont signalés explicitement.`,
+  en: 'Correct hands and frequencies are calibrated from GTO solver solutions (PioSolver, GTO Wizard) for 6-max cash games at 100bb effective stacks. Open ranges reflect Nash equilibrium frequencies; mixed spots (frequency > 0 and < 1) are explicitly flagged.',
+};
 import { rangesApi, profilesApi, type RangeProfile } from '../../services/api';
 import { useTrainingStore } from '../../store/trainingStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -1524,6 +1538,7 @@ export function PreflopTrainer() {
         </>
       )}
 
+      <SourcesFooter isEn={isEn} sources={PREFLOP_SOURCES} methodology={PREFLOP_METHODOLOGY} />
     </div>
   );
 }

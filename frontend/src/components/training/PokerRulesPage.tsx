@@ -7,6 +7,7 @@ import { Hand } from '../poker/Card';
 import { PokerTable } from '../poker/PokerTable';
 import { Position } from '../../types/poker';
 import { PokerTerm } from '../ui/PokerTerm';
+import { TutorialHand } from '../tutorial/HandTutorialModal';
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -307,6 +308,16 @@ export function PokerRulesPage() {
             </span>
           </div>
         </div>
+      </Section>
+
+      {/* ── Section 3b: Tutoriel pas à pas ── */}
+      <Section title={`🎯 ${isEn ? 'Step-by-step hand tutorial' : 'Tutoriel : une main pas à pas'}`}>
+        <p className="text-sm text-gray-400 mb-4">
+          {isEn
+            ? 'Follow a complete hand from deal to showdown. Click Next to advance.'
+            : 'Suis une main complète de la distribution au showdown. Clique sur Suivant pour avancer.'}
+        </p>
+        <TutorialHand isEn={isEn} />
       </Section>
 
       {/* ── Section 4: Tes actions ── */}

@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Info, Calculator, TrendingUp, Target, Scale, GraduationCap, Lightbulb } from 'lucide-react';
+import { SourcesFooter } from '../ui/SourcesFooter';
+import type { Source } from '../ui/SourcesFooter';
+
+const POTODDS_SOURCES: Source[] = [
+  { authors: 'Sklansky, D.', title: 'The Theory of Poker', year: '1994', note: { fr: 'Théorie fondamentale des pot odds et du principe fondamental du poker', en: 'Pot odds theory and the fundamental theorem of poker' } },
+  { authors: 'Chen, B. & Ankenman, J.', title: 'The Mathematics of Poker', year: '2006', note: { fr: 'Cadre EV, appel par rapport aux pot odds et fréquences d\'équilibre', en: 'EV framework, calling vs pot odds and equilibrium calling frequencies' } },
+  { authors: 'Harrington, D.', title: 'Harrington on Hold\'em Vol. 1', year: '2004', note: { fr: 'Application pratique des pot odds et de l\'équité implicite', en: 'Practical application of pot odds and implied equity' } },
+  { authors: 'GTO Wizard', title: 'Calling frequency equilibria', year: '2023', note: { fr: 'Fréquences d\'appel GTO par spot et texture de board', en: 'GTO calling frequencies by spot and board texture' }, url: 'https://gtowizard.com' },
+];
+const POTODDS_METHODOLOGY = {
+  fr: 'Chaque exercice calcule les pot odds exacts (mise / (pot + mise)) et les compare à l\'équité du héros. L\'action correcte suit le critère EV : appeler si équité ≥ pot odds requis, sinon fold. Les valeurs d\'équité sont issues de calculs par énumération complète.',
+  en: 'Each exercise computes exact pot odds (bet / (pot + bet)) and compares them to hero\'s equity. The correct action follows the EV criterion: call if equity ≥ required pot odds, else fold. Equity values are derived from full enumeration calculations.',
+};
 import { useTrainingStore } from '../../store/trainingStore';
 import { Button } from '../ui/Button';
 import { ProgressBar } from '../ui/ProgressBar';
@@ -379,6 +392,7 @@ export function PotOddsTrainer() {
 
         </motion.div>
       )}
+      <SourcesFooter isEn={isEn} sources={POTODDS_SOURCES} methodology={POTODDS_METHODOLOGY} />
     </div>
   );
 }

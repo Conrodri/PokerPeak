@@ -11,7 +11,16 @@ const PLAYABLE_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB'];
 
 export function generatePreflopExercise(position?: Position, lang: 'fr' | 'en' = 'fr'): PreflopExercise & { notation: string } {
   const pos = position || PLAYABLE_POSITIONS[Math.floor(Math.random() * PLAYABLE_POSITIONS.length)];
-  const [card1, card2] = dealHand();
+
+  // 80 % of the time force an in-range (raise) hand so fold drills are ~1 in 5.
+  const wantInRange = Math.random() < 0.80;
+  let [card1, card2] = dealHand();
+  if (wantInRange) {
+    for (let attempt = 0; attempt < 8 && getCorrectAction(pos, toHandNotation(card1, card2)).action === 'fold'; attempt++) {
+      [card1, card2] = dealHand();
+    }
+  }
+
   const notation = toHandNotation(card1, card2);
   const { action, frequency, isMixed } = getCorrectAction(pos, notation);
   const explanation = buildPreflopExplanation(notation, pos, action, frequency, isMixed, lang);

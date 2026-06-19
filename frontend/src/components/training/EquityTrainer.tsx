@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Info, Lightbulb } from 'lucide-react';
+import { SourcesFooter } from '../ui/SourcesFooter';
+import type { Source } from '../ui/SourcesFooter';
+
+const EQUITY_SOURCES: Source[] = [
+  { authors: 'Chen, B. & Ankenman, J.', title: 'The Mathematics of Poker', year: '2006', note: { fr: 'Calcul d\'équité, confrontations de mains et théorie de la domination', en: 'Equity calculation, hand matchups and domination theory' } },
+  { authors: 'Sklansky, D.', title: 'The Theory of Poker', year: '1994', note: { fr: 'Force relative des mains et concept d\'équité en situation', en: 'Relative hand strength and situational equity concepts' } },
+  { authors: 'PokerStrategy', title: 'Equilab — Equity calculator', year: '2012–', note: { fr: 'Calculs d\'équité main vs main et main vs range utilisés pour valider les exercices', en: 'Hand vs hand and hand vs range equity computations used to validate exercises' }, url: 'https://www.pokerstrategy.com/poker-software/equilab-holdem/' },
+  { authors: 'GTO Wizard', title: 'Equity distributions database', year: '2023', note: { fr: 'Équités réelles des confrontations clés en cash game 6-max', en: 'Actual equities for key matchups in 6-max cash game' }, url: 'https://gtowizard.com' },
+];
+const EQUITY_METHODOLOGY = {
+  fr: 'Les équités sont calculées par énumération complète (ou Monte-Carlo pour les boards ouverts) sur l\'ensemble des 48 cartes restantes. Les scénarios d\'exercice sont tirés de confrontations réelles fréquentes en cash game 6-max 100bb.',
+  en: 'Equities are computed by full enumeration (or Monte-Carlo for open boards) across all 48 remaining cards. Exercise scenarios are drawn from frequent real matchups in 6-max cash games at 100bb.',
+};
 import { useTrainingStore } from '../../store/trainingStore';
 import { Hand } from '../poker/Card';
 import { Button } from '../ui/Button';
@@ -352,6 +365,7 @@ export function EquityTrainer() {
           {!examActive && <ExplanationPanel text={currentExplanation} />}
         </motion.div>
       )}
+      <SourcesFooter isEn={isEn} sources={EQUITY_SOURCES} methodology={EQUITY_METHODOLOGY} />
     </div>
   );
 }

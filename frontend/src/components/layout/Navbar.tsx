@@ -10,6 +10,7 @@ import {
 import { LanguageToggle } from '../ui/LanguageToggle';
 import { ModeToggle } from '../ui/ModeToggle';
 import { Tutorial } from '../tutorial/Tutorial';
+import { HandTutorialModal } from '../tutorial/HandTutorialModal';
 import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 
@@ -30,10 +31,11 @@ export function Navbar() {
   const t      = useT();
   const isEn   = useLangStore(s => s.lang) === 'en';
 
-  const [tutorialOpen, setTutorialOpen] = useState(false);
-  const [dropOpen,     setDropOpen]     = useState(false);
-  const [rulesOpen,    setRulesOpen]    = useState(false);
-  const [mobileOpen,   setMobileOpen]   = useState(false);
+  const [tutorialOpen,     setTutorialOpen]     = useState(false);
+  const [handTutorialOpen, setHandTutorialOpen] = useState(false);
+  const [dropOpen,         setDropOpen]         = useState(false);
+  const [rulesOpen,        setRulesOpen]        = useState(false);
+  const [mobileOpen,       setMobileOpen]       = useState(false);
 
   const dropRef   = useRef<HTMLDivElement>(null);
   const rulesRef  = useRef<HTMLDivElement>(null);
@@ -127,6 +129,13 @@ export function Navbar() {
                       <Compass size={15} className="shrink-0" />
                       <span>{isEn ? 'How to learn' : 'Comment apprendre'}</span>
                     </Link>
+                    <button
+                      onClick={() => { setRulesOpen(false); setHandTutorialOpen(true); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                    >
+                      <span className="text-base leading-none">🎯</span>
+                      <span>{isEn ? 'Hand tutorial' : 'Main pas à pas'}</span>
+                    </button>
                     <Link
                       to="/glossary"
                       onClick={() => setRulesOpen(false)}
@@ -268,6 +277,13 @@ export function Navbar() {
                     </p>
                     <MobileNavLink to="/rules" icon={<span>📚</span>} label={isEn ? 'Rules' : 'Règles'} active={location.pathname.startsWith('/rules')} />
                     <MobileNavLink to="/learning-path" icon={<Compass size={15} />} label={isEn ? 'How to learn' : 'Comment apprendre'} active={location.pathname.startsWith('/learning-path')} />
+                    <button
+                      onClick={() => { setHandTutorialOpen(true); setMobileOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                    >
+                      <span className="w-4 flex items-center justify-center shrink-0 text-base leading-none">🎯</span>
+                      <span>{isEn ? 'Hand tutorial' : 'Main pas à pas'}</span>
+                    </button>
                     <MobileNavLink to="/glossary" icon={<BookMarked size={15} />} label={isEn ? 'Glossary' : 'Lexique'} active={location.pathname.startsWith('/glossary')} />
                     <button
                       onClick={() => { setTutorialOpen(true); setMobileOpen(false); }}
@@ -326,6 +342,13 @@ export function Navbar() {
       {/* Tutorial modal */}
       <AnimatePresence>
         {tutorialOpen && <Tutorial onClose={() => setTutorialOpen(false)} />}
+      </AnimatePresence>
+
+      {/* Hand tutorial modal */}
+      <AnimatePresence>
+        {handTutorialOpen && (
+          <HandTutorialModal isEn={isEn} onClose={() => setHandTutorialOpen(false)} />
+        )}
       </AnimatePresence>
     </>
   );

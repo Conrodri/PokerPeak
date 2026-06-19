@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Info, Zap, Target, Lightbulb } from 'lucide-react';
+import { SourcesFooter } from '../ui/SourcesFooter';
+import type { Source } from '../ui/SourcesFooter';
+
+const POSTFLOP_SOURCES: Source[] = [
+  { authors: 'Janda, M.', title: 'Applications of No-Limit Hold\'em', year: '2013', note: { fr: 'Polarisation, texture de board, continuation bet et théorie post-flop GTO', en: 'Polarization, board texture, continuation betting and post-flop GTO theory' } },
+  { authors: 'Acevedo, M.', title: 'Modern Poker Theory', year: '2019', note: { fr: 'Stratégie post-flop dérivée de solveurs : sizings, fréquences de bet et de check', en: 'Solver-derived post-flop strategy: sizings, bet and check frequencies' } },
+  { authors: 'Miller, E.', title: "Poker's 1%", year: '2014', note: { fr: 'Lecture de board et décisions post-flop à haute fréquence', en: 'Board reading and high-frequency post-flop decision making' } },
+  { authors: 'GTO Wizard', title: 'Post-flop solver solutions', year: '2023', note: { fr: 'Fréquences de bet/check/raise par texture de board et position', en: 'Bet/check/raise frequencies by board texture and position' }, url: 'https://gtowizard.com' },
+];
+const POSTFLOP_METHODOLOGY = {
+  fr: 'Les scénarios et actions correctes sont calibrés sur des solutions de solveurs GTO pour du cash game 6-max à 100bb. Les textures de board (monotone, bigarrée, assortie) et les forces de main (value, tirage, air) déterminent les fréquences d\'action optimales.',
+  en: 'Scenarios and correct actions are calibrated from GTO solver solutions for 6-max cash games at 100bb. Board textures (monotone, rainbow, two-tone) and hand strengths (value, draw, air) determine optimal action frequencies.',
+};
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
@@ -71,6 +84,11 @@ interface PostflopExercise {
   explanation: { fr: string; en: string };
 }
 
+function markHero(text: string, heroPos: string, isEn: boolean): string {
+  const label = isEn ? 'you' : 'vous';
+  return text.replace(new RegExp(`\\b${heroPos}\\b`, 'g'), `${heroPos} (${label})`);
+}
+
 const STREET_COLORS: Record<string, string> = {
   flop:  'text-blue-400 border-blue-700 bg-blue-900/20',
   turn:  'text-yellow-400 border-yellow-700 bg-yellow-900/20',
@@ -83,6 +101,84 @@ const STREET_FILTERS: { key: StreetFilter; labelFr: string; labelEn: string; ico
   { key: 'turn',   labelFr: 'Turn',      labelEn: 'Turn',   icon: '🟡' },
   { key: 'river',  labelFr: 'River',     labelEn: 'River',  icon: '🔴' },
 ];
+
+// ─── Hero outs panel ─────────────────────────────────────────────────────────
+
+const RANK_LABEL_FR: Record<string, string> = {
+  A: 'As', K: 'Rois', Q: 'Dames', J: 'Valets', T: 'Dix',
+  '9': '9', '8': '8', '7': '7', '6': '6', '5': '5', '4': '4', '3': '3', '2': '2',
+};
+const RANK_LABEL_EN: Record<string, string> = {
+  A: 'Aces', K: 'Kings', Q: 'Queens', J: 'Jacks', T: 'Tens',
+  '9': '9s', '8': '8s', '7': '7s', '6': '6s', '5': '5s', '4': '4s', '3': '3s', '2': '2s',
+};
+
+function computeDraws(hero: string[], board: string[]) {
+  const rankOf = (c: string) => c[0];
+  const suitOf = (c: string) => c[c.length - 1];
+  const all = [...hero, ...board];
+  const rankCount: Record<string, number> = {};
+  for (const c of all) rankCount[rankOf(c)] = (rankCount[rankOf(c)] || 0) + 1;
+
+  // Pair outs: hero rank appears exactly once in all known cards → 3 remaining
+  const pairOuts: Array<{ rank: string; count: number }> = [];
+  const seen = new Set<string>();
+  for (const c of hero) {
+    const r = rankOf(c);
+    if (seen.has(r)) continue;
+    seen.add(r);
+    if (rankCount[r] === 1) pairOuts.push({ rank: r, count: 3 });
+    else if (rankCount[r] === 2 && hero.filter(h => rankOf(h) === r).length === 2) pairOuts.push({ rank: r, count: 2 }); // pocket pair → set
+  }
+
+  // Flush draw / backdoor flush
+  let flushType: 'draw' | 'backdoor' | null = null;
+  let flushOuts = 0;
+  for (const suit of new Set(hero.map(suitOf))) {
+    const heroCount  = hero.filter(c => suitOf(c) === suit).length;
+    const boardCount = board.filter(c => suitOf(c) === suit).length;
+    const total = heroCount + boardCount;
+    if (total >= 4) { flushType = 'draw'; flushOuts = 13 - total; break; }
+    if (total === 3 && board.length <= 3) { flushType = 'backdoor'; flushOuts = 13 - total; }
+  }
+
+  const directOuts = pairOuts.reduce((s, o) => s + o.count, 0) + (flushType === 'draw' ? flushOuts : 0);
+  return { pairOuts, flushType, flushOuts, directOuts };
+}
+
+function HeroOutsPanel({ heroHand, board, isEn }: { heroHand: string[]; board: string[]; isEn: boolean }) {
+  const draws = computeDraws(heroHand, board);
+  const cardsLeft = 5 - board.length; // 2 on flop, 1 on turn
+  const pct = draws.directOuts * (cardsLeft === 2 ? 4 : 2);
+
+  if (draws.pairOuts.length === 0 && !draws.flushType) return null;
+
+  return (
+    <div className="w-full rounded-xl border border-teal-800/40 bg-teal-950/20 px-4 py-3 text-xs">
+      <p className="font-bold text-teal-300 mb-2">
+        🎯 {isEn ? 'Your improvement outs' : 'Tes outs (cartes qui améliorent ta main)'}
+      </p>
+      <ul className="space-y-1 text-gray-300">
+        {draws.pairOuts.map(o => (
+          <li key={o.rank}>
+            • {isEn ? RANK_LABEL_EN[o.rank] : RANK_LABEL_FR[o.rank]} → {isEn ? 'Pair' : 'Paire'} : <span className="text-white font-semibold">{o.count} outs</span>
+          </li>
+        ))}
+        {draws.flushType === 'draw' && (
+          <li>• {isEn ? `Flush draw : ${draws.flushOuts} outs` : `Tirage couleur : ${draws.flushOuts} outs`}</li>
+        )}
+        {draws.flushType === 'backdoor' && (
+          <li className="text-gray-500">• {isEn ? 'Backdoor flush draw (needs 2 running cards)' : 'Tirage couleur backdoor (2 cartes consécutives nécessaires)'}</li>
+        )}
+      </ul>
+      {draws.directOuts > 0 && (
+        <p className="mt-2 text-teal-200 font-semibold">
+          → {draws.directOuts} {isEn ? `direct outs ≈ ${pct}% chance to improve (rule of ${cardsLeft === 2 ? '4' : '2'})` : `outs directs ≈ ${pct}% de chance d'amélioration (règle du ${cardsLeft === 2 ? '4' : '2'})`}
+        </p>
+      )}
+    </div>
+  );
+}
 
 // ─── Equity detail panel ─────────────────────────────────────────────────────
 
@@ -430,7 +526,7 @@ export function PostflopTrainer() {
                 </span>
                 <div className="flex-1">
                   <p className="text-gray-300">
-                    {isEn ? ex.preflopContext.en : ex.preflopContext.fr}
+                    {markHero(isEn ? ex.preflopContext.en : ex.preflopContext.fr, ex.heroPosition, isEn)}
                   </p>
                   <p className="text-gray-500 text-xs mt-0.5">
                     {isEn ? 'Pot at start of street:' : 'Pot au début du street :'}{' '}
@@ -518,37 +614,54 @@ export function PostflopTrainer() {
                 reveals behind a streak-breaking spoiler; expert hides them. ── */}
             <SpoilableHint resetKey={ex.heroNotation + ex.street} className="w-full">
               <div className="flex flex-col gap-2 w-full">
-                {/* Concrete coaching hint — this spot's numbers */}
-                <div className="w-full rounded-xl border border-amber-700/40 bg-amber-950/30 px-4 py-3 flex items-start gap-2 text-left">
-                  <Lightbulb size={15} className="text-amber-400 mt-0.5 shrink-0" />
-                  <div className="text-xs text-gray-300 leading-relaxed">
-                    <p className="font-bold text-amber-300 mb-1">{isEn ? 'Hint' : 'Indice'}</p>
-                    <p>{postflopHint({ equity: ex.heroEquity, facingBet: ex.villainAction === 'bet', bet: ex.villainBetSize, pot: ex.potSize, isEn })}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
-                    <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Your hand' : 'Votre main'}</p>
-                    <p className="text-white font-semibold text-sm">
+                {/* Compact info row: hand · equity · texture on one line */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-gray-800/60 rounded-xl px-3 py-2 border border-gray-700 text-center">
+                    <p className="text-gray-500 text-[10px] mb-0.5">{isEn ? 'Hand' : 'Main'}</p>
+                    <p className="text-white font-semibold text-xs leading-tight">
                       {ex.heroHandLabelI18n
                         ? (isEn ? ex.heroHandLabelI18n.en : ex.heroHandLabelI18n.fr)
                         : ex.heroHandLabel}
                     </p>
                   </div>
-                  <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
-                    <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Equity vs range' : 'Équité vs range'}</p>
-                    <p className={`font-bold text-lg ${ex.heroEquity >= 60 ? 'text-green-400' : ex.heroEquity >= 45 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  <div className="bg-gray-800/60 rounded-xl px-3 py-2 border border-gray-700 text-center">
+                    <p className="text-gray-500 text-[10px] mb-0.5">{isEn ? 'Equity' : 'Équité'}</p>
+                    <p className={`font-bold text-base ${ex.heroEquity >= 60 ? 'text-green-400' : ex.heroEquity >= 45 ? 'text-yellow-400' : 'text-red-400'}`}>
                       {ex.heroEquity}%
                     </p>
+                  </div>
+                  <div className="bg-gray-800/60 rounded-xl px-3 py-2 border border-gray-700 text-center">
+                    <p className="text-gray-500 text-[10px] mb-0.5">{isEn ? 'Texture' : 'Texture'}</p>
+                    <p className="text-white font-semibold text-xs leading-tight">{isEn ? ex.boardTexture.en : ex.boardTexture.fr}</p>
+                  </div>
+                </div>
+                {/* Hint */}
+                <div className="w-full rounded-xl border border-amber-700/40 bg-amber-950/30 px-4 py-3 flex items-start gap-2 text-left">
+                  <Lightbulb size={15} className="text-amber-400 mt-0.5 shrink-0" />
+                  <div className="text-xs text-gray-300 leading-relaxed">
+                    <p className="font-bold text-amber-300 mb-1">{isEn ? 'Hint' : 'Indice'}</p>
+                    <p>{postflopHint({
+                        equity: ex.heroEquity,
+                        facingBet: ex.villainAction === 'bet',
+                        bet: ex.villainBetSize,
+                        pot: ex.potSize,
+                        isEn,
+                        handRank: ex.heroHandRank,
+                        handLabel: ex.heroHandLabelI18n
+                          ? (isEn ? ex.heroHandLabelI18n.en : ex.heroHandLabelI18n.fr)
+                          : ex.heroHandLabel,
+                        street: ex.street as 'flop' | 'turn' | 'river',
+                        isHeroIP: ex.isHeroIP,
+                        hasDraw: (() => {
+                          const d = computeDraws(ex.heroHand as string[], ex.board as string[]);
+                          return d.flushType === 'draw' || d.directOuts >= 6;
+                        })(),
+                      })}</p>
                   </div>
                 </div>
                 {ex.equityDetail && (
                   <EquityDetailPanel detail={ex.equityDetail} equity={ex.heroEquity} isEn={isEn} />
                 )}
-                <div className="bg-gray-800/60 rounded-xl px-4 py-2.5 border border-gray-700 text-center">
-                  <p className="text-gray-500 text-xs mb-0.5">{isEn ? 'Board texture' : 'Texture du board'}</p>
-                  <p className="text-white font-semibold text-sm">{isEn ? ex.boardTexture.en : ex.boardTexture.fr}</p>
-                </div>
               </div>
             </SpoilableHint>
 
@@ -654,12 +767,15 @@ export function PostflopTrainer() {
                 correct={sessionStats.correct}
                 xp={sessionStats.xp}
               />
+              {ex.street !== 'river' && (
+                <HeroOutsPanel heroHand={ex.heroHand as string[]} board={ex.board as string[]} isEn={isEn} />
+              )}
               <ExplanationPanel text={isEn ? ex.explanation.en : ex.explanation.fr} className="p-5" />
             </>
           )}
         </motion.div>
       )}
-
+      <SourcesFooter isEn={isEn} sources={POSTFLOP_SOURCES} methodology={POSTFLOP_METHODOLOGY} />
     </div>
   );
 }

@@ -726,16 +726,28 @@ export async function getFullHandScenario(req: Request, res: Response): Promise<
   try {
     const matchup = RFI_MATCHUPS[Math.floor(Math.random() * RFI_MATCHUPS.length)];
 
-    // Deal all cards at once from a single shuffled deck
-    const deck = shuffleDeck(createDeck());
-    const heroHand:    [Card, Card]          = [deck[0], deck[1]];
+    // Deal all cards from a shuffled deck.
+    // 80 % of the time we want an in-range hand (raise scenario) so the module
+    // stays focused on playing decisions rather than repeated fold drills.
+    const wantInRange = Math.random() < 0.80;
+    let deck = shuffleDeck(createDeck());
+    let heroHand: [Card, Card] = [deck[0], deck[1]];
+    let rangeFreq = getHandRangeFreq(heroHand, matchup.hero);
+
+    if (wantInRange && rangeFreq < 0.3) {
+      for (let attempt = 0; attempt < 8 && rangeFreq < 0.3; attempt++) {
+        deck = shuffleDeck(createDeck());
+        heroHand = [deck[0], deck[1]];
+        rangeFreq = getHandRangeFreq(heroHand, matchup.hero);
+      }
+    }
+
     const villainHand: [Card, Card]          = [deck[2], deck[3]];
     const flop:        [Card, Card, Card]    = [deck[4], deck[5], deck[6]];
     const turn:        Card                  = deck[7];
     const river:       Card                  = deck[8];
 
     // ── Preflop ────────────────────────────────────────────────────────────────
-    const rangeFreq   = getHandRangeFreq(heroHand, matchup.hero);
     const isInRange   = rangeFreq >= 0.3;
     const preflopCorrect: 'fold' | 'raise' = isInRange ? 'raise' : 'fold';
     const notation = toHandNotation(heroHand[0], heroHand[1]);

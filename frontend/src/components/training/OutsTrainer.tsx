@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Target, Lightbulb, Info } from 'lucide-react';
+import { SourcesFooter } from '../ui/SourcesFooter';
+import type { Source } from '../ui/SourcesFooter';
+
+const OUTS_SOURCES: Source[] = [
+  { authors: 'Harrington, D.', title: 'Harrington on Hold\'em Vol. 1', year: '2004', note: { fr: 'Méthodologie de comptage des outs et estimation de l\'équité', en: 'Outs counting methodology and equity estimation' } },
+  { authors: 'Gordon, P.', title: 'Poker: The Real Deal', year: '2004', note: { fr: 'Règle du 2 et du 4 — approximation rapide de l\'équité', en: 'Rule of 2 and 4 — quick equity approximation (outs × 2 on turn, × 4 on flop)' } },
+  { authors: 'Chen, B. & Ankenman, J.', title: 'The Mathematics of Poker', year: '2006', note: { fr: 'Fondements probabilistes des outs et distribution d\'équité', en: 'Probabilistic foundations of outs and equity distribution' } },
+  { authors: 'GTO Wizard', title: 'Equity & draw analysis', year: '2023', note: { fr: 'Distributions d\'équité par type de tirage en cash game 6-max', en: 'Equity distributions by draw type in 6-max cash games' }, url: 'https://gtowizard.com' },
+];
+const OUTS_METHODOLOGY = {
+  fr: 'Le nombre d\'outs correct est calculé en comptant les cartes qui donnent la main probablement gagnante (pas seulement une paire ou un tirage faible). L\'estimation d\'équité utilise la règle du 2 et du 4 : outs × 4 au flop, outs × 2 à la turn.',
+  en: 'The correct out count is computed by counting cards that give a likely winning hand (not just any pair or weak draw). Equity estimation uses the rule of 2 and 4: outs × 4 on the flop, outs × 2 on the turn.',
+};
 import { useTrainingStore } from '../../store/trainingStore';
 import { Hand } from '../poker/Card';
 import { Button } from '../ui/Button';
@@ -333,6 +346,7 @@ export function OutsTrainer() {
           {!examActive && <ExplanationPanel text={ex.explanation} />}
         </motion.div>
       )}
+      <SourcesFooter isEn={isEn} sources={OUTS_SOURCES} methodology={OUTS_METHODOLOGY} />
     </div>
   );
 }
