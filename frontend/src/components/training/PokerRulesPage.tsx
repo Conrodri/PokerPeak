@@ -465,8 +465,8 @@ export function PokerRulesPage() {
         </Link>
       </Section>
 
-      {/* ── Section 6: Les modules de PokerTrainer ── */}
-      <Section title={`🎯 ${isEn ? 'PokerTrainer modules' : 'Les modules de PokerTrainer'}`}>
+      {/* ── Section 6: Les modules de PokerPeak ── */}
+      <Section title={`🎯 ${isEn ? 'PokerPeak modules' : 'Les modules de PokerPeak'}`}>
         <p className="text-sm text-gray-300 mb-4">
           {isEn
             ? 'Now that you know the rules, go practice!'

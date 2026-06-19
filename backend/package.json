@@ -1,7 +1,7 @@
 {
-  "name": "poker-trainer-backend",
+  "name": "pokerpeak-backend",
   "version": "1.0.0",
-  "description": "Poker Trainer API",
+  "description": "PokerPeak API",
   "main": "dist/server.js",
   "scripts": {
     "dev:schema": "node scripts/gen-dev-schema.js",

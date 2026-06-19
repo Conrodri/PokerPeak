@@ -144,7 +144,7 @@ function Slide1({ isEn }: { isEn: boolean }) {
   return (
     <div className="flex flex-col items-center gap-5 text-center py-4">
       <div className="text-7xl">🏆</div>
-      <SlideTitle>PokerTrainer</SlideTitle>
+      <SlideTitle>PokerPeak</SlideTitle>
       <p className="text-gray-300 text-base leading-relaxed max-w-md">
         {isEn
           ? 'A practice tool to sharpen your poker decisions — not a real-money game. Train at your own pace, repeat as many times as you need.'

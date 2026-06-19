@@ -50,7 +50,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🃏 Poker Trainer API running on http://localhost:${PORT}`);
+  console.log(`\n🃏 PokerPeak API running on http://localhost:${PORT}`);
   console.log(`   Environment: ${process.env.NODE_ENV || 'development'}\n`);
 });
 

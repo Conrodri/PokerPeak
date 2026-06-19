@@ -74,7 +74,7 @@ export function Navbar() {
           {/* ── Logo ── */}
           <Link to="/" className="flex items-center gap-2 font-bold text-xl shrink-0">
             <span className="text-2xl">🃏</span>
-            <span className="text-gold-400 font-serif hidden xl:block">PokerTrainer</span>
+            <span className="text-gold-400 font-serif hidden xl:block">PokerPeak</span>
           </Link>
 
           {/* ── Desktop nav (hidden below md) — centered in the gap between the logo

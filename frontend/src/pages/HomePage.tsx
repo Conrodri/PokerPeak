@@ -124,7 +124,7 @@ export function HomePage() {
         </motion.div>
         <h1 className="text-4xl font-bold mb-2 font-serif">
           <span className="text-gold-400">Poker</span>
-          <span className="text-white">Trainer</span>
+          <span className="text-white">Peak</span>
         </h1>
         <p className="text-base text-gray-300 max-w-2xl mx-auto mb-4 leading-relaxed">
           {t.home.subtitle}
