@@ -7,9 +7,11 @@ export function AuthCallbackPage() {
   const loginWithToken = useAuthStore(s => s.loginWithToken);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const error = params.get('error');
+    // The token now arrives in the URL fragment (#token=…) so it never reaches a
+    // server log or Referer header. Errors still come through the query string.
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const token = hash.get('token');
+    const error = new URLSearchParams(window.location.search).get('error');
 
     if (error) {
       navigate('/login?error=' + error, { replace: true });
@@ -17,6 +19,8 @@ export function AuthCallbackPage() {
     }
 
     if (token) {
+      // Drop the token from the address bar before continuing.
+      window.history.replaceState(null, '', window.location.pathname);
       loginWithToken(token).then(() => {
         navigate('/training', { replace: true });
       });

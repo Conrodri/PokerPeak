@@ -1,12 +1,25 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { register, login, getMe, dismissTutorial } from '../controllers/authController';
 import { googleLogin, googleCallback } from '../controllers/googleAuthController';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/register', register);
-router.post('/login', login);
+// Stricter limiter for credential endpoints to blunt brute-force / credential
+// stuffing. Successful logins don't count, so legitimate users aren't locked
+// out — only repeated failed attempts burn the budget.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many attempts, please try again later' },
+});
+
+router.post('/register', authLimiter, register);
+router.post('/login', authLimiter, login);
 router.get('/me', requireAuth, getMe);
 router.patch('/dismiss-tutorial', requireAuth, dismissTutorial);
 router.get('/google', googleLogin);

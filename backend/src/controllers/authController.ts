@@ -3,9 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database';
 import { ApiResponse, JwtPayload } from '../types';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'change_me';
-const JWT_EXPIRES = '30d';
+import { JWT_SECRET, JWT_EXPIRES } from '../config/secrets';
 
 export async function register(req: Request, res: Response): Promise<void> {
   try {

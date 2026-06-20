@@ -3,8 +3,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../config/database';
 import { JwtPayload } from '../types';
 import { consume, isFreeModule, FreeModule } from '../services/quota';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'change_me';
+import { JWT_SECRET } from '../config/secrets';
 
 /** Resolve whether the authenticated request belongs to a premium user.
  *  The premium-expert tier implies premium access (OR-clause). */
