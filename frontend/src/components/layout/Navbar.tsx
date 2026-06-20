@@ -21,8 +21,8 @@ const MODULES = [
   { id: 'equity',    icon: '⚖️', labelFr: 'Équité',         labelEn: 'Equity',      premium: false },
   { id: 'potodds',   icon: '📊', labelFr: 'Pot Odds',       labelEn: 'Pot Odds',    premium: false },
   { id: 'postflop',  icon: '🃏', labelFr: 'Post-flop',      labelEn: 'Post-flop',   premium: true  },
-  { id: 'fullhand',  icon: '🎰', labelFr: 'Main complète',  labelEn: 'Full Hand',   premium: true  },
   { id: 'betsizing', icon: '📐', labelFr: 'Bet Sizing',     labelEn: 'Bet Sizing',  premium: true  },
+  { id: 'fullhand',  icon: '🎰', labelFr: 'Main complète',  labelEn: 'Full Hand',   premium: true  },
 ] as const;
 
 export function Navbar() {

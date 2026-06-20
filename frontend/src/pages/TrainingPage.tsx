@@ -73,8 +73,8 @@ export function TrainingPage() {
     { id: 'equity',    label: t.training.tab_equity,    icon: '⚖️' },
     { id: 'potodds',   label: t.training.tab_potodds,   icon: '📐' },
     { id: 'postflop',  label: isEn ? 'Post-flop'   : 'Post-flop',     icon: '🃏', premium: true },
-    { id: 'fullhand',  label: isEn ? 'Full Hand'   : 'Main complète', icon: '🎰', premium: true },
     { id: 'betsizing', label: isEn ? 'Bet Sizing'  : 'Bet Sizing',    icon: '📐', premium: true },
+    { id: 'fullhand',  label: isEn ? 'Full Hand'   : 'Main complète', icon: '🎰', premium: true },
   ];
 
   // Sync activeModule when URL param changes (e.g. navbar dropdown click)
