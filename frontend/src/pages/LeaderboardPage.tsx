@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Zap, Target, ChevronDown } from 'lucide-react';
+import { Trophy, Zap, Target, ChevronDown, Timer } from 'lucide-react';
 import { statsApi } from '../services/api';
 import { LeaderboardEntry, LeaderboardModuleStat } from '../types/poker';
 import { useAuthStore } from '../store/authStore';
@@ -86,16 +86,16 @@ function ModuleGrid({ modules, isEn }: {
                 ) : (
                   <span />
                 )}
-                {(stat.bestStreak ?? 0) > 0 && (
+                {(stat.sprintBest ?? 0) > 0 && (
                   <HoverTip
-                    title={isEn ? 'Best streak' : 'Meilleure série'}
+                    title={isEn ? 'Sprint record' : 'Record de sprint'}
                     text={isEn
-                      ? `${stat.bestStreak} correct answers in a row (free exercise mode)`
-                      : `${stat.bestStreak} bonnes réponses consécutives (mode exercice libre)`}
-                    className="flex items-center gap-0.5 text-[10px] text-orange-400 font-semibold border-none"
+                      ? `Best sprint: ${stat.sprintBest} correct answers`
+                      : `Meilleur sprint : ${stat.sprintBest} bonnes réponses`}
+                    className="flex items-center gap-0.5 text-[10px] text-blue-400 font-semibold border-none"
                   >
-                    <Zap size={9} className="fill-orange-400" />
-                    {stat.bestStreak}
+                    <Timer size={9} className="text-blue-400" />
+                    {stat.sprintBest}
                   </HoverTip>
                 )}
               </div>
@@ -281,8 +281,8 @@ export function LeaderboardPage() {
         <p className="flex items-center justify-center gap-1.5">
           <ChevronDown size={11} />
           {isEn
-            ? 'Click any row to see accuracy & best streaks per module'
-            : 'Cliquez sur une ligne pour voir la précision & séries max par module'}
+            ? 'Click any row to see accuracy & sprint records per module'
+            : 'Cliquez sur une ligne pour voir la précision & records de sprint par module'}
         </p>
         <p>{t.leaderboard.updated}</p>
         <p>{t.leaderboard.coming_soon} 🃏</p>

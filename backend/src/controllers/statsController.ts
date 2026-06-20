@@ -51,6 +51,18 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
       },
     });
 
+    // Fetch sprint best scores for all leaders in one query.
+    const userIds = leaders.map(l => l.userId);
+    const examRecords = await prisma.examRecord.findMany({
+      where: { userId: { in: userIds } },
+    });
+    const sprintMap: Record<string, Record<string, number>> = {};
+    for (const r of examRecords) {
+      if (!sprintMap[r.userId]) sprintMap[r.userId] = {};
+      sprintMap[r.userId][r.module] = r.best;
+    }
+    const sb = (userId: string, mod: string) => sprintMap[userId]?.[mod] ?? 0;
+
     const acc = (correct: number, total: number) =>
       total > 0 ? Math.round((correct / total) * 100) : null;
 
@@ -62,12 +74,12 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
       totalExercises: l.totalExercises,
       accuracy: l.totalExercises > 0 ? Math.round((l.totalCorrect / l.totalExercises) * 100) : 0,
       modules: {
-        preflop:  { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal,  bestStreak: l.preflopBest  },
-        potodds:  { accuracy: acc(l.potoddsCorrect,  l.potoddsTotal),  total: l.potoddsTotal,  bestStreak: l.potoddssBest },
-        equity:   { accuracy: acc(l.equityCorrect,   l.equityTotal),   total: l.equityTotal,   bestStreak: l.equityBest   },
-        outs:     { accuracy: acc(l.outsCorrect,     l.outsTotal),     total: l.outsTotal,     bestStreak: l.outsBest     },
-        postflop: { accuracy: acc(l.postflopCorrect, l.postflopTotal), total: l.postflopTotal, bestStreak: l.postflopBest },
-        fullhand: { accuracy: acc(l.fullhandCorrect, l.fullhandTotal), total: l.fullhandTotal, bestStreak: l.fullhandBest },
+        preflop:  { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal,  sprintBest: sb(l.userId, 'preflop')  },
+        potodds:  { accuracy: acc(l.potoddsCorrect,  l.potoddsTotal),  total: l.potoddsTotal,  sprintBest: sb(l.userId, 'potodds')  },
+        equity:   { accuracy: acc(l.equityCorrect,   l.equityTotal),   total: l.equityTotal,   sprintBest: sb(l.userId, 'equity')   },
+        outs:     { accuracy: acc(l.outsCorrect,     l.outsTotal),     total: l.outsTotal,     sprintBest: sb(l.userId, 'outs')     },
+        postflop: { accuracy: acc(l.postflopCorrect, l.postflopTotal), total: l.postflopTotal, sprintBest: sb(l.userId, 'postflop') },
+        fullhand: { accuracy: acc(l.fullhandCorrect, l.fullhandTotal), total: l.fullhandTotal, sprintBest: sb(l.userId, 'fullhand') },
       },
     }));
 
