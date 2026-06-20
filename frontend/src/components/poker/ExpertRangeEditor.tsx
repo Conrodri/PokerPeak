@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, memo, useCallback, useMemo, useState } from 'react';
 import { Save, RotateCcw, X, Wand2 } from 'lucide-react';
 import { RANKS_ORDER, getNotationFromIndices, handToDisplay } from '../../utils/pokerUtils';
 import { Button } from '../ui/Button';
@@ -60,6 +60,68 @@ export function gtoToExpertMix(matrix: number[][] | null | undefined, isBB: bool
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+/**
+ * One grid cell — the stacked 4-segment frequency bar shared by the editable
+ * grid and the read-only view. Memoized on its own four frequencies (passed as
+ * primitives, not an array, so referential equality holds) plus its select/
+ * highlight flags: during a slider drag only the edited cell re-renders instead
+ * of all 169. `onSelect` makes it the interactive <button> variant; without it
+ * the cell is a static <div>.
+ */
+const ExpertCell = memo(function ExpertCell({
+  idx, m0, m1, m2, m3, notation, selected, highlighted, onSelect,
+}: {
+  idx: number;
+  m0: number; m1: number; m2: number; m3: number;
+  notation: string;
+  selected?: boolean;
+  highlighted?: boolean;
+  onSelect?: (idx: number) => void;
+}) {
+  const vals = [m0, m1, m2, m3];
+  const bars = (
+    <div className="absolute inset-0 flex">
+      {EXPERT_DISPLAY.map(a => {
+        const w = (vals[a.key] ?? 0) * 100;
+        return w > 0 ? <div key={a.key} style={{ width: `${w}%`, backgroundColor: a.color }} /> : null;
+      })}
+    </div>
+  );
+  const label = (
+    <span className="absolute inset-0 flex items-center justify-center text-white/90 font-bold text-[8px] leading-none tracking-tight pointer-events-none">
+      {notation}
+    </span>
+  );
+  const title = handToDisplay(notation);
+
+  if (onSelect) {
+    const sum = m0 + m1 + m2 + m3;
+    const invalid = sum < 0.99 || sum > 1.01;
+    return (
+      <button
+        onClick={() => onSelect(idx)}
+        title={title}
+        className={`w-6 h-6 sm:w-7 sm:h-7 shrink-0 border relative overflow-hidden transition-all ${
+          selected ? 'ring-2 ring-white z-10 border-white' : invalid ? 'border-red-500/70' : 'border-black/30'
+        }`}
+      >
+        {bars}{label}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      title={title}
+      className={`w-6 h-6 sm:w-7 sm:h-7 shrink-0 border relative overflow-hidden ${
+        highlighted ? 'ring-2 ring-gold-400 ring-inset z-10 border-gold-400' : 'border-black/30'
+      }`}
+    >
+      {bars}{label}
+    </div>
+  );
+});
+
 interface Props {
   /** Flat 169×4 frequency array. */
   mix: number[];
@@ -82,14 +144,18 @@ export function ExpertRangeEditor({ mix, onChange, onSave, onReset, resetLabel, 
   const cellSum = (idx: number) =>
     (mix[idx * 4] ?? 0) + (mix[idx * 4 + 1] ?? 0) + (mix[idx * 4 + 2] ?? 0) + (mix[idx * 4 + 3] ?? 0);
 
-  // Every hand must sum to 100% before saving.
-  const allValid = (() => {
+  // Stable identity so the memoized cells aren't invalidated on every render.
+  const handleSelect = useCallback((i: number) => setSelected(i), []);
+
+  // Every hand must sum to 100% before saving — only depends on the mix, so
+  // don't re-scan all 169 cells when merely selecting a cell.
+  const allValid = useMemo(() => {
     for (let c = 0; c < NCELLS; c++) {
-      const s = cellSum(c);
+      const s = (mix[c * 4] ?? 0) + (mix[c * 4 + 1] ?? 0) + (mix[c * 4 + 2] ?? 0) + (mix[c * 4 + 3] ?? 0);
       if (s < 0.99 || s > 1.01) return false;
     }
     return true;
-  })();
+  }, [mix]);
 
   const setAction = (idx: number, action: number, value: number) => {
     // Cap so the four frequencies can never sum above 100%: the max for this
@@ -132,30 +198,19 @@ export function ExpertRangeEditor({ mix, onChange, onSave, onReset, resetLabel, 
             <div className="w-6 h-6 sm:w-7 sm:h-7 shrink-0 flex items-center justify-center text-gray-500 font-mono text-[8px]">{rowRank}</div>
             {RANKS_ORDER.map((_, colIdx) => {
               const idx = rowIdx * 13 + colIdx;
-              const isSel = selected === idx;
-              const s = cellSum(idx);
-              const invalid = s < 0.99 || s > 1.01;
               const notation = getNotationFromIndices(rowIdx, colIdx);
               return (
-                <button
+                <ExpertCell
                   key={idx}
-                  onClick={() => setSelected(idx)}
-                  title={handToDisplay(notation)}
-                  className={`w-6 h-6 sm:w-7 sm:h-7 shrink-0 border relative overflow-hidden transition-all ${
-                    isSel ? 'ring-2 ring-white z-10 border-white' : invalid ? 'border-red-500/70' : 'border-black/30'
-                  }`}
-                >
-                  {/* Stacked 4-segment bar (proportional to the mix) */}
-                  <div className="absolute inset-0 flex">
-                    {EXPERT_DISPLAY.map(a => {
-                      const w = (mix[idx * 4 + a.key] ?? 0) * 100;
-                      return w > 0 ? <div key={a.key} style={{ width: `${w}%`, backgroundColor: a.color }} /> : null;
-                    })}
-                  </div>
-                  <span className="absolute inset-0 flex items-center justify-center text-white/90 font-bold text-[8px] leading-none tracking-tight pointer-events-none">
-                    {notation}
-                  </span>
-                </button>
+                  idx={idx}
+                  m0={mix[idx * 4] ?? 0}
+                  m1={mix[idx * 4 + 1] ?? 0}
+                  m2={mix[idx * 4 + 2] ?? 0}
+                  m3={mix[idx * 4 + 3] ?? 0}
+                  notation={notation}
+                  selected={selected === idx}
+                  onSelect={handleSelect}
+                />
               );
             })}
           </div>
@@ -293,26 +348,17 @@ export function ExpertRangeGrid({
             {RANKS_ORDER.map((_, colIdx) => {
               const idx = rowIdx * 13 + colIdx;
               const notation = getNotationFromIndices(rowIdx, colIdx);
-              const isHi = notation === highlightNotation;
               return (
-                <div
+                <ExpertCell
                   key={idx}
-                  title={handToDisplay(notation)}
-                  className={`w-6 h-6 sm:w-7 sm:h-7 shrink-0 border relative overflow-hidden ${
-                    isHi ? 'ring-2 ring-gold-400 ring-inset z-10 border-gold-400' : 'border-black/30'
-                  }`}
-                >
-                  {/* Stacked 4-segment bar (proportional to the mix) */}
-                  <div className="absolute inset-0 flex">
-                    {EXPERT_DISPLAY.map(a => {
-                      const w = (mix[idx * 4 + a.key] ?? 0) * 100;
-                      return w > 0 ? <div key={a.key} style={{ width: `${w}%`, backgroundColor: a.color }} /> : null;
-                    })}
-                  </div>
-                  <span className="absolute inset-0 flex items-center justify-center text-white/90 font-bold text-[8px] leading-none tracking-tight pointer-events-none">
-                    {notation}
-                  </span>
-                </div>
+                  idx={idx}
+                  m0={mix[idx * 4] ?? 0}
+                  m1={mix[idx * 4 + 1] ?? 0}
+                  m2={mix[idx * 4 + 2] ?? 0}
+                  m3={mix[idx * 4 + 3] ?? 0}
+                  notation={notation}
+                  highlighted={notation === highlightNotation}
+                />
               );
             })}
           </div>

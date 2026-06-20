@@ -184,10 +184,15 @@ async function recordExercise(
 ): Promise<void> {
   if (sessionId.startsWith('guest_')) return;
   try {
-    await prisma.sessionExercise.create({
-      data: { sessionId, exerciseType, question, userAnswer, correctAnswer, isCorrect, timeTaken, xpEarned, hint: null },
-    });
-    await updatePlayerStats(userId, exerciseType, isCorrect, xpEarned, position);
+    // The exercise insert and the stats read are independent — run them together
+    // so the hot answer-submission path costs one round-trip instead of two.
+    const [, stats] = await Promise.all([
+      prisma.sessionExercise.create({
+        data: { sessionId, exerciseType, question, userAnswer, correctAnswer, isCorrect, timeTaken, xpEarned, hint: null },
+      }),
+      prisma.playerStats.findUnique({ where: { userId } }),
+    ]);
+    await updatePlayerStats(userId, exerciseType, isCorrect, xpEarned, position, stats);
   } catch {/* non-blocking */}
 }
 
@@ -202,10 +207,12 @@ function computeLevelFromXp(xp: number): number {
 }
 
 async function updatePlayerStats(
-  userId: string, module: string, isCorrect: boolean, xpEarned: number, position?: string
+  userId: string, module: string, isCorrect: boolean, xpEarned: number,
+  position?: string, preStats?: Awaited<ReturnType<typeof prisma.playerStats.findUnique>>
 ): Promise<void> {
-  // Fetch or create stats record
-  let stats = await prisma.playerStats.findUnique({ where: { userId } });
+  // Reuse the stats row already fetched by the caller when available; otherwise
+  // fetch it. Create on first-ever exercise.
+  let stats = preStats ?? await prisma.playerStats.findUnique({ where: { userId } });
   if (!stats) stats = await prisma.playerStats.create({ data: { userId } });
 
   const newStreak = isCorrect ? stats.streak + 1 : 0;
