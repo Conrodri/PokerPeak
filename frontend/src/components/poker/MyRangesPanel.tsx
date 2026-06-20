@@ -1083,17 +1083,17 @@ export function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
                                     // BB is a defense spot → use the 5-category defense rendering.
                                     ? renderGtoRef(profileGto, 'BB')
                                     : (
-                                      <RangeMatrix
-                                        matrix={profileGto}
-                                        size="sm"
-                                        crisp
-                                        cellColor={(v) => v >= 0.75 ? 'rgba(22,130,60,0.85)' : v <= 0 ? '#1a202c' : 'rgba(37,99,235,0.70)'}
-                                        legend={[
-                                          { color: 'rgba(22,130,60,0.85)', label: 'Raise' },
-                                          { color: 'rgba(37,99,235,0.70)',  label: 'Call' },
-                                          { color: '#1a202c',              label: 'Fold' },
-                                        ]}
-                                      />
+                                      <div className="flex flex-col gap-2">
+                                        <ExpertGtoMatrix mix={gtoToExpertMix(profileGto, false)} />
+                                        <div className="flex gap-3 text-[11px] text-gray-400 justify-center flex-wrap">
+                                          {EXPERT_DISPLAY.map(a => (
+                                            <div key={a.key} className="flex items-center gap-1.5">
+                                              <div className="w-4 h-4 rounded border border-black/30" style={{ backgroundColor: a.color }} />
+                                              <span>{isEn ? a.labelEn : a.labelFr}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
                                     )
                                 ) : <p className="text-[11px] text-gray-600 py-8">{isEn ? 'Loading…' : 'Chargement…'}</p>}
                               </div>

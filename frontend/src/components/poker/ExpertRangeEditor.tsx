@@ -44,8 +44,14 @@ export function gtoToExpertMix(matrix: number[][] | null | undefined, isBB: bool
       else if (code === 1 || code === 2) call = 1;
       else raise = 1; // value / bluff 3-bet
     } else {
-      raise = Math.max(0, Math.min(1, round2(v)));
-      fold = round2(1 - raise);
+      // Open positions: v = raise frequency; complement = call (limp/mixed play).
+      // 0 = always fold; 0 < v ≤ 1 → raise v, call 1-v.
+      if (v <= 0) {
+        fold = 1;
+      } else {
+        raise = Math.max(0, Math.min(1, round2(v)));
+        call  = round2(1 - raise);
+      }
     }
     mix[idx * 4] = fold; mix[idx * 4 + 1] = call; mix[idx * 4 + 2] = raise; mix[idx * 4 + 3] = 0;
   }
