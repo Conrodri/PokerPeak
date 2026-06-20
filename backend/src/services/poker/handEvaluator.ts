@@ -216,11 +216,69 @@ export function evaluateBestHand(cards: Card[]): HandEvalResult {
   return best!;
 }
 
+// ── Lean score-only path (hot loop) ──────────────────────────────────────────
+// Same scoring as evaluate5Cards but returns just the numeric score and skips
+// all description / object allocation. Proven score-for-score identical to the
+// rich path by the fuzz harness in scripts/equity-bench.ts. Input MUST be the 5
+// cards sorted by value descending.
+function score5Sorted(p: ParsedCard[]): number {
+  const flush = p[0].suit === p[1].suit && p[0].suit === p[2].suit
+             && p[0].suit === p[3].suit && p[0].suit === p[4].suit;
+  const isWheel = p[0].value === 14 && p[1].value === 5 && p[2].value === 4
+               && p[3].value === 3 && p[4].value === 2;
+  const straight = isWheel || (
+    p[0].value - p[1].value === 1 && p[1].value - p[2].value === 1 &&
+    p[2].value - p[3].value === 1 && p[3].value - p[4].value === 1);
+
+  if (flush && straight) {
+    const high = isWheel ? 5 : p[0].value;
+    if (p[0].value === 14 && p[4].value === 10) return computeScore(HandRank.ROYAL_FLUSH, [14, 13, 12, 11, 10]);
+    return computeScore(HandRank.STRAIGHT_FLUSH, [high]);
+  }
+
+  // Rank-count frequencies, sorted by count desc then value desc (as evaluate5Cards).
+  const counts = new Map<number, number>();
+  for (let i = 0; i < 5; i++) counts.set(p[i].value, (counts.get(p[i].value) ?? 0) + 1);
+  const freq = [...counts.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count || b.value - a.value);
+
+  const f0 = freq[0], f1 = freq[1];
+  if (f0.count === 4) return computeScore(HandRank.FOUR_OF_A_KIND, [f0.value, f0.value, f0.value, f0.value, f1?.value ?? 0]);
+  if (f0.count === 3 && f1?.count === 2) return computeScore(HandRank.FULL_HOUSE, [f0.value, f0.value, f0.value, f1.value, f1.value]);
+  if (flush) return computeScore(HandRank.FLUSH, [p[0].value, p[1].value, p[2].value, p[3].value, p[4].value]);
+  if (straight) return computeScore(HandRank.STRAIGHT, [isWheel ? 5 : p[0].value]);
+  if (f0.count === 3) return computeScore(HandRank.THREE_OF_A_KIND, [f0.value, f0.value, f0.value, ...freq.slice(1).map(f => f.value)]);
+  if (f0.count === 2 && f1?.count === 2) return computeScore(HandRank.TWO_PAIR, [f0.value, f0.value, f1.value, f1.value, freq[2]?.value ?? 0]);
+  if (f0.count === 2) return computeScore(HandRank.PAIR, [f0.value, f0.value, ...freq.slice(1).map(f => f.value)]);
+  return computeScore(HandRank.HIGH_CARD, [p[0].value, p[1].value, p[2].value, p[3].value, p[4].value]);
+}
+
+/** Best 5-of-N score only (no description). Hot-path equivalent of
+ *  evaluateBestHand(cards).score, used by compareHands. */
+export function bestScore(cards: Card[]): number {
+  const parsed = cards.map(parse).sort((a, b) => b.value - a.value);
+  if (parsed.length === 5) return score5Sorted(parsed);
+
+  // Indices are strictly increasing → the picked 5 stay value-descending.
+  const combos = chooseFiveIndices(parsed.length);
+  const five: ParsedCard[] = [parsed[0], parsed[1], parsed[2], parsed[3], parsed[4]];
+  let best = -1;
+  for (let ci = 0; ci < combos.length; ci++) {
+    const c = combos[ci];
+    five[0] = parsed[c[0]]; five[1] = parsed[c[1]]; five[2] = parsed[c[2]];
+    five[3] = parsed[c[3]]; five[4] = parsed[c[4]];
+    const s = score5Sorted(five);
+    if (s > best) best = s;
+  }
+  return best;
+}
+
 export function compareHands(cards1: Card[], cards2: Card[]): -1 | 0 | 1 {
-  const h1 = evaluateBestHand(cards1);
-  const h2 = evaluateBestHand(cards2);
-  if (h1.score > h2.score) return 1;
-  if (h1.score < h2.score) return -1;
+  const s1 = bestScore(cards1);
+  const s2 = bestScore(cards2);
+  if (s1 > s2) return 1;
+  if (s1 < s2) return -1;
   return 0;
 }
 

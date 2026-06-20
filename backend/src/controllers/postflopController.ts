@@ -312,6 +312,13 @@ function estimateEquityVsRange(
   const boardStreet  = board.length === 3 ? 'flop' : board.length === 4 ? 'turn' : 'river';
   const runoutLabel  = board.length === 3 ? 'Turn + River' : board.length === 4 ? 'River' : '—';
 
+  // Equity method depends on the street: flop is sampled (EQUITY_RUNS runouts),
+  // turn enumerates all ~44 runouts exactly, river is deterministic. Keep the
+  // explanation honest about which one ran.
+  const isExactEq      = remainingNeeded <= 1;
+  const runsPerVillain = remainingNeeded === 0 ? 1 : remainingNeeded === 1 ? (52 - 4 - board.length) : EQUITY_RUNS;
+  const totalRuns      = EQUITY_SAMPLES * runsPerVillain;
+
   const fr = [
     `📋 **Comment on calcule votre équité de ${equity}% :**`,
     ``,
@@ -327,7 +334,7 @@ function estimateEquityVsRange(
     `**Étape 4 — On compare les meilleures mains**`,
     `On détermine qui a la meilleure combinaison sur 5 cartes parmi les 7 disponibles (2 en main + 5 au board).`,
     ``,
-    `**Exemple réel (simulation n°1 de vos ${EQUITY_SAMPLES * EQUITY_RUNS}) :**`,
+    `**Exemple réel (${isExactEq ? 'évaluation' : 'simulation'} n°1 de vos ${totalRuns.toLocaleString('fr-FR')}) :**`,
     `→ Villain reçoit : ${villainCards}`,
     `${runoutCards ? `→ ${runoutLabel} tiré(s) : ${runoutCards}` : ''}`,
     `→ Board complet : ${fullBoard}`,
@@ -335,8 +342,12 @@ function estimateEquityVsRange(
     `→ Meilleure main du villain : ${exVillainEval.description}`,
     `→ Résultat : **${outcome}**`,
     ``,
-    `**Étape 5 — On répète ${EQUITY_SAMPLES} fois × ${EQUITY_RUNS} runouts**`,
-    `Total : ${(EQUITY_SAMPLES * EQUITY_RUNS).toLocaleString('fr-FR')} simulations. Votre équité = nombre de fois que vous gagnez ÷ total = **${equity}%**.`,
+    isExactEq
+      ? (remainingNeeded === 1
+          ? `**Étape 5 — On teste TOUS les ${runsPerVillain} runouts possibles, pour chacune des ${EQUITY_SAMPLES} mains adverses**`
+          : `**Étape 5 — On compare directement sur ${EQUITY_SAMPLES} mains adverses (board déjà complet)**`)
+      : `**Étape 5 — On répète ${EQUITY_SAMPLES} fois × ${EQUITY_RUNS} runouts**`,
+    `Total : ${totalRuns.toLocaleString('fr-FR')} ${isExactEq ? 'évaluations exactes' : 'simulations'}. Votre équité = nombre de fois que vous gagnez ÷ total = **${equity}%**.`,
   ].filter(l => l !== '' || true).join('\n');
 
   const en = [
@@ -354,7 +365,7 @@ function estimateEquityVsRange(
     `**Step 4 — Best hands are compared**`,
     `We find who has the best 5-card hand from 7 available cards (2 hole + 5 board).`,
     ``,
-    `**Real example (simulation #1 of your ${EQUITY_SAMPLES * EQUITY_RUNS}):**`,
+    `**Real example (${isExactEq ? 'evaluation' : 'simulation'} #1 of your ${totalRuns.toLocaleString()}):**`,
     `→ Villain gets: ${villainCards}`,
     `${runoutCards ? `→ ${runoutLabel} drawn: ${runoutCards}` : ''}`,
     `→ Full board: ${fullBoard}`,
@@ -362,8 +373,12 @@ function estimateEquityVsRange(
     `→ Villain's best hand: ${exVillainEval.description}`,
     `→ Result: **${outcomeEn}**`,
     ``,
-    `**Step 5 — Repeat ${EQUITY_SAMPLES} times × ${EQUITY_RUNS} runouts**`,
-    `Total: ${(EQUITY_SAMPLES * EQUITY_RUNS).toLocaleString()} simulations. Your equity = times you win ÷ total = **${equity}%**.`,
+    isExactEq
+      ? (remainingNeeded === 1
+          ? `**Step 5 — Test ALL ${runsPerVillain} possible runouts, for each of the ${EQUITY_SAMPLES} villain hands**`
+          : `**Step 5 — Compare directly across ${EQUITY_SAMPLES} villain hands (board already complete)**`)
+      : `**Step 5 — Repeat ${EQUITY_SAMPLES} times × ${EQUITY_RUNS} runouts**`,
+    `Total: ${totalRuns.toLocaleString()} ${isExactEq ? 'exact evaluations' : 'simulations'}. Your equity = times you win ÷ total = **${equity}%**.`,
   ].filter(l => l !== '' || true).join('\n');
 
   return {
@@ -428,10 +443,10 @@ function buildDecision(
 
   // Equity detail text (injected into every explanation)
   const eqSrc = equityDetail
-    ? `(${EQUITY_SAMPLES} mains adverses aléatoires × ${EQUITY_RUNS} runouts = ${EQUITY_SAMPLES * EQUITY_RUNS} simulations)`
+    ? `(équité vs ${EQUITY_SAMPLES} mains adverses aléatoires — runouts échantillonnés au flop, exacts au turn/river)`
     : `(estimé par Monte Carlo)`;
   const eqSrcEn = equityDetail
-    ? `(${EQUITY_SAMPLES} random villain hands × ${EQUITY_RUNS} runouts = ${EQUITY_SAMPLES * EQUITY_RUNS} simulations)`
+    ? `(equity vs ${EQUITY_SAMPLES} random villain hands — runouts sampled on the flop, exact on turn/river)`
     : `(estimated via Monte Carlo)`;
 
   // ── Villain bet → pot-odds decision ─────────────────────────────────────────

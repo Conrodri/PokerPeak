@@ -9,7 +9,7 @@
  */
 import { Card } from '../src/types';
 import { calculateEquity } from '../src/services/poker/equity';
-import { evaluateBestHand, compareHands } from '../src/services/poker/handEvaluator';
+import { evaluateBestHand, compareHands, bestScore } from '../src/services/poker/handEvaluator';
 import { createDeck, removeCards, shuffleDeck } from '../src/services/poker/cards';
 
 let failures = 0;
@@ -42,6 +42,23 @@ console.log('Deterministic evaluator:');
   const t1 = ['2c','3d','Ah','Kh','Qh','Jh','Th'] as Card[];
   const t2 = ['4c','5d','Ah','Kh','Qh','Jh','Th'] as Card[];
   check('shared royal board → tie', compareHands(t1, t2) === 0);
+}
+
+// ── Fuzz: lean scorer must match the rich evaluator exactly ──────────────────
+console.log('\nFuzz: bestScore() === evaluateBestHand().score (200k random 7-card hands):');
+{
+  const fullDeck = createDeck();
+  let mismatches = 0;
+  for (let n = 0; n < 200000; n++) {
+    const seven = shuffleDeck(fullDeck).slice(0, 7);
+    const lean = bestScore(seven);
+    const rich = evaluateBestHand(seven).score;
+    if (lean !== rich) {
+      mismatches++;
+      if (mismatches <= 5) console.log(`     mismatch: ${seven.join(' ')} lean=${lean} rich=${rich}`);
+    }
+  }
+  check('200k hands score-identical (lean vs rich)', mismatches === 0, `${mismatches} mismatch(es)`);
 }
 
 // ── Statistical equity checks (high sim count) ───────────────────────────────

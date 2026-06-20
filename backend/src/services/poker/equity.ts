@@ -31,11 +31,34 @@ export function calculateEquity(
     };
   }
 
-  // Build the available deck ONCE. Each simulation draws only `remainingBoard`
-  // cards via a partial Fisher-Yates (sampling without replacement) instead of
-  // rebuilding + fully shuffling a 45+ card deck every iteration.
+  // Build the available deck ONCE.
   const pool = removeCards(createDeck(), knownCards);
   const poolLen = pool.length;
+
+  // Turn (one card to come): enumerate every runout exactly — there are only
+  // ~47 of them, which is both cheaper than 300 samples AND exact.
+  if (remainingBoard === 1) {
+    const cards1: Card[] = [...hand1, ...board, pool[0]];
+    const cards2: Card[] = [...hand2, ...board, pool[0]];
+    const last = cards1.length - 1;
+    let w = 0, l = 0, t = 0;
+    for (let i = 0; i < poolLen; i++) {
+      cards1[last] = pool[i];
+      cards2[last] = pool[i];
+      const r = compareHands(cards1, cards2);
+      if (r === 1) w++; else if (r === -1) l++; else t++;
+    }
+    return {
+      hand1WinPct: Math.round((w / poolLen) * 1000) / 10,
+      hand2WinPct: Math.round((l / poolLen) * 1000) / 10,
+      tiePct: Math.round((t / poolLen) * 1000) / 10,
+      simulations: poolLen,
+    };
+  }
+
+  // Flop (2+ to come): sample. Each iteration draws only `remainingBoard` cards
+  // via a partial Fisher-Yates (sampling without replacement) into reused
+  // buffers instead of rebuilding + fully shuffling a 45+ card deck.
 
   // Reusable 7-card buffers (hole + board + runout slots) — no per-iteration alloc.
   const cards1: Card[] = [...hand1, ...board];
