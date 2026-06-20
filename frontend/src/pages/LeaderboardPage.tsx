@@ -86,8 +86,14 @@ function ModuleGrid({ modules, isEn }: {
                   <span />
                 )}
                 {(stat.bestStreak ?? 0) > 0 && (
-                  <span className="text-[10px] text-orange-400 font-semibold">
-                    🔥 {stat.bestStreak}
+                  <span
+                    className="flex items-center gap-0.5 text-[10px] text-orange-400 font-semibold"
+                    title={isEn
+                      ? `Best consecutive streak: ${stat.bestStreak} correct answers in a row`
+                      : `Meilleure série : ${stat.bestStreak} bonnes réponses consécutives`}
+                  >
+                    <Zap size={9} className="fill-orange-400" />
+                    {stat.bestStreak}
                   </span>
                 )}
               </div>
