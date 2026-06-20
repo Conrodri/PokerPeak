@@ -1082,26 +1082,19 @@ export function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
                                   profilePos === 'BB'
                                     // BB is a defense spot → use the 5-category defense rendering.
                                     ? renderGtoRef(profileGto, 'BB')
-                                    : (() => {
-                                      // Shade mixed (call) cells by frequency, and list each distinct
-                                      // call frequency in the legend (e.g. "Call 75%", "Call 50%").
-                                      // Blue = same as the expert "Call" action, for visual consistency.
-                                      const callColor = (f: number) => `rgba(37,99,235,${(0.45 + f * 0.5).toFixed(2)})`;
-                                      const freqs = Array.from(new Set(profileGto.flat().filter(f => f > 0 && f < 1))).sort((a, b) => b - a);
-                                      return (
-                                        <RangeMatrix
-                                          matrix={profileGto}
-                                          size="sm"
-                                          crisp
-                                          cellColor={(v) => v >= 1 ? 'rgba(22,130,60,0.85)' : v <= 0 ? '#1a202c' : callColor(v)}
-                                          legend={[
-                                            { color: 'rgba(22,130,60,0.85)', label: 'Raise' },
-                                            ...freqs.map(f => ({ color: callColor(f), label: `Call ${Math.round(f * 100)}%` })),
-                                            { color: '#1a202c', label: 'Fold' },
-                                          ]}
-                                        />
-                                      );
-                                    })()
+                                    : (
+                                      <RangeMatrix
+                                        matrix={profileGto}
+                                        size="sm"
+                                        crisp
+                                        cellColor={(v) => v >= 0.75 ? 'rgba(22,130,60,0.85)' : v <= 0 ? '#1a202c' : 'rgba(37,99,235,0.70)'}
+                                        legend={[
+                                          { color: 'rgba(22,130,60,0.85)', label: 'Raise' },
+                                          { color: 'rgba(37,99,235,0.70)',  label: 'Call' },
+                                          { color: '#1a202c',              label: 'Fold' },
+                                        ]}
+                                      />
+                                    )
                                 ) : <p className="text-[11px] text-gray-600 py-8">{isEn ? 'Loading…' : 'Chargement…'}</p>}
                               </div>
                             }
