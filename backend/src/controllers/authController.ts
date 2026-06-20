@@ -14,8 +14,8 @@ export async function register(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    if (password.length < 6) {
-      res.status(400).json({ success: false, error: 'Password must be at least 6 characters' } as ApiResponse);
+    if (typeof password !== 'string' || password.length < 8) {
+      res.status(400).json({ success: false, error: 'Password must be at least 8 characters' } as ApiResponse);
       return;
     }
 

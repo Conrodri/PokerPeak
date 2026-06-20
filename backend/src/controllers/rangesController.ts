@@ -41,6 +41,10 @@ export async function saveCustomRange(req: Request, res: Response): Promise<void
       res.status(400).json({ success: false, error: 'cells must be a 169-element array' });
       return;
     }
+    if (!cells.every(c => typeof c === 'number' && Number.isFinite(c) && c >= 0 && c <= 1)) {
+      res.status(400).json({ success: false, error: 'each cell must be a number in [0, 1]' });
+      return;
+    }
     await prisma.customRange.upsert({
       where: { userId_position: { userId, position } },
       create: { userId, position, cells: JSON.stringify(cells) },

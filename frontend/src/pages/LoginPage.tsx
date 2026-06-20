@@ -100,7 +100,7 @@ export function LoginPage() {
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
               className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-felt-500"
               placeholder="••••••••"
-              required minLength={6}
+              required minLength={mode === 'register' ? 8 : 6}
             />
           </div>
 

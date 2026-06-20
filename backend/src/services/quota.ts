@@ -55,27 +55,35 @@ export interface ConsumeResult extends ModuleQuota {
  */
 export async function consume(userId: string, module: FreeModule): Promise<ConsumeResult> {
   const date = parisDate();
+  const key = { userId_module_date: { userId, module, date } };
 
-  // Ensure today's row exists, then read its current count.
-  const row = await prisma.freeUsage.upsert({
-    where:  { userId_module_date: { userId, module, date } },
+  // Make sure today's row exists (count starts at 0).
+  await prisma.freeUsage.upsert({
+    where:  key,
     create: { userId, module, date, count: 0 },
     update: {},
   });
 
-  if (row.count >= FREE_LIMIT) {
-    return { allowed: false, used: row.count, remaining: 0, limit: FREE_LIMIT };
-  }
-
-  const updated = await prisma.freeUsage.update({
-    where: { userId_module_date: { userId, module, date } },
+  // Atomic conditional increment: the `count < FREE_LIMIT` guard lives in the
+  // UPDATE's WHERE clause, so concurrent requests can never both push past the
+  // cap (no read-then-write race). updateMany reports how many rows it touched.
+  const result = await prisma.freeUsage.updateMany({
+    where: { userId, module, date, count: { lt: FREE_LIMIT } },
     data:  { count: { increment: 1 } },
   });
 
+  const row = await prisma.freeUsage.findUnique({ where: key });
+  const used = row?.count ?? FREE_LIMIT;
+
+  if (result.count === 0) {
+    // Already at the cap — nothing was incremented.
+    return { allowed: false, used, remaining: 0, limit: FREE_LIMIT };
+  }
+
   return {
     allowed: true,
-    used: updated.count,
-    remaining: Math.max(0, FREE_LIMIT - updated.count),
+    used,
+    remaining: Math.max(0, FREE_LIMIT - used),
     limit: FREE_LIMIT,
   };
 }
