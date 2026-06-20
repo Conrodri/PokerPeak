@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { quotaApi } from '../services/api';
 
 export type QuotaModule = 'postflop' | 'fullhand' | 'betsizing';
-const DEFAULT_LIMIT = 5;
+const DEFAULT_LIMIT = 3;
 
 interface QuotaState {
   limit: number;

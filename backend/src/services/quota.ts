@@ -6,7 +6,7 @@ import prisma from '../config/database';
 // exercises so they can taste the content. The allowance resets at midnight,
 // Europe/Paris time (the app's audience), regardless of server timezone.
 
-export const FREE_LIMIT = 5;
+export const FREE_LIMIT = 3;
 export const FREE_MODULES = ['postflop', 'fullhand', 'betsizing'] as const;
 export type FreeModule = (typeof FREE_MODULES)[number];
 

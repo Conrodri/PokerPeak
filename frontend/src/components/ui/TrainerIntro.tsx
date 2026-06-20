@@ -199,8 +199,8 @@ export function TrainerIntro({
             <p className="flex items-center gap-1.5 text-xs text-gray-500 text-center">
               <Gift size={11} />
               {isEn
-                ? '5 free exercises per day after login — Premium for unlimited access'
-                : '5 exercices gratuits par jour après connexion — Premium pour l\'accès illimité'}
+                ? '3 free exercises per day after login — Premium for unlimited access'
+                : '3 exercices gratuits par jour après connexion — Premium pour l\'accès illimité'}
             </p>
           </div>
         ) : lockedVariant === 'quota' ? (
@@ -214,8 +214,8 @@ export function TrainerIntro({
             <p className="flex items-center gap-1.5 text-xs text-gray-500 text-center">
               <Lock size={11} />
               {isEn
-                ? "You've used your 5 free exercises today — come back tomorrow or go Premium"
-                : 'Tu as utilisé tes 5 exercices gratuits du jour — reviens demain ou passe Premium'}
+                ? "You've used your 3 free exercises today — come back tomorrow or go Premium"
+                : 'Tu as utilisé tes 3 exercices gratuits du jour — reviens demain ou passe Premium'}
             </p>
           </div>
         ) : (
