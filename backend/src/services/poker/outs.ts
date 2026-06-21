@@ -349,6 +349,32 @@ const genComboFlushOESD: Gen = () => {
   }
 };
 
+// Flush draw + gutshot straight draw = 12 outs. The gutshot's suited card is
+// already in the flush, so it's 9 + 3, not the naive 9 + 4 = 13.
+const genComboFlushGut: Gen = () => {
+  for (;;) {
+    const S = choice(SUIT_CHARS);
+    const r = 2 + randInt(9);                                   // window low 2..10
+    if (r + 4 > 14) continue;
+    const hero: [string, string] = [rankOf(r) + S, rankOf(r + 1) + S];
+    const board2 = [rankOf(r + 3) + S, rankOf(r + 4) + S];     // gap at r+2 → gutshot
+    const banned = new Set([r, r + 1, r + 2, r + 3, r + 4]);
+    const offV = choice([...Array(13)].map((_, i) => i + 2).filter(v => !banned.has(v)));
+    const offS = choice(SUIT_CHARS.filter(s => s !== S));
+    const board = [...board2, rankOf(offV) + offS];
+    if (!allDistinct([...hero, ...board])) continue;
+    return {
+      heroCards: hero, board, street: 'flop', outs: 12, trap: 13, difficulty: 'hard',
+      draws: [
+        { fr: 'Tirage combiné : couleur + quinte par le ventre.',
+          en: 'Combo draw: flush draw + gutshot straight draw.' },
+        { fr: `Couleur : 9 cartes. Ventre (un ${disp(rankOf(r + 2))} complète ${disp(rankOf(r))}-${disp(rankOf(r + 4))}) : 4 cartes — mais le ${disp(rankOf(r + 2))} de la couleur est déjà compté → +3. Total = 9 + 3 = 12 (et non 13).`,
+          en: `Flush: 9 cards. Gutshot (a ${disp(rankOf(r + 2))} fills ${disp(rankOf(r))}-${disp(rankOf(r + 4))}): 4 cards — but the suited ${disp(rankOf(r + 2))} is already counted → +3. Total = 9 + 3 = 12 (not 13).` },
+      ],
+    };
+  }
+};
+
 // Curated hand-verified hard spots (combos with overlap traps + turn spots).
 const EXPERT_OUTS_SCENARIOS: OutsScenario[] = [
   {
@@ -360,19 +386,11 @@ const EXPERT_OUTS_SCENARIOS: OutsScenario[] = [
     }],
   },
   {
-    heroCards: ['As', 'Ks'], board: ['Qs', '7s', '2d'], street: 'flop',
-    outs: 15, difficulty: 'hard',
+    heroCards: ['As', 'Ks'], board: ['Qs', '7s', '2d', '4c'], street: 'turn',
+    outs: 9, difficulty: 'hard',
     draws: [{
-      fr: 'Couleur (pique) : 9 outs. Deux surcartes : 3 as + 3 rois = 6 outs (aucun ne chevauche la couleur). Total = 9 + 6 = 15.',
-      en: 'Flush (spades): 9 outs. Two overcards: 3 aces + 3 kings = 6 outs (no overlap with the flush). Total = 9 + 6 = 15.',
-    }],
-  },
-  {
-    heroCards: ['9h', '8h'], board: ['7c', 'Th', '2h', 'Kd'], street: 'turn',
-    outs: 15, trap: 17, difficulty: 'hard',
-    draws: [{
-      fr: 'Sur la turn (une seule carte à venir) : couleur 9 + quinte (6 ou J) 6 = 15 outs. Attention : on multiplie par 2, pas par 4.',
-      en: 'On the turn (one card to come): flush 9 + straight (6 or J) 6 = 15 outs. Careful: multiply by 2, not 4.',
+      fr: 'Couleur (pique) sur la turn : 9 outs, une seule carte à venir → équité ≈ 9 × 2 = 18 %. (Les surcartes comptent peu ici.)',
+      en: 'Flush (spades) on the turn: 9 outs, one card to come → equity ≈ 9 × 2 = 18%. (Overcards matter little here.)',
     }],
   },
   {
@@ -394,9 +412,14 @@ const EXPERT_OUTS_SCENARIOS: OutsScenario[] = [
 ];
 
 export function getRandomOutsScenario(difficulty?: 'expert'): OutsScenario {
-  // Expert: only hard spots — big combo draws (overlap traps) + turn maths.
+  // Expert: only hard spots, but spread across outs counts so the answer isn't
+  // almost always 15. Roughly 12≈33%, 15≈25%, 9≈22%, plus turn variety (8/9/12).
   if (difficulty === 'expert') {
-    return Math.random() < 0.6 ? genComboFlushOESD() : choice(EXPERT_OUTS_SCENARIOS);
+    const r = Math.random();
+    if (r < 0.25) return genComboFlushOESD();   // 15 outs (trap 17)
+    if (r < 0.58) return genComboFlushGut();     // 12 outs (trap 13)
+    if (r < 0.80) return genFlush();             // 9 outs (flop, varied cards)
+    return choice(EXPERT_OUTS_SCENARIOS);        // turn spots (8/9) + combo variety
   }
   // 70% freshly generated (varied cards), 30% from the hand-verified list
   // (which covers the combos/gutshots/OESD that aren't auto-generated).

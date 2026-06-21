@@ -34,6 +34,7 @@ import { useLangStore } from '../../store/langStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useShallow } from 'zustand/react/shallow';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 
 type Phase = 'exercise' | 'result';
@@ -74,6 +75,12 @@ export function PotOddsTrainer() {
     const r = await checkPotOddsAnswer(action, Date.now() - startTime.current);
     setPhase('result');
     if (examActive) recordAnswer(r.isCorrect, handleNext);
+  };
+
+  // Expert sprint: no decision within 5s → submit the wrong action (a miss).
+  const handleTimeout = () => {
+    if (!potOddsExercise || phase !== 'exercise') return;
+    handleAnswer(potOddsExercise.correctAction === 'call' ? 'fold' : 'call');
   };
 
   const handleStart = async () => {
@@ -185,6 +192,15 @@ export function PotOddsTrainer() {
             <Info size={14} />
           </button>
         </div>
+      )}
+
+      {/* Expert sprint countdown */}
+      {phase === 'exercise' && (
+        <SprintTimer
+          active={examActive && mode === 'expert' && !!ex && !isLoading}
+          resetKey={`${ex?.potSize}-${ex?.betSize}-${ex?.heroEquity}`}
+          onTimeout={handleTimeout}
+        />
       )}
 
       {/* ── Exercise ── */}

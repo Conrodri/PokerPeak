@@ -21,6 +21,7 @@ const FULLHAND_METHODOLOGY = {
 };
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
@@ -355,6 +356,14 @@ export function FullHandTrainer() {
     if (examActive) recordAnswer(ok, handleContinue);
   };
 
+  // Expert sprint: no decision within 5s → submit a wrong action (a miss).
+  const handleTimeout = () => {
+    if (!decision || phase.endsWith('_result') || phase === 'loading') return;
+    const d = 'preflop' in decision ? decision.preflop : decision.street;
+    const wrong = d.options.find(o => o.key !== d.correctAction);
+    if (wrong) handleAnswer(wrong.key);
+  };
+
   // ── Handle continue ──────────────────────────────────────────────────────────
 
   const handleContinue = () => {
@@ -517,6 +526,13 @@ export function FullHandTrainer() {
         </button>
       </div>
       )}
+
+      {/* Expert sprint countdown — one per street decision */}
+      <SprintTimer
+        active={examActive && mode === 'expert' && !!decision && !phase.endsWith('_result')}
+        resetKey={`${scenario?.heroPosition}-${scenario?.flop?.join('')}-${currentStep}`}
+        onTimeout={handleTimeout}
+      />
 
       {/* ── Stepper ── */}
       <Stepper phase={phase} lastStreet={scenario.lastStreet} isEn={isEn} />

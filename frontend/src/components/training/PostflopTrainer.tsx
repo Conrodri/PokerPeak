@@ -17,6 +17,7 @@ const POSTFLOP_METHODOLOGY = {
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
@@ -318,6 +319,13 @@ export function PostflopTrainer() {
     if (examActive) recordAnswer(ok, handleNext);
   };
 
+  // Expert sprint: no decision within 5s → submit a wrong option (a miss).
+  const handleTimeout = () => {
+    if (!exercise || phase !== 'exercise') return;
+    const wrong = exercise.options.find(o => o.key !== exercise.correctAction);
+    if (wrong) handleAnswer(wrong.key);
+  };
+
   const handleNext = async () => {
     setSelected(null);
     await fetchExercise();
@@ -475,6 +483,15 @@ export function PostflopTrainer() {
 
       {/* ════════════ LOADING ════════════ */}
       {isLoading && <Spinner />}
+
+      {/* Expert sprint countdown */}
+      {!isLoading && phase === 'exercise' && ex && (
+        <SprintTimer
+          active={examActive && mode === 'expert'}
+          resetKey={ex.heroNotation + ex.street}
+          onTimeout={handleTimeout}
+        />
+      )}
 
       {/* ════════════ EXERCISE ════════════ */}
       {!isLoading && phase === 'exercise' && ex && (

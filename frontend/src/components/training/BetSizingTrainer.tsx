@@ -4,6 +4,7 @@ import { ChevronRight, Info, Zap, BookOpen, ExternalLink, Lightbulb } from 'luci
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
@@ -554,6 +555,13 @@ export function BetSizingTrainer() {
     if (examActive) recordAnswer(ok, handleNext);
   };
 
+  // Expert sprint: no decision within 5s → submit a wrong sizing (a miss).
+  const handleTimeout = () => {
+    if (!exercise || phase !== 'exercise') return;
+    const wrong = exercise.options.find(k => k !== exercise.correctKey);
+    if (wrong) handleAnswer(wrong);
+  };
+
   const handleNext = () => nextExercise();
 
   const handleStartExam = () => {
@@ -676,6 +684,15 @@ export function BetSizingTrainer() {
           <Info size={14} />
         </button>
       </div>
+      )}
+
+      {/* Expert sprint countdown */}
+      {phase === 'exercise' && ex && (
+        <SprintTimer
+          active={examActive && mode === 'expert'}
+          resetKey={ex.id}
+          onTimeout={handleTimeout}
+        />
       )}
 
       {/* ════════════ EXERCISE ════════════ */}

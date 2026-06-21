@@ -32,6 +32,7 @@ import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -78,6 +79,12 @@ export function EquityTrainer() {
     setPhase('result');
     recordResult(correct, correct ? 15 : 5, 'equity');
     if (examActive) recordAnswer(correct, handleNext);
+  };
+
+  // Expert sprint: no decision within 5s → pick the losing hand (a miss).
+  const handleTimeout = () => {
+    if (!equityExercise || phase !== 'exercise') return;
+    handleAnswer(equityExercise.hand1Equity > equityExercise.hand2Equity ? 2 : 1);
   };
 
   const handleStart = async () => {
@@ -191,6 +198,15 @@ export function EquityTrainer() {
             <Info size={14} />
           </button>
         </div>
+      )}
+
+      {/* Expert sprint countdown */}
+      {phase === 'exercise' && (
+        <SprintTimer
+          active={examActive && mode === 'expert' && !!equityExercise && !isLoading}
+          resetKey={`${equityExercise?.hand1Notation}-${equityExercise?.hand2Notation}-${equityExercise?.board?.join('')}`}
+          onTimeout={handleTimeout}
+        />
       )}
 
       {/* ── Exercise ── */}

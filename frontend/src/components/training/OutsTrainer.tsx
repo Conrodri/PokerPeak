@@ -32,6 +32,7 @@ import { useLangStore } from '../../store/langStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useShallow } from 'zustand/react/shallow';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 
 type Phase = 'exercise' | 'result';
@@ -73,6 +74,15 @@ export function OutsTrainer() {
     setPhase('result');
     recordResult(correct, correct ? 15 : 5, 'outs');
     if (examActive) recordAnswer(correct, handleNext);
+  };
+
+  // Expert sprint: no decision within 5s → counts as a miss and moves on.
+  const handleTimeout = () => {
+    if (!outsExercise || phase !== 'exercise') return;
+    setSelected(-1);
+    setPhase('result');
+    recordResult(false, 5, 'outs');
+    if (examActive) recordAnswer(false, handleNext);
   };
 
   const handleStart = async () => {
@@ -185,6 +195,15 @@ export function OutsTrainer() {
             <Info size={14} />
           </button>
         </div>
+      )}
+
+      {/* Expert sprint countdown */}
+      {phase === 'exercise' && (
+        <SprintTimer
+          active={examActive && mode === 'expert' && !!ex && !isLoading}
+          resetKey={`${ex?.heroCards?.join('')}-${ex?.board?.join('')}`}
+          onTimeout={handleTimeout}
+        />
       )}
 
       {/* ── Exercise ── */}
