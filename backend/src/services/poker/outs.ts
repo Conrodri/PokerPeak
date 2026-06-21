@@ -375,6 +375,75 @@ const genComboFlushGut: Gen = () => {
   }
 };
 
+// One overcard → pair it = 3 outs (the only winning card; a low pair wouldn't win).
+const genOneOver: Gen = () => {
+  for (;;) {
+    const H = choice(['A', 'K']);                               // single clear overcard
+    const hv = rv(H);
+    const L = choice(RANK_ORDER.filter(r => rv(r) <= 6));       // low, dead kicker
+    const [hs, ls] = shuffled(SUIT_CHARS);
+    const hero: [string, string] = [H + hs, L + ls];
+    const boardRanks = shuffled(RANK_ORDER.filter(r => rv(r) > 6 && rv(r) < hv && r !== L)).slice(0, 3);
+    if (boardRanks.length < 3) continue;
+    const bs = shuffled(SUIT_CHARS).slice(0, 3);                // 3 distinct suits → no flush
+    const board = boardRanks.map((r, i) => r + bs[i]);
+    if (!allDistinct([...hero, ...board])) continue;
+    if (hasStraightDraw([hv, rv(L), ...boardRanks.map(rv)])) continue;
+    return {
+      heroCards: hero, board, street: 'flop', outs: 3, difficulty: 'hard',
+      draws: [{
+        fr: `Une seule surcarte utile : le ${disp(H)}. Le toucher (3 ${disp(H)} restants) = 3 outs. Le ${disp(L)} est trop bas pour gagner.`,
+        en: `Only one useful overcard: the ${disp(H)}. Pairing it (3 ${disp(H)} left) = 3 outs. The ${disp(L)} is too low to win.`,
+      }],
+    };
+  }
+};
+
+// Gutshot straight draw = 4 outs (rainbow, no flush).
+const genGutshot: Gen = () => {
+  for (;;) {
+    const r = 2 + randInt(9);
+    if (r + 4 > 14) continue;
+    const suits = shuffled(SUIT_CHARS);
+    const hero: [string, string] = [rankOf(r) + suits[0], rankOf(r + 1) + suits[1]];
+    const off = choice([...Array(13)].map((_, i) => i + 2).filter(v => v < r - 1 || v > r + 5));
+    const board = [rankOf(r + 3) + suits[2], rankOf(r + 4) + suits[3], rankOf(off) + choice(SUIT_CHARS)];
+    if (!allDistinct([...hero, ...board])) continue;
+    const bySuit: Record<string, number> = {};
+    for (const c of [...hero, ...board]) bySuit[c[1]] = (bySuit[c[1]] || 0) + 1;
+    if (Object.values(bySuit).some(n => n >= 4)) continue;
+    return {
+      heroCards: hero, board, street: 'flop', outs: 4, difficulty: 'hard',
+      draws: [{
+        fr: `Tirage quinte par le ventre : un ${disp(rankOf(r + 2))} complète ${disp(rankOf(r))}-${disp(rankOf(r + 4))} = 4 outs.`,
+        en: `Gutshot straight draw: a ${disp(rankOf(r + 2))} fills ${disp(rankOf(r))}-${disp(rankOf(r + 4))} = 4 outs.`,
+      }],
+    };
+  }
+};
+
+// Open-ended straight draw = 8 outs (rainbow, no flush).
+const genOESD: Gen = () => {
+  for (;;) {
+    const r = 3 + randInt(8);                                   // r-1≥2, r+4≤14
+    const suits = shuffled(SUIT_CHARS);
+    const hero: [string, string] = [rankOf(r) + suits[0], rankOf(r + 1) + suits[1]];
+    const off = choice([...Array(13)].map((_, i) => i + 2).filter(v => v < r - 1 || v > r + 4));
+    const board = [rankOf(r + 2) + suits[2], rankOf(r + 3) + suits[3], rankOf(off) + choice(SUIT_CHARS)];
+    if (!allDistinct([...hero, ...board])) continue;
+    const bySuit: Record<string, number> = {};
+    for (const c of [...hero, ...board]) bySuit[c[1]] = (bySuit[c[1]] || 0) + 1;
+    if (Object.values(bySuit).some(n => n >= 4)) continue;
+    return {
+      heroCards: hero, board, street: 'flop', outs: 8, difficulty: 'hard',
+      draws: [{
+        fr: `Tirage quinte par les deux bouts (${disp(rankOf(r))}-${disp(rankOf(r + 3))}) : un ${disp(rankOf(r - 1))} ou un ${disp(rankOf(r + 4))} = 8 outs.`,
+        en: `Open-ended straight draw (${disp(rankOf(r))}-${disp(rankOf(r + 3))}): a ${disp(rankOf(r - 1))} or a ${disp(rankOf(r + 4))} = 8 outs.`,
+      }],
+    };
+  }
+};
+
 // Curated hand-verified hard spots (combos with overlap traps + turn spots).
 const EXPERT_OUTS_SCENARIOS: OutsScenario[] = [
   {
@@ -412,14 +481,19 @@ const EXPERT_OUTS_SCENARIOS: OutsScenario[] = [
 ];
 
 export function getRandomOutsScenario(difficulty?: 'expert'): OutsScenario {
-  // Expert: only hard spots, but spread across outs counts so the answer isn't
-  // almost always 15. Roughly 12≈33%, 15≈25%, 9≈22%, plus turn variety (8/9/12).
+  // Expert: hard spots spread across a wide range of outs counts (near-equal
+  // parity) so the answer is never predictable — 3/4/6/8/9/12/15, plus a small
+  // slice of turn spots (Rule of 2) for street variety.
   if (difficulty === 'expert') {
     const r = Math.random();
-    if (r < 0.25) return genComboFlushOESD();   // 15 outs (trap 17)
-    if (r < 0.58) return genComboFlushGut();     // 12 outs (trap 13)
-    if (r < 0.80) return genFlush();             // 9 outs (flop, varied cards)
-    return choice(EXPERT_OUTS_SCENARIOS);        // turn spots (8/9) + combo variety
+    if (r < 0.14) return genOneOver();           // 3 outs
+    if (r < 0.28) return genGutshot();           // 4 outs
+    if (r < 0.42) return genTwoOver();           // 6 outs
+    if (r < 0.56) return genOESD();              // 8 outs
+    if (r < 0.70) return genFlush();             // 9 outs
+    if (r < 0.82) return genComboFlushGut();     // 12 outs (trap 13)
+    if (r < 0.94) return genComboFlushOESD();    // 15 outs (trap 17)
+    return choice(EXPERT_OUTS_SCENARIOS);        // turn-spot variety (×2 rule)
   }
   // 70% freshly generated (varied cards), 30% from the hand-verified list
   // (which covers the combos/gutshots/OESD that aren't auto-generated).
