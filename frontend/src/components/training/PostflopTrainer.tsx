@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Info, Zap, Target, Lightbulb } from 'lucide-react';
 import { SourcesFooter } from '../ui/SourcesFooter';
@@ -45,7 +45,7 @@ import { handToDisplay } from '../../utils/pokerUtils';
 import { useLangStore } from '../../store/langStore';
 
 type Phase        = 'exercise' | 'result';
-type ActionKey    = 'fold' | 'check' | 'call' | 'raise' | 'bet';
+type ActionKey    = 'fold' | 'check' | 'call' | 'raise' | 'bet' | 'bet_33' | 'bet_67' | 'bet_100';
 type StreetFilter = 'random' | 'flop' | 'turn' | 'river';
 
 const STREET_KEY = 'poker-postflop-street';
@@ -280,8 +280,9 @@ export function PostflopTrainer() {
   const fetchExercise = async (sf = streetFilter) => {
     setIsLoading(true);
     try {
-      const street = sf !== 'random' ? sf : undefined;
-      const data   = await postflopApi.getExercise(street);
+      const street     = sf !== 'random' ? sf : undefined;
+      const difficulty = mode === 'expert' ? 'expert' : undefined;
+      const data   = await postflopApi.getExercise(street, difficulty);
       setExercise(data);
       setPhase('exercise');
       if (!isPremium) quota.decrement('postflop'); // server consumed one credit
@@ -619,7 +620,7 @@ export function PostflopTrainer() {
               {ex.options.map(opt => (
                 <Button
                   key={opt.key} size="lg"
-                  variant={opt.key === 'fold' ? 'danger' : opt.key === 'raise' || opt.key === 'bet' ? 'gold' : 'secondary'}
+                  variant={opt.key === 'fold' ? 'danger' : (opt.key === 'raise' || opt.key === 'bet' || opt.key.startsWith('bet_')) ? 'gold' : 'secondary'}
                   onClick={() => handleAnswer(opt.key)}
                   className="min-w-[130px]"
                 >
@@ -797,3 +798,4 @@ export function PostflopTrainer() {
     </div>
   );
 }
+

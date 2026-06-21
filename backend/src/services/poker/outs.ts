@@ -316,8 +316,6 @@ const genFlush: Gen = () => {
   }
 };
 
-const GENERATORS: Gen[] = [genPocketPairSet, genOneOver, genGutshot, genPairOver, genTwoOver, genOESD, genFlush];
-
 // ─── Expert content ──────────────────────────────────────────────────────────
 // Harder spots: big combo draws (where 2 outs overlap so the naive sum is a
 // trap), and turn spots (single card → Rule of 2, not 4).
@@ -443,6 +441,9 @@ const genOESD: Gen = () => {
     };
   }
 };
+
+// All non-expert beginner/advanced generators (declared after genOESD to avoid hoisting issues)
+const GENERATORS: Gen[] = [genPocketPairSet, genOneOver, genGutshot, genPairOver, genTwoOver, genOESD, genFlush];
 
 // Curated hand-verified hard spots (combos with overlap traps + turn spots).
 const EXPERT_OUTS_SCENARIOS: OutsScenario[] = [

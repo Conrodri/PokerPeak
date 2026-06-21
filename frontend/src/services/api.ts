@@ -215,8 +215,12 @@ export const profilesApi = {
 
 // Postflop trainer (premium)
 export const postflopApi = {
-  getExercise: (street?: string) =>
-    api.get('/postflop/exercise', { params: street ? { street } : {} }).then(r => r.data.data),
+  getExercise: (street?: string, difficulty?: string) => {
+    const params: Record<string, string> = {};
+    if (street) params.street = street;
+    if (difficulty) params.difficulty = difficulty;
+    return api.get('/postflop/exercise', { params }).then(r => r.data.data);
+  },
   getFullHandScenario: () =>
     api.get('/postflop/full-hand').then(r => r.data.data),
 };

@@ -27,7 +27,7 @@ const RFI_MATCHUPS = [
 const STREETS = ['flop', 'turn', 'river'] as const;
 const RANKS_DISPLAY = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-type ActionKey = 'fold' | 'check' | 'call' | 'raise' | 'bet';
+type ActionKey = 'fold' | 'check' | 'call' | 'raise' | 'bet' | 'bet_33' | 'bet_67' | 'bet_100';
 
 function getBoardTexture(board: Card[]): {
   label: { fr: string; en: string };
@@ -84,8 +84,8 @@ function handRankLabel(rank: HandRank): { fr: string; en: string } {
   return labels[rank] ?? { fr: 'Main inconnue', en: 'Unknown hand' };
 }
 
-const EQUITY_SAMPLES     = 8;    // villain hands sampled
-const EQUITY_RUNS        = 300;  // runouts per sample → 8 × 300 = 2 400 total
+const EQUITY_SAMPLES     = 8;    // villain hands sampled (expert)
+const EQUITY_RUNS        = 300;  // runouts per sample (expert) → 8 × 300 = 2 400 total
 
 // ─── Threat analysis ──────────────────────────────────────────────────────────
 // Analyse the remaining deck to identify which villain hand categories beat hero,
@@ -260,6 +260,7 @@ function estimateEquityVsRange(
   hero: [Card, Card],
   board: Card[],
   samples = EQUITY_SAMPLES,
+  runs = EQUITY_RUNS,
 ): {
   equity: number;
   wins: number;
@@ -286,14 +287,14 @@ function estimateEquityVsRange(
   const exTie         = exHeroEval.score === exVillainEval.score;
 
   // Over all samples (including the first one)
-  const exEq = calculateEquity(hero, exVillain, board, EQUITY_RUNS);
+  const exEq = calculateEquity(hero, exVillain, board, runs);
   winSum += exEq.hand1WinPct;
   tieSum += exEq.tiePct;
 
   for (let i = 1; i < samples; i++) {
     const deck = shuffleDeck(removeCards(createDeck(), used));
     const villain: [Card, Card] = [deck[0], deck[1]];
-    const eq: EquityResult = calculateEquity(hero, villain, board, EQUITY_RUNS);
+    const eq: EquityResult = calculateEquity(hero, villain, board, runs);
     winSum += eq.hand1WinPct;
     tieSum += eq.tiePct;
   }
@@ -316,8 +317,8 @@ function estimateEquityVsRange(
   // turn enumerates all ~44 runouts exactly, river is deterministic. Keep the
   // explanation honest about which one ran.
   const isExactEq      = remainingNeeded <= 1;
-  const runsPerVillain = remainingNeeded === 0 ? 1 : remainingNeeded === 1 ? (52 - 4 - board.length) : EQUITY_RUNS;
-  const totalRuns      = EQUITY_SAMPLES * runsPerVillain;
+  const runsPerVillain = remainingNeeded === 0 ? 1 : remainingNeeded === 1 ? (52 - 4 - board.length) : runs;
+  const totalRuns      = samples * runsPerVillain;
 
   const fr = [
     `📋 **Comment on calcule votre équité de ${equity}% :**`,
@@ -344,9 +345,9 @@ function estimateEquityVsRange(
     ``,
     isExactEq
       ? (remainingNeeded === 1
-          ? `**Étape 5 — On teste TOUS les ${runsPerVillain} runouts possibles, pour chacune des ${EQUITY_SAMPLES} mains adverses**`
-          : `**Étape 5 — On compare directement sur ${EQUITY_SAMPLES} mains adverses (board déjà complet)**`)
-      : `**Étape 5 — On répète ${EQUITY_SAMPLES} fois × ${EQUITY_RUNS} runouts**`,
+          ? `**Étape 5 — On teste TOUS les ${runsPerVillain} runouts possibles, pour chacune des ${samples} mains adverses**`
+          : `**Étape 5 — On compare directement sur ${samples} mains adverses (board déjà complet)**`)
+      : `**Étape 5 — On répète ${samples} fois × ${runs} runouts**`,
     `Total : ${totalRuns.toLocaleString('fr-FR')} ${isExactEq ? 'évaluations exactes' : 'simulations'}. Votre équité = nombre de fois que vous gagnez ÷ total = **${equity}%**.`,
   ].filter(l => l !== '' || true).join('\n');
 
@@ -375,9 +376,9 @@ function estimateEquityVsRange(
     ``,
     isExactEq
       ? (remainingNeeded === 1
-          ? `**Step 5 — Test ALL ${runsPerVillain} possible runouts, for each of the ${EQUITY_SAMPLES} villain hands**`
-          : `**Step 5 — Compare directly across ${EQUITY_SAMPLES} villain hands (board already complete)**`)
-      : `**Step 5 — Repeat ${EQUITY_SAMPLES} times × ${EQUITY_RUNS} runouts**`,
+          ? `**Step 5 — Test ALL ${runsPerVillain} possible runouts, for each of the ${samples} villain hands**`
+          : `**Step 5 — Compare directly across ${samples} villain hands (board already complete)**`)
+      : `**Step 5 — Repeat ${samples} times × ${runs} runouts**`,
     `Total: ${totalRuns.toLocaleString()} ${isExactEq ? 'exact evaluations' : 'simulations'}. Your equity = times you win ÷ total = **${equity}%**.`,
   ].filter(l => l !== '' || true).join('\n');
 
@@ -419,6 +420,7 @@ function buildDecision(
   handRank: HandRank,
   texture?: ReturnType<typeof getBoardTexture>,
   equityDetail?: { wins: number; ties: number; total: number },
+  expert = false,
 ) {
   const handLbl  = handRankLabel(handRank);
 
@@ -443,10 +445,10 @@ function buildDecision(
 
   // Equity detail text (injected into every explanation)
   const eqSrc = equityDetail
-    ? `(équité vs ${EQUITY_SAMPLES} mains adverses aléatoires — runouts échantillonnés au flop, exacts au turn/river)`
+    ? `(équité vs ${equityDetail.total} mains adverses aléatoires — runouts échantillonnés au flop, exacts au turn/river)`
     : `(estimé par Monte Carlo)`;
   const eqSrcEn = equityDetail
-    ? `(equity vs ${EQUITY_SAMPLES} random villain hands — runouts sampled on the flop, exact on turn/river)`
+    ? `(equity vs ${equityDetail.total} random villain hands — runouts sampled on the flop, exact on turn/river)`
     : `(estimated via Monte Carlo)`;
 
   // ── Villain bet → pot-odds decision ─────────────────────────────────────────
@@ -566,6 +568,28 @@ function buildDecision(
     }
   }
 
+  // Expert mode: when villain checked and correct is 'bet', replace the 2-option
+  // Check/Bet with 4 sizing choices so the player must pick the right bet size.
+  if (expert && villainAction === 'check' && correct === 'bet') {
+    const recPct = isMonster
+      ? (textureScore >= 1 || heroEquity >= 78 ? 100 : 67)
+      : isTwoPair
+        ? (textureScore >= 1 && heroEquity >= 68 ? 100 : heroEquity >= 55 ? 67 : 33)
+        : isPair
+          ? (heroEquity >= 70 && isHeroIP ? 67 : 33)
+          : 33;
+    const sz33  = Math.max(1, Math.round(potSize * 0.33));
+    const sz67  = Math.max(1, Math.round(potSize * 0.67));
+    const sz100 = Math.max(1, potSize);
+    correct = `bet_${recPct}` as ActionKey;
+    options = [
+      { key: 'check',   labelFr: 'Check',                      labelEn: 'Check' },
+      { key: 'bet_33',  labelFr: `Bet 33% du pot (${sz33}bb)`,  labelEn: `Bet 33% pot (${sz33}bb)` },
+      { key: 'bet_67',  labelFr: `Bet 67% du pot (${sz67}bb)`,  labelEn: `Bet 67% pot (${sz67}bb)` },
+      { key: 'bet_100', labelFr: `Bet 100% du pot (${sz100}bb)`, labelEn: `Bet 100% pot (${sz100}bb)` },
+    ];
+  }
+
   return { correct, options, reasonFr, reasonEn };
 }
 
@@ -652,6 +676,12 @@ function buildStreetDecision(
 export async function getPostflopExercise(req: Request, res: Response): Promise<void> {
   try {
     const requestedStreet = req.query.street as string;
+    const difficulty      = req.query.difficulty as string | undefined;
+    const isExpert        = difficulty === 'expert';
+    // Expert: full 8×300 for accuracy; non-expert: 4×150 = 600 sims (4× faster, plenty for action decision)
+    const eqSamples = isExpert ? 8 : 4;
+    const eqRuns    = isExpert ? 300 : 150;
+
     const street: typeof STREETS[number] =
       requestedStreet && (STREETS as readonly string[]).includes(requestedStreet)
         ? (requestedStreet as typeof STREETS[number])
@@ -666,7 +696,7 @@ export async function getPostflopExercise(req: Request, res: Response): Promise<
     const board = remaining.slice(0, boardCount) as Card[];
 
     const evalResult    = evaluateBestHand([...heroHand, ...board]);
-    const equityResult  = estimateEquityVsRange(heroHand, board);
+    const equityResult  = estimateEquityVsRange(heroHand, board, eqSamples, eqRuns);
     const heroEquity    = equityResult.equity;
 
     const villainBets = matchup.heroIP ? (Math.random() < 0.3) : (Math.random() < 0.5);
@@ -680,7 +710,7 @@ export async function getPostflopExercise(req: Request, res: Response): Promise<
     const decision = buildDecision(
       heroEquity, matchup.heroIP, matchup.potBB,
       villainAction, villainBetSize, evalResult.rank,
-      texture, equityResult,
+      texture, equityResult, isExpert,
     );
     const threat   = buildThreatAnalysis(heroHand, board, evalResult.rank);
     const notation = toHandNotation(heroHand[0], heroHand[1]);
@@ -708,8 +738,8 @@ export async function getPostflopExercise(req: Request, res: Response): Promise<
           wins:             equityResult.wins,
           ties:             equityResult.ties,
           samples:          equityResult.total,
-          runsPerSample:    EQUITY_RUNS,
-          totalSimulations: equityResult.total * EQUITY_RUNS,
+          runsPerSample:    eqRuns,
+          totalSimulations: equityResult.total * eqRuns,
           example:          equityResult.example,
         },
         heroHandRank: evalResult.rank,
