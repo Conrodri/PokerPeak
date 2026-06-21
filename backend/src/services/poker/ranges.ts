@@ -157,8 +157,11 @@ export function getCorrectAction(position: Position, notation: string): {
   isMixed: boolean;
 } {
   const freq = getRangeFrequency(position, notation);
-  // 0 → fold | 0 < v < 0.75 → call (mixed play) | v >= 0.75 → raise
-  const action = freq === 0 ? 'fold' : freq < 0.75 ? 'call' : 'raise';
+  // GTO classification (beginner/advanced): fold if never raised, raise when the
+  // hand is raised MORE than half the time, otherwise call. A 50/50 hand is a
+  // call. (Expert grades on the player's own ranges, not this function.)
+  // 0 → fold | 0 < v <= 0.5 → call | v > 0.5 → raise
+  const action = freq === 0 ? 'fold' : freq > 0.5 ? 'raise' : 'call';
   return { action, frequency: freq, isMixed: false };
 }
 
