@@ -7,7 +7,7 @@ import { useAuthStore } from '../../store/authStore';
 import { RangeEditor } from './RangeEditor';
 import { RangeMatrix } from './RangeMatrix';
 import { ExpertRangeEditor, gtoToExpertMix, EXPERT_DISPLAY } from './ExpertRangeEditor';
-import { RANKS_ORDER, getNotationFromIndices } from '../../utils/pokerUtils';
+import { RANKS_ORDER, getNotationFromIndices, frequencyBg } from '../../utils/pokerUtils';
 import { HoverTip } from '../ui/HoverTip';
 import { Button } from '../ui/Button';
 import { useT } from '../../i18n';
@@ -231,7 +231,7 @@ export function MyRangesPanel({ onClose, positions, defaultPosition, locked }: {
         />
       );
     }
-    return <RangeMatrix matrix={matrix} size="sm" crisp />;
+    return <RangeMatrix matrix={matrix} size="sm" crisp cellColor={frequencyBg} />;
   };
 
   // ══ PROFILES TAB STATE ══════════════════════════════════════════════════════

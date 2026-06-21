@@ -39,7 +39,7 @@ import { TrainerIntro } from '../ui/TrainerIntro';
 import { useModeStore } from '../../store/modeStore';
 import { useAuthStore } from '../../store/authStore';
 import { VerdictBanner } from '../ui/VerdictBanner';
-import { handToDisplay, getMatrixIndices } from '../../utils/pokerUtils';
+import { handToDisplay, getMatrixIndices, frequencyBg } from '../../utils/pokerUtils';
 import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 import { useCustomRangeStore } from '../../store/customRangeStore';
@@ -182,6 +182,7 @@ function RangeSection({ matrix, mix, highlightNotation, position, isCustom, reso
                 matrix={matrix}
                 highlightNotation={highlightNotation}
                 size="sm"
+                cellColor={frequencyBg}
               />
             )}
           </motion.div>

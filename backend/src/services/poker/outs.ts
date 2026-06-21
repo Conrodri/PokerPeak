@@ -316,7 +316,7 @@ const genFlush: Gen = () => {
   }
 };
 
-const GENERATORS: Gen[] = [genPocketPairSet, genPairOver, genTwoOver, genFlush];
+const GENERATORS: Gen[] = [genPocketPairSet, genOneOver, genGutshot, genPairOver, genTwoOver, genOESD, genFlush];
 
 // ─── Expert content ──────────────────────────────────────────────────────────
 // Harder spots: big combo draws (where 2 outs overlap so the naive sum is a
