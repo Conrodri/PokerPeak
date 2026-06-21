@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { TrainingModule, Position, PreflopExercise, PotOddsExercise, EquityExercise, OutsExercise, BBDefenseExercise, ExerciseResult } from '../types/poker';
 import { trainingApi } from '../services/api';
+import { useModeStore } from './modeStore';
 
 interface SessionStats {
   total: number;
@@ -208,7 +209,9 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   fetchOutsExercise: async () => {
     set({ isLoading: true, error: null, lastResult: null });
     try {
-      const exercise = await trainingApi.getOutsExercise();
+      // Expert mode → request the harder outs scenarios (combo draws, traps, turn).
+      const difficulty = useModeStore.getState().mode === 'expert' ? 'expert' : undefined;
+      const exercise = await trainingApi.getOutsExercise(difficulty);
       set({ outsExercise: exercise, isLoading: false });
     } catch {
       set({ error: 'Impossible de charger l\'exercice', isLoading: false });

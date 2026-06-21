@@ -107,7 +107,8 @@ export async function getEquityExercise(req: Request, res: Response): Promise<vo
 export async function getOutsExercise(req: Request, res: Response): Promise<void> {
   try {
     const lang = getLang(req);
-    const exercise = generateOutsExercise(lang);
+    const difficulty = req.query.difficulty === 'expert' ? 'expert' : undefined;
+    const exercise = generateOutsExercise(lang, difficulty);
     res.json({ success: true, data: exercise } as ApiResponse);
   } catch {
     res.status(500).json({ success: false, error: 'Failed to generate exercise' } as ApiResponse);

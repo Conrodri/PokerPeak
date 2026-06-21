@@ -85,8 +85,8 @@ export const trainingApi = {
     return api.get('/training/equity/exercise', { params: { mode } }).then(r => r.data.data);
   },
 
-  getOutsExercise: () =>
-    api.get('/training/outs/exercise').then(r => r.data.data),
+  getOutsExercise: (difficulty?: string) =>
+    api.get('/training/outs/exercise', { params: difficulty ? { difficulty } : {} }).then(r => r.data.data),
 
   getBBDefenseExercise: () =>
     api.get('/training/bbdefense/exercise').then(r => r.data.data),

@@ -16,6 +16,9 @@ export interface OutsScenario {
   outs: number;
   draws: OutsDraw[];
   difficulty: 'easy' | 'medium' | 'hard';
+  /** Tempting wrong answer (e.g. the naive un-discounted sum) — used as a
+   *  distractor in expert mode to punish double-counting overlapping outs. */
+  trap?: number;
 }
 
 export const OUTS_SCENARIOS: OutsScenario[] = [
@@ -315,7 +318,86 @@ const genFlush: Gen = () => {
 
 const GENERATORS: Gen[] = [genPocketPairSet, genPairOver, genTwoOver, genFlush];
 
-export function getRandomOutsScenario(): OutsScenario {
+// ─── Expert content ──────────────────────────────────────────────────────────
+// Harder spots: big combo draws (where 2 outs overlap so the naive sum is a
+// trap), and turn spots (single card → Rule of 2, not 4).
+
+const rankOf = (v: number) => RANK_ORDER[v - 2]; // value 2..14 → rank char
+
+// Flush draw + open-ended straight draw = 15 outs. The straight's two suited
+// ends are already counted in the flush, so it's 9 + 6, not the naive 9 + 8 = 17.
+const genComboFlushOESD: Gen = () => {
+  for (;;) {
+    const S = choice(SUIT_CHARS);
+    const r = 3 + randInt(8);                                   // straight low 3..10
+    const hero: [string, string] = [rankOf(r) + S, rankOf(r + 1) + S];
+    const board2 = [rankOf(r + 2) + S, rankOf(r + 3) + S];     // 2 more of suit → 9-out flush
+    const banned = new Set([r - 1, r, r + 1, r + 2, r + 3, r + 4]);
+    const offV = choice([...Array(13)].map((_, i) => i + 2).filter(v => !banned.has(v)));
+    const offS = choice(SUIT_CHARS.filter(s => s !== S));
+    const board = [...board2, rankOf(offV) + offS];
+    if (!allDistinct([...hero, ...board])) continue;
+    return {
+      heroCards: hero, board, street: 'flop', outs: 15, trap: 17, difficulty: 'hard',
+      draws: [
+        { fr: 'Tirage combiné : couleur + quinte par les deux bouts.',
+          en: 'Combo draw: flush draw + open-ended straight draw.' },
+        { fr: `Couleur : 9 cartes. Quinte (${disp(rankOf(r - 1))} ou ${disp(rankOf(r + 4))}) : 8 cartes — MAIS le ${disp(rankOf(r - 1))} et le ${disp(rankOf(r + 4))} de la couleur sont déjà comptés → on n'ajoute que 6. Total = 9 + 6 = 15 (et non 17 !).`,
+          en: `Flush: 9 cards. Straight (${disp(rankOf(r - 1))} or ${disp(rankOf(r + 4))}): 8 cards — BUT the suited ${disp(rankOf(r - 1))} and ${disp(rankOf(r + 4))} are already counted → only +6. Total = 9 + 6 = 15 (not 17!).` },
+      ],
+    };
+  }
+};
+
+// Curated hand-verified hard spots (combos with overlap traps + turn spots).
+const EXPERT_OUTS_SCENARIOS: OutsScenario[] = [
+  {
+    heroCards: ['Ah', 'Qh'], board: ['Kh', 'Jc', '2h'], street: 'flop',
+    outs: 12, trap: 13, difficulty: 'hard',
+    draws: [{
+      fr: 'Couleur (cœur) : 9 outs. Tirage quinte ventre (un 10 pour A-K-Q-J-10) : 4 dix, mais le 10♥ est déjà dans la couleur → +3. Total = 9 + 3 = 12 (et non 13).',
+      en: 'Flush (hearts): 9 outs. Gutshot (a 10 for A-K-Q-J-10): 4 tens, but the 10♥ is already in the flush → +3. Total = 9 + 3 = 12 (not 13).',
+    }],
+  },
+  {
+    heroCards: ['As', 'Ks'], board: ['Qs', '7s', '2d'], street: 'flop',
+    outs: 15, difficulty: 'hard',
+    draws: [{
+      fr: 'Couleur (pique) : 9 outs. Deux surcartes : 3 as + 3 rois = 6 outs (aucun ne chevauche la couleur). Total = 9 + 6 = 15.',
+      en: 'Flush (spades): 9 outs. Two overcards: 3 aces + 3 kings = 6 outs (no overlap with the flush). Total = 9 + 6 = 15.',
+    }],
+  },
+  {
+    heroCards: ['9h', '8h'], board: ['7c', 'Th', '2h', 'Kd'], street: 'turn',
+    outs: 15, trap: 17, difficulty: 'hard',
+    draws: [{
+      fr: 'Sur la turn (une seule carte à venir) : couleur 9 + quinte (6 ou J) 6 = 15 outs. Attention : on multiplie par 2, pas par 4.',
+      en: 'On the turn (one card to come): flush 9 + straight (6 or J) 6 = 15 outs. Careful: multiply by 2, not 4.',
+    }],
+  },
+  {
+    heroCards: ['Ad', 'Kd'], board: ['5d', '9d', 'Jc', '2s'], street: 'turn',
+    outs: 9, difficulty: 'hard',
+    draws: [{
+      fr: 'Tirage couleur (carreau) sur la turn : 9 outs, mais une seule carte à venir → équité ≈ 9 × 2 = 18 %.',
+      en: 'Flush draw (diamonds) on the turn: 9 outs, but only one card to come → equity ≈ 9 × 2 = 18%.',
+    }],
+  },
+  {
+    heroCards: ['Jc', 'Td'], board: ['9h', '8s', '3c', '2d'], street: 'turn',
+    outs: 8, difficulty: 'hard',
+    draws: [{
+      fr: 'Tirage quinte par les deux bouts (8-9-10-J) sur la turn : une dame ou un 7 = 8 outs, à multiplier par 2 (river seule).',
+      en: 'Open-ended straight draw (8-9-10-J) on the turn: a queen or a 7 = 8 outs, multiplied by 2 (river only).',
+    }],
+  },
+];
+
+export function getRandomOutsScenario(difficulty?: 'expert'): OutsScenario {
+  // Expert: only hard spots — big combo draws (overlap traps) + turn maths.
+  if (difficulty === 'expert') {
+    return Math.random() < 0.6 ? genComboFlushOESD() : choice(EXPERT_OUTS_SCENARIOS);
+  }
   // 70% freshly generated (varied cards), 30% from the hand-verified list
   // (which covers the combos/gutshots/OESD that aren't auto-generated).
   if (Math.random() < 0.7) return choice(GENERATORS)();
@@ -327,26 +409,21 @@ export function estimateEquityFromOuts(outs: number, street: 'flop' | 'turn'): n
   return street === 'flop' ? outs * 4 : outs * 2;
 }
 
-// Build 4 multiple-choice options around the correct answer.
-export function buildOutsOptions(correct: number): number[] {
-  const pool = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15];
-  // Prefer distractors close to the correct answer so the choices stay plausible.
-  const distractors = pool
-    .filter(n => n !== correct)
-    .sort((a, b) => Math.abs(a - correct) - Math.abs(b - correct))
-    .slice(0, 5);
-  // shuffle distractors
-  for (let i = distractors.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [distractors[i], distractors[j]] = [distractors[j], distractors[i]];
-  }
-  const options = [correct, ...distractors.slice(0, 3)];
-  // shuffle final options
-  for (let i = options.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [options[i], options[j]] = [options[j], options[i]];
-  }
-  return options;
+// Build 4 multiple-choice options around the correct answer. When a `trap`
+// (tempting wrong count) is given, it's always included as a distractor.
+export function buildOutsOptions(correct: number, trap?: number): number[] {
+  const opts = new Set<number>([correct]);
+  if (trap && trap !== correct) opts.add(trap);
+
+  // Tight neighbours keep the choices plausible (no give-away outliers).
+  const neighbours = shuffled([correct - 2, correct - 1, correct + 1, correct + 2, correct + 3].filter(n => n > 0));
+  for (const n of neighbours) { if (opts.size >= 4) break; opts.add(n); }
+
+  // Pad from the standard pool if we still need more.
+  const pool = shuffled([2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 17]);
+  for (const n of pool) { if (opts.size >= 4) break; opts.add(n); }
+
+  return shuffled([...opts]);
 }
 
 export function buildOutsExplanation(scenario: OutsScenario, lang: 'fr' | 'en' = 'fr'): string {

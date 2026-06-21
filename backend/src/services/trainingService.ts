@@ -187,9 +187,9 @@ export function generateEquityExercise(lang: 'fr' | 'en' = 'fr', mode: 'beginner
   };
 }
 
-export function generateOutsExercise(lang: 'fr' | 'en' = 'fr') {
-  const scenario = getRandomOutsScenario();
-  const options = buildOutsOptions(scenario.outs);
+export function generateOutsExercise(lang: 'fr' | 'en' = 'fr', difficulty?: 'expert') {
+  const scenario = getRandomOutsScenario(difficulty);
+  const options = buildOutsOptions(scenario.outs, scenario.trap);
   const explanation = buildOutsExplanation(scenario, lang);
   const equityEstimate = estimateEquityFromOuts(scenario.outs, scenario.street);
 
