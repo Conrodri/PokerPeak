@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Info, Lightbulb } from 'lucide-react';
 import { SourcesFooter } from '../ui/SourcesFooter';
@@ -38,6 +38,21 @@ import { useShallow } from 'zustand/react/shallow';
 
 type Phase = 'exercise' | 'result';
 
+// Build 4 equity % options around the correct value, sufficiently spread apart.
+function buildEquityOptions(correct: number): number[] {
+  const opts: number[] = [correct];
+  for (const off of [-13, 13, -7, 7, -18, 18]) {
+    if (opts.length >= 4) break;
+    const v = Math.round(Math.max(5, Math.min(90, correct + off)));
+    if (opts.every(o => Math.abs(o - v) >= 5)) opts.push(v);
+  }
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  return opts;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function EquityTrainer() {
@@ -50,8 +65,16 @@ export function EquityTrainer() {
   const [showIntro, setShowIntro] = useState(true);
   const [phase, setPhase] = useState<Phase>('exercise');
   const [userAnswer, setUserAnswer] = useState<1 | 2 | null>(null);
+  const [userEquityAnswer, setUserEquityAnswer] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState(false);
   const mode = useModeStore(s => s.mode);
+
+  // Expert: 4 equity % options for hand 1 — regenerated each new exercise.
+  const equityOptions = useMemo(() => {
+    if (!equityExercise || mode !== 'expert') return [];
+    return buildEquityOptions(Math.round(equityExercise.hand1Equity));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [equityExercise?.hand1Notation, equityExercise?.hand2Notation, equityExercise?.board?.join(''), mode]);
 
   useEffect(() => {
     if (phase === 'result') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -66,6 +89,7 @@ export function EquityTrainer() {
   const handleNext = async () => {
     setPhase('exercise');
     setUserAnswer(null);
+    setUserEquityAnswer(null);
     setIsCorrect(false);
     await fetchEquityExercise();
   };
@@ -81,10 +105,27 @@ export function EquityTrainer() {
     if (examActive) recordAnswer(correct, handleNext);
   };
 
-  // Expert sprint: no decision within 5s → pick the losing hand (a miss).
+  // Expert: estimate hand 1's equity from 4 options. Correct = within 3% of actual.
+  const handleAnswerEquity = (pickedPct: number) => {
+    if (!equityExercise || phase !== 'exercise') return;
+    const correct = Math.abs(pickedPct - Math.round(equityExercise.hand1Equity)) <= 3;
+    setUserEquityAnswer(pickedPct);
+    setIsCorrect(correct);
+    setPhase('result');
+    recordResult(correct, correct ? 15 : 5, 'equity');
+    if (examActive) recordAnswer(correct, handleNext);
+  };
+
+  // Expert sprint: no decision within 5s → auto-pick an obviously wrong option.
   const handleTimeout = () => {
     if (!equityExercise || phase !== 'exercise') return;
-    handleAnswer(equityExercise.hand1Equity > equityExercise.hand2Equity ? 2 : 1);
+    if (mode === 'expert') {
+      const correctPct = Math.round(equityExercise.hand1Equity);
+      const wrong = equityOptions.find(o => Math.abs(o - correctPct) > 10) ?? (correctPct > 50 ? 20 : 80);
+      handleAnswerEquity(wrong);
+    } else {
+      handleAnswer(equityExercise.hand1Equity > equityExercise.hand2Equity ? 2 : 1);
+    }
   };
 
   const handleStart = async () => {
@@ -238,36 +279,78 @@ export function EquityTrainer() {
                   </div>
                 )}
 
-                {/* Question */}
-                <p className="text-center text-white font-semibold text-lg">
-                  {isEn ? 'Which hand has more equity?' : "Quelle main a le plus d'equity ?"}
-                </p>
+                {/* Expert: estimate hand 1's equity; non-expert: pick the winning hand */}
+                {mode === 'expert' ? (
+                  <>
+                    {/* Both hands displayed (non-clickable) */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {([1, 2] as const).map(handNum => {
+                        const hand = handNum === 1 ? equityExercise.hand1 : equityExercise.hand2;
+                        const notation = handNum === 1 ? equityExercise.hand1Notation : equityExercise.hand2Notation;
+                        return (
+                          <div key={handNum} className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4 flex flex-col items-center gap-2">
+                            <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide">{t.training.hand_lbl} {handNum}</p>
+                            <Hand cards={hand} size="md" />
+                            <p className="text-gold-400 font-mono font-bold">{handToDisplay(notation)}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
 
-                {/* Hand buttons */}
-                <div className="grid grid-cols-2 gap-4">
-                  {([1, 2] as const).map(handNum => {
-                    const hand = handNum === 1 ? equityExercise.hand1 : equityExercise.hand2;
-                    const notation = handNum === 1 ? equityExercise.hand1Notation : equityExercise.hand2Notation;
-                    return (
-                      <motion.button
-                        key={handNum}
-                        onClick={() => handleAnswer(handNum)}
-                        whileHover={{ scale: 1.03, borderColor: '#a78bfa' }}
-                        whileTap={{ scale: 0.97 }}
-                        className="bg-gray-800/80 border-2 border-gray-600 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer transition-all group"
-                      >
-                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide">
-                          {t.training.hand_lbl} {handNum}
-                        </p>
-                        <Hand cards={hand} size="md" />
-                        <p className="text-gold-400 font-mono font-bold text-lg">{handToDisplay(notation)}</p>
-                        <p className="text-purple-400 text-xs font-semibold group-hover:text-purple-300">
-                          {t.training.select_hand}
-                        </p>
-                      </motion.button>
-                    );
-                  })}
-                </div>
+                    {/* Question */}
+                    <p className="text-center text-white font-semibold text-lg">
+                      {isEn ? "What is Hand 1's equity?" : "Quelle est l'équité de la Main 1 ?"}
+                    </p>
+
+                    {/* 4 equity % buttons */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {equityOptions.map(pct => (
+                        <motion.button
+                          key={pct}
+                          onClick={() => handleAnswerEquity(pct)}
+                          whileHover={{ scale: 1.03, borderColor: '#a78bfa' }}
+                          whileTap={{ scale: 0.97 }}
+                          className="bg-gray-800/80 border-2 border-gray-600 rounded-xl p-4 text-white font-mono font-bold text-2xl transition-all"
+                        >
+                          {pct}%
+                        </motion.button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Question */}
+                    <p className="text-center text-white font-semibold text-lg">
+                      {isEn ? 'Which hand has more equity?' : "Quelle main a le plus d'equity ?"}
+                    </p>
+
+                    {/* Hand buttons */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {([1, 2] as const).map(handNum => {
+                        const hand = handNum === 1 ? equityExercise.hand1 : equityExercise.hand2;
+                        const notation = handNum === 1 ? equityExercise.hand1Notation : equityExercise.hand2Notation;
+                        return (
+                          <motion.button
+                            key={handNum}
+                            onClick={() => handleAnswer(handNum)}
+                            whileHover={{ scale: 1.03, borderColor: '#a78bfa' }}
+                            whileTap={{ scale: 0.97 }}
+                            className="bg-gray-800/80 border-2 border-gray-600 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer transition-all group"
+                          >
+                            <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide">
+                              {t.training.hand_lbl} {handNum}
+                            </p>
+                            <Hand cards={hand} size="md" />
+                            <p className="text-gold-400 font-mono font-bold text-lg">{handToDisplay(notation)}</p>
+                            <p className="text-purple-400 text-xs font-semibold group-hover:text-purple-300">
+                              {t.training.select_hand}
+                            </p>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
 
                 <p className="text-center text-gray-500 text-xs">
                   {equityExercise.board.length === 0
@@ -348,6 +431,16 @@ export function EquityTrainer() {
                 </div>
               );
             })}
+
+            {mode === 'expert' && userEquityAnswer !== null && (
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <span className="text-gray-400">{isEn ? 'Your estimate' : 'Votre estimation'} :</span>
+                <span className="font-mono font-bold text-white">{userEquityAnswer}%</span>
+                <span className="text-gray-600">→</span>
+                <span className="text-gray-400">{isEn ? 'Actual' : 'Réel'} :</span>
+                <span className="font-mono font-bold text-green-400">{Math.round(equityExercise.hand1Equity)}%</span>
+              </div>
+            )}
 
             {equityExercise.hand1Equity + equityExercise.hand2Equity < 99 && (
               <p className="text-xs text-gray-500 text-center">

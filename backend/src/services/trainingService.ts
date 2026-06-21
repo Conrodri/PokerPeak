@@ -162,36 +162,49 @@ export function generateEquityExercise(
 } {
   const expert = difficulty === 'expert';
 
-  // Preflop uses the O(1) table; with a board we simulate. Expert reject-samples
-  // so the same equity drives both the accept test and the display (no drift), so
-  // board spots run at a slightly lighter 2000 sims to keep sampling affordable.
-  const boardSims = expert ? 2000 : 3000;
+  // Non-expert: 1 000 sims is more than enough for a binary "which is higher" question.
+  // Expert: 2 000 sims per candidate; pre-filter handles weed-out before spending them.
+  const boardSims = expert ? 2000 : 1000;
   const dealMatchup = () => {
     const h1 = dealHand();
     const h2 = dealHand([...h1]);
-    const withBoard = Math.random() > 0.5;
+    // Expert always shows a board — postflop equity is much harder to eyeball.
+    const withBoard = expert || Math.random() > 0.5;
     const b: Card[] = withBoard ? [...dealBoard([...h1, ...h2], 3)] : [];
     const eq = b.length === 0 ? preflopEquityResult(h1, h2) : calculateEquity(h1, h2, b, boardSims);
     return { h1, h2, b, eq };
   };
 
-  // Expert → reject-sample for a CLOSE matchup (coin-flips / domination spots)
-  // where you can't just eyeball the winner. Score = the gap between the two
-  // displayed win%s; we keep the *closest* matchup seen, so even if no in-band
-  // spot turns up we still return a tight one — never a lopsided deal. Chop-heavy
-  // boards (big tie%) are pushed away since "which is better" would be ambiguous.
+  // Expert pre-filter: 300-sim quick check before committing 2 000 sims.
+  // Rejects deals where the gap > 35% (obviously easy) or chop% > 20%,
+  // cutting wasted work by ~5× vs. running full sims on every candidate.
+  const dealFiltered = (): ReturnType<typeof dealMatchup> => {
+    for (let i = 0; i < 20; i++) {
+      const h1 = dealHand();
+      const h2 = dealHand([...h1]);
+      const b: Card[] = [...dealBoard([...h1, ...h2], 3)];
+      const pre = calculateEquity(h1, h2, b, 300);
+      if (Math.abs(pre.hand1WinPct - pre.hand2WinPct) > 35 || pre.tiePct > 20) continue;
+      const eq = calculateEquity(h1, h2, b, boardSims);
+      return { h1, h2, b, eq };
+    }
+    return dealMatchup();
+  };
+
   type Matchup = typeof m;
   const winGap = (x: Matchup) => Math.abs(x.eq.hand1WinPct - x.eq.hand2WinPct);
   const scoreOf = (x: Matchup) => {
-    if (x.eq.tiePct > 25) return 9999;      // chop → avoid
+    if (x.eq.tiePct > 25) return 9999;
     const gap = winGap(x);
-    return gap < 4 ? 1000 + gap : gap;      // need a clear (≥4%) but close winner
+    return gap < 4 ? 1000 + gap : gap;
   };
-  let m = dealMatchup();
+  let m = expert ? dealFiltered() : dealMatchup();
   if (expert) {
+    // Tighter accept band 4–10% (was 4–18%): forces spots where you genuinely
+    // need to count outs/blockers rather than eyeballing a 60/40 matchup.
     let best = scoreOf(m);
-    for (let i = 0; i < 40 && !(best >= 4 && best <= 18); i++) {
-      const cand = dealMatchup();
+    for (let i = 0; i < 15 && !(best >= 4 && best <= 10); i++) {
+      const cand = dealFiltered();
       const cs = scoreOf(cand);
       if (cs < best) { m = cand; best = cs; }
     }
