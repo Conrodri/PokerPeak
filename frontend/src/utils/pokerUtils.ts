@@ -102,21 +102,21 @@ export function frequencyBg(freq: number): string {
 
 /**
  * Simplified 3-action colouring for range matrices: Raise / Call / Fold.
- * Matches the backend's classification (ranges.ts: 1 = always play, a fraction
- * = mixed, 0 = fold) so a "raise 75% of the time" hand reads as Call, not Raise.
- *  - freq === 0      → Fold  (dark)
- *  - 0 < freq < 1    → Call  (yellow) — mixed: sometimes raise
- *  - freq >= 1       → Raise (green)  — always raise
+ * Uses the SAME 0.75 threshold as the backend's getCorrectAction (ranges.ts), so
+ * the grid colour always agrees with the exercise's correct answer:
+ *  - freq === 0         → Fold  (dark)
+ *  - 0 < freq < 0.75    → Call  (yellow) — mixed: mostly call/limp
+ *  - freq >= 0.75       → Raise (green)  — open-raise
  */
 export function actionBg(freq: number): string {
-  if (freq <= 0) return '#1a202c';             // Fold
-  if (freq >= 1) return 'rgba(22,130,60,0.85)'; // Raise
-  return 'rgba(202,138,4,0.9)';                // Call (mixed)
+  if (freq <= 0) return '#1a202c';                 // Fold
+  if (freq >= 0.75) return 'rgba(22,130,60,0.85)';  // Raise
+  return 'rgba(202,138,4,0.9)';                     // Call (mixed)
 }
 
-/** Label for the simplified Raise / Call / Fold scheme. */
+/** Label for the simplified Raise / Call / Fold scheme (matches getCorrectAction). */
 export function actionLabel(freq: number, _isEn = false): string {
   if (freq <= 0) return 'Fold';
-  if (freq >= 1) return 'Raise';
+  if (freq >= 0.75) return 'Raise';
   return 'Call';
 }
