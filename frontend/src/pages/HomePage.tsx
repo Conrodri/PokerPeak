@@ -93,7 +93,7 @@ export function HomePage() {
       tiers: [
         T_FREE(isEn ? 'Compare two hands, guided result' : 'Comparer deux mains, résultat guidé'),
         T_ADV(isEn ? 'Hidden hints — estimate equity on your own' : 'Indice caché — estime l\'équité sans aide'),
-        T_EXP_SOON,
+        T_EXP(isEn ? 'Tougher matchups, faster timer, no equity shown — pure estimation' : 'Confrontations plus dures, chrono réduit, équité masquée — estimation pure'),
       ] as Tier[],
     },
     {
@@ -108,7 +108,7 @@ export function HomePage() {
       tiers: [
         T_FREE(isEn ? 'Pot odds + call/fold decision with guidance' : 'Cote du pot + décision call/fold guidée'),
         T_ADV(isEn ? 'EV shown, hints hidden — reveal resets streak' : 'EV affiché, indice caché — révéler remet la série à 0'),
-        T_EXP_SOON,
+        T_EXP(isEn ? 'Equity hidden — compute pot odds from scratch, full EV breakdown on result' : 'Équité masquée — calcule les pot odds de zéro, décomposition EV complète au résultat'),
       ] as Tier[],
     },
   ];
@@ -124,7 +124,7 @@ export function HomePage() {
       tiers: [
         T_FREE(isEn ? 'Hand, equity, texture & hint always visible' : 'Main, équité, texture et indice toujours visibles'),
         T_ADV(isEn ? 'Hint hidden — reveal breaks your streak' : 'Indice caché — révéler casse la série'),
-        T_EXP_SOON,
+        T_EXP(isEn ? 'Choose bet size (33 / 67 / 100% pot) — hand-reading required' : 'Choix de la taille de mise (33 / 67 / 100% pot) — lecture de main requise'),
       ] as Tier[],
     },
     {
@@ -137,7 +137,7 @@ export function HomePage() {
       tiers: [
         T_FREE(isEn ? 'Guided at each street with hints' : 'Guidé à chaque rue avec indices'),
         T_ADV(isEn ? 'No hints — decisions judged globally at showdown' : 'Sans indice — décisions jugées au showdown'),
-        T_EXP_SOON,
+        T_EXP(isEn ? 'Pot odds & outs breakdown revealed after each street — no hints during play' : 'Pot odds & outs dévoilés après chaque rue — aucun indice pendant le jeu'),
       ] as Tier[],
     },
     {
@@ -150,7 +150,7 @@ export function HomePage() {
       tiers: [
         T_FREE(isEn ? 'Optimal size shown with justification' : 'Taille optimale affichée avec justification'),
         T_ADV(isEn ? 'Choose the right size without help' : 'Choisir la bonne taille sans aide'),
-        T_EXP_SOON,
+        T_EXP(isEn ? 'Weighted pool of hard spots — 3-bet pots, river decisions, OOP plays' : 'Pool pondéré de spots difficiles — pots 3-bet, décisions river, spots OOP'),
       ] as Tier[],
     },
     {
