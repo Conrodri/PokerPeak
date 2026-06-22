@@ -507,15 +507,20 @@ export function ProfilePage() {
 
               {/* Actions */}
               <div className="flex flex-col gap-2 pt-1 border-t border-gray-800">
-                {/* Upgrade to expert — always shown if not expert, opens mailto */}
-                {subInfo.tier !== 'expert' && (
+                {/* Upgrade to expert — shown for premium users only, opens mailto */}
+                {subInfo.tier === 'premium' && (
                   <a
                     href={`mailto:contact@pokerpeak.fr?subject=${encodeURIComponent(isEn ? 'Upgrade to Expert' : 'Passer en Expert')}&body=${encodeURIComponent(isEn ? `Hi, I'd like to upgrade my account (${user?.email}) to Expert.` : `Bonjour, je souhaite passer mon compte (${user?.email}) en Expert.`)}`}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-900/30 border border-purple-700/50 text-purple-300 text-sm font-semibold hover:bg-purple-900/50 transition-all"
                   >
                     <Flame size={14} />
-                    {isEn ? 'Upgrade to Expert 👑' : 'Passer en Expert 👑'}
-                    <span className="text-xs text-purple-500 ml-auto">{isEn ? 'contact us →' : 'nous contacter →'}</span>
+                    <span className="flex-1 text-left">
+                      {isEn ? 'Upgrade to Expert 👑' : 'Passer en Expert 👑'}
+                      <span className="block text-xs font-normal text-purple-500 mt-0.5">
+                        {isEn ? '24.99 €/month instead of 9.99 €/month' : '24,99 €/mois au lieu de 9,99 €/mois'}
+                      </span>
+                    </span>
+                    <span className="text-xs text-purple-600">{isEn ? 'contact us →' : 'nous contacter →'}</span>
                   </a>
                 )}
 
