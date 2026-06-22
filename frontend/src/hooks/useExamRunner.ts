@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useExamStore } from '../store/examStore';
+import { useModeStore } from '../store/modeStore';
 
 /**
  * Shared exam wiring for a trainer. Encapsulates the examStore selectors, the
@@ -17,6 +18,7 @@ export function useExamRunner(module: string) {
   const answer = useExamStore(s => s.answer);
   const quit = useExamStore(s => s.quit);
   const loadRecords = useExamStore(s => s.loadRecords);
+  const currentMode = useModeStore(s => s.mode);
   const timer = useRef<number | null>(null);
 
   useEffect(() => { loadRecords(); }, [loadRecords]);
@@ -31,7 +33,7 @@ export function useExamRunner(module: string) {
     return ended;
   };
 
-  const startRun = () => { clearTimer(); start(module); };
+  const startRun = () => { clearTimer(); start(module, currentMode); };
   const quitRun = () => { clearTimer(); quit(); };
 
   return { examActive: active, examFinished: finished, startRun, quitRun, recordAnswer };

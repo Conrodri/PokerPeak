@@ -131,6 +131,8 @@ export interface LeaderboardModuleStat {
   accuracy: number | null;   // null = no exercises done yet
   total: number;
   sprintBest?: number;
+  advanced?: number;
+  expert?: number;
 }
 
 export interface LeaderboardEntry {

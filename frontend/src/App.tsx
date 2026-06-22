@@ -57,6 +57,7 @@ export default function App() {
               <Route path="/training" element={<TrainingPage />} />
               <Route path="/table" element={<TablePage />} />
               <Route path="/stats" element={<StatsPage />} />
+              <Route path="/stats/:username" element={<StatsPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/profile" element={<ProfilePage />} />

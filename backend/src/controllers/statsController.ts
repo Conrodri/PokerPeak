@@ -39,6 +39,17 @@ export async function getMyStats(req: Request, res: Response): Promise<void> {
   }
 }
 
+function buildSprintMap(examRecords: { userId: string; module: string; mode: string; best: number }[]) {
+  const map: Record<string, Record<string, { advanced: number; expert: number }>> = {};
+  for (const r of examRecords) {
+    if (!map[r.userId]) map[r.userId] = {};
+    if (!map[r.userId][r.module]) map[r.userId][r.module] = { advanced: 0, expert: 0 };
+    if (r.mode === 'expert') map[r.userId][r.module].expert   = r.best;
+    else                     map[r.userId][r.module].advanced = r.best;
+  }
+  return map;
+}
+
 export async function getLeaderboard(req: Request, res: Response): Promise<void> {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
@@ -46,22 +57,13 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
     const leaders = await prisma.playerStats.findMany({
       orderBy: { xp: 'desc' },
       take: limit,
-      include: {
-        user: { select: { username: true } },
-      },
+      include: { user: { select: { username: true } } },
     });
 
-    // Fetch sprint best scores for all leaders in one query.
     const userIds = leaders.map(l => l.userId);
-    const examRecords = await prisma.examRecord.findMany({
-      where: { userId: { in: userIds } },
-    });
-    const sprintMap: Record<string, Record<string, number>> = {};
-    for (const r of examRecords) {
-      if (!sprintMap[r.userId]) sprintMap[r.userId] = {};
-      sprintMap[r.userId][r.module] = r.best;
-    }
-    const sb = (userId: string, mod: string) => sprintMap[userId]?.[mod] ?? 0;
+    const examRecords = await prisma.examRecord.findMany({ where: { userId: { in: userIds } } });
+    const sprintMap = buildSprintMap(examRecords);
+    const sb = (userId: string, mod: string) => sprintMap[userId]?.[mod] ?? { advanced: 0, expert: 0 };
 
     const acc = (correct: number, total: number) =>
       total > 0 ? Math.round((correct / total) * 100) : null;
@@ -74,18 +76,55 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
       totalExercises: l.totalExercises,
       accuracy: l.totalExercises > 0 ? Math.round((l.totalCorrect / l.totalExercises) * 100) : 0,
       modules: {
-        preflop:  { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal,  sprintBest: sb(l.userId, 'preflop')  },
-        potodds:  { accuracy: acc(l.potoddsCorrect,  l.potoddsTotal),  total: l.potoddsTotal,  sprintBest: sb(l.userId, 'potodds')  },
-        equity:   { accuracy: acc(l.equityCorrect,   l.equityTotal),   total: l.equityTotal,   sprintBest: sb(l.userId, 'equity')   },
-        outs:     { accuracy: acc(l.outsCorrect,     l.outsTotal),     total: l.outsTotal,     sprintBest: sb(l.userId, 'outs')     },
-        postflop: { accuracy: acc(l.postflopCorrect, l.postflopTotal), total: l.postflopTotal, sprintBest: sb(l.userId, 'postflop') },
-        fullhand: { accuracy: acc(l.fullhandCorrect, l.fullhandTotal), total: l.fullhandTotal, sprintBest: sb(l.userId, 'fullhand') },
+        preflop:  { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal,  ...sb(l.userId, 'preflop')  },
+        potodds:  { accuracy: acc(l.potoddsCorrect,  l.potoddsTotal),  total: l.potoddsTotal,  ...sb(l.userId, 'potodds')  },
+        equity:   { accuracy: acc(l.equityCorrect,   l.equityTotal),   total: l.equityTotal,   ...sb(l.userId, 'equity')   },
+        outs:     { accuracy: acc(l.outsCorrect,     l.outsTotal),     total: l.outsTotal,     ...sb(l.userId, 'outs')     },
+        postflop: { accuracy: acc(l.postflopCorrect, l.postflopTotal), total: l.postflopTotal, ...sb(l.userId, 'postflop') },
+        fullhand: { accuracy: acc(l.fullhandCorrect, l.fullhandTotal), total: l.fullhandTotal, ...sb(l.userId, 'fullhand') },
       },
     }));
 
     res.json({ success: true, data: formatted } as ApiResponse);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to get leaderboard' } as ApiResponse);
+  }
+}
+
+export async function getUserStats(req: Request, res: Response): Promise<void> {
+  try {
+    const { username } = req.params;
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) { res.status(404).json({ success: false, error: 'User not found' }); return; }
+
+    const [stats, examRecords, history] = await Promise.all([
+      prisma.playerStats.findUnique({ where: { userId: user.id } }),
+      prisma.examRecord.findMany({ where: { userId: user.id } }),
+      prisma.sessionExercise.findMany({
+        where: { session: { userId: user.id }, createdAt: { gte: new Date(Date.now() - 730 * 86400000) } },
+        orderBy: { createdAt: 'asc' },
+        select: { exerciseType: true, isCorrect: true, xpEarned: true, createdAt: true },
+      }),
+    ]);
+
+    const sprintRecords: Record<string, { advanced: number; expert: number }> = {};
+    for (const r of examRecords) {
+      if (!sprintRecords[r.module]) sprintRecords[r.module] = { advanced: 0, expert: 0 };
+      if (r.mode === 'expert') sprintRecords[r.module].expert   = r.best;
+      else                     sprintRecords[r.module].advanced = r.best;
+    }
+
+    const byDay: Record<string, { total: number; correct: number }> = {};
+    for (const ex of history) {
+      const day = ex.createdAt.toISOString().split('T')[0];
+      if (!byDay[day]) byDay[day] = { total: 0, correct: 0 };
+      byDay[day].total++;
+      if (ex.isCorrect) byDay[day].correct++;
+    }
+
+    res.json({ success: true, data: { username, stats, sprintRecords, byDay } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to get user stats' });
   }
 }
 

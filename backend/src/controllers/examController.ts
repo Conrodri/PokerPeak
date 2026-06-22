@@ -1,58 +1,64 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 
-// Exam mode: per (user, module), the best number of correct answers reached in a
-// single looped run (run ends after 3 errors). Replaces the old streak record.
-
 const MODULES = ['preflop', 'potodds', 'equity', 'outs', 'postflop', 'fullhand', 'betsizing'];
+const MODES   = ['beginner', 'advanced', 'expert'];
 
 function uid(req: Request): string {
   return (req as any).user?.userId as string;
 }
 
-// GET /exam/records  →  { success, data: { [module]: best } }
+// GET /exam/records  →  { success, data: { [module]: { advanced: best, expert: best } } }
 export async function getExamRecords(req: Request, res: Response): Promise<void> {
   try {
     const userId = uid(req);
     const rows = await prisma.examRecord.findMany({ where: { userId } });
-    const data: Record<string, number> = {};
-    for (const r of rows) data[r.module] = r.best;
+    const data: Record<string, { advanced: number; expert: number }> = {};
+    for (const r of rows) {
+      if (!data[r.module]) data[r.module] = { advanced: 0, expert: 0 };
+      if (r.mode === 'expert')   data[r.module].expert   = r.best;
+      else                       data[r.module].advanced = r.best;
+    }
     res.json({ success: true, data });
   } catch {
     res.status(500).json({ success: false, error: 'Failed to get exam records' });
   }
 }
 
-// POST /exam/record  body: { module, score }  →  { success, data: { best, isNewRecord } }
+// POST /exam/record  body: { module, score, mode? }
 export async function saveExamScore(req: Request, res: Response): Promise<void> {
   try {
     const userId = uid(req);
-    const { module, score } = req.body ?? {};
+    const { module, score, mode = 'advanced' } = req.body ?? {};
     if (typeof module !== 'string' || !MODULES.includes(module)) {
-      res.status(400).json({ success: false, error: 'invalid module' });
-      return;
+      res.status(400).json({ success: false, error: 'invalid module' }); return;
     }
     if (typeof score !== 'number' || !Number.isInteger(score) || score < 0 || score > 100000) {
-      res.status(400).json({ success: false, error: 'score must be a non-negative integer' });
-      return;
+      res.status(400).json({ success: false, error: 'score must be a non-negative integer' }); return;
     }
-    // Always log the run (history), then update the best if beaten.
-    await prisma.examRun.create({ data: { userId, module, score } });
+    if (!MODES.includes(mode)) {
+      res.status(400).json({ success: false, error: 'invalid mode' }); return;
+    }
+
+    await prisma.examRun.create({ data: { userId, module, mode, score } });
+
     const existing = await prisma.examRecord.findUnique({
-      where: { userId_module: { userId, module } },
+      where: { userId_module_mode: { userId, module, mode } },
     });
-    const prevBest = existing?.best ?? 0;
+    const prevBest   = existing?.best ?? 0;
     const isNewRecord = score > prevBest;
-    const best = Math.max(prevBest, score);
+    const best        = Math.max(prevBest, score);
+
     if (isNewRecord) {
       await prisma.examRecord.upsert({
-        where: { userId_module: { userId, module } },
-        create: { userId, module, best: score },
+        where:  { userId_module_mode: { userId, module, mode } },
+        create: { userId, module, mode, best: score },
         update: { best: score },
       });
     }
+
     const runs = await prisma.examRun.findMany({
-      where: { userId, module },
+      where:   { userId, module, mode },
       orderBy: { createdAt: 'desc' },
       take: 8,
     });

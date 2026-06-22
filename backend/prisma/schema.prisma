@@ -47,10 +47,11 @@ model ExamRecord {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   module    String
+  mode      String   @default("advanced")
   best      Int      @default(0)
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, module])
+  @@unique([userId, module, mode])
   @@index([userId])
   @@map("exam_records")
 }
@@ -61,10 +62,11 @@ model ExamRun {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   module    String
+  mode      String   @default("advanced")
   score     Int
   createdAt DateTime @default(now())
 
-  @@index([userId, module])
+  @@index([userId, module, mode])
   @@map("exam_runs")
 }
 

@@ -31,7 +31,8 @@ export const sprintName = (module: string, isEn: boolean) =>
 // ── Launcher (intro CTA) — compact inline button on the same row as start ────────
 export function ExamLauncher({ module, onStart }: { module: string; onStart: () => void }) {
   const isEn = useLangStore(s => s.lang) === 'en';
-  const record = useExamStore(s => s.records[module] ?? 0);
+  const rec = useExamStore(s => s.records[module] ?? { advanced: 0, expert: 0 });
+  const best = Math.max(rec.advanced, rec.expert);
 
   return (
     <Button
@@ -43,8 +44,8 @@ export function ExamLauncher({ module, onStart }: { module: string; onStart: () 
     >
       <Target size={16} className="text-indigo-400" />
       {sprintName(module, isEn)}
-      {record > 0 && (
-        <span className="text-xs font-normal opacity-60">· {record}</span>
+      {best > 0 && (
+        <span className="text-xs font-normal opacity-60">· {best}</span>
       )}
     </Button>
   );
@@ -117,11 +118,13 @@ export function ExamHud({ onQuit: _onQuit }: { onQuit?: () => void }) {
 // ── End card ────────────────────────────────────────────────────────────────────
 export function ExamResult({ module, onRetry, onQuit }: { module: string; onRetry: () => void; onQuit: () => void }) {
   const isEn = useLangStore(s => s.lang) === 'en';
-  const { correct, errors, isNewRecord, isForfeited, mistakes, record, history } = useExamStore(useShallow(s => ({
+  const { correct, errors, isNewRecord, isForfeited, mistakes, history, mode, rec } = useExamStore(useShallow(s => ({
     correct: s.correct, errors: s.errors, isNewRecord: s.isNewRecord,
     isForfeited: s.isForfeited, mistakes: s.mistakes,
-    record: s.records[module] ?? 0, history: s.history,
+    history: s.history, mode: s.mode,
+    rec: s.records[module] ?? { advanced: 0, expert: 0 },
   })));
+  const record = mode === 'expert' ? rec.expert : rec.advanced;
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString(isEn ? 'en-US' : 'fr-FR', { day: '2-digit', month: '2-digit' });
 

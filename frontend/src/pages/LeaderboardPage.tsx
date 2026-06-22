@@ -86,18 +86,28 @@ function ModuleGrid({ modules, isEn }: {
                 ) : (
                   <span />
                 )}
-                {(stat.sprintBest ?? 0) > 0 && (
-                  <HoverTip
-                    title={isEn ? 'Sprint record' : 'Record de sprint'}
-                    text={isEn
-                      ? `Best sprint: ${stat.sprintBest} correct answers`
-                      : `Meilleur sprint : ${stat.sprintBest} bonnes réponses`}
-                    className="flex items-center gap-0.5 text-[10px] text-blue-400 font-semibold border-none"
-                  >
-                    <Timer size={9} className="text-blue-400" />
-                    {stat.sprintBest}
-                  </HoverTip>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {(stat.advanced ?? 0) > 0 && (
+                    <HoverTip
+                      title={isEn ? 'Advanced sprint' : 'Sprint avancé'}
+                      text={isEn ? `Best: ${stat.advanced} correct` : `Meilleur : ${stat.advanced} réussis`}
+                      className="flex items-center gap-0.5 text-[10px] text-yellow-400 font-semibold border-none"
+                    >
+                      <Timer size={9} className="text-yellow-400" />
+                      🟡{stat.advanced}
+                    </HoverTip>
+                  )}
+                  {(stat.expert ?? 0) > 0 && (
+                    <HoverTip
+                      title={isEn ? 'Expert sprint' : 'Sprint expert'}
+                      text={isEn ? `Best: ${stat.expert} correct` : `Meilleur : ${stat.expert} réussis`}
+                      className="flex items-center gap-0.5 text-[10px] text-orange-400 font-semibold border-none"
+                    >
+                      <Timer size={9} className="text-orange-400" />
+                      🔥{stat.expert}
+                    </HoverTip>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -209,9 +219,12 @@ export function LeaderboardPage() {
                   {/* Name + level */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`font-bold truncate ${isMe ? 'text-felt-300' : 'text-white'}`}>
+                      <Link
+                        to={`/stats/${entry.username}`}
+                        className={`font-bold truncate hover:underline transition-colors ${isMe ? 'text-felt-300 hover:text-felt-200' : 'text-white hover:text-gray-200'}`}
+                      >
                         {entry.username}
-                      </span>
+                      </Link>
                       {isMe && (
                         <span className="text-xs bg-felt-800 text-felt-300 px-1.5 py-0.5 rounded shrink-0">
                           {t.leaderboard.you}

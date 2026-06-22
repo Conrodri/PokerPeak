@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { statsApi, examApi } from '../services/api';
 import { Button } from '../components/ui/Button';
 import { ProgressBar } from '../components/ui/ProgressBar';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { xpToLevel } from '../utils/pokerUtils';
 import { useT } from '../i18n';
 import { useLangStore } from '../store/langStore';
@@ -133,25 +133,42 @@ export function StatsPage() {
   const t        = useT();
   const isEn     = useLangStore(s => s.lang) === 'en';
   const user = useAuthStore(s => s.user);
+  const { username: paramUsername } = useParams<{ username?: string }>();
+  const isPublicView = !!paramUsername && paramUsername !== user?.username;
 
   const [stats,        setStats]        = useState<any>(null);
   const [history,      setHistory]      = useState<any>(null);
-  const [examRecords,  setExamRecords]  = useState<Record<string, number>>({});
+  const [examRecords,  setExamRecords]  = useState<Record<string, { advanced: number; expert: number }>>({});
+  const [publicByDay,  setPublicByDay]  = useState<Record<string, { total: number; correct: number }> | null>(null);
   const [loading,      setLoading]      = useState(false);
   const [selectedDay,  setSelectedDay]  = useState<string | null>(null);
   const detailRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (isPublicView) {
+      setLoading(true);
+      statsApi.getUserStats(paramUsername!)
+        .then(data => {
+          setStats({ stats: data.stats });
+          setExamRecords(data.sprintRecords ?? {});
+          setPublicByDay(data.byDay ?? {});
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+      return;
+    }
     if (!user) return;
     setLoading(true);
     Promise.all([statsApi.getMyStats(), statsApi.getHistory(730)])
       .then(([s, h]) => { setStats(s); setHistory(h); })
       .finally(() => setLoading(false));
     examApi.records().then(setExamRecords).catch(() => {});
-  }, [user]);
+  }, [user, isPublicView, paramUsername]);
 
-  // ── byDay map — recomputed from raw exercises in LOCAL timezone ───────────
+  // ── byDay map — recomputed from raw exercises in LOCAL timezone (own view)
+  //             — or from the public endpoint's pre-computed map (public view)
   const byDay: Record<string, DayData> = useMemo(() => {
+    if (isPublicView && publicByDay) return publicByDay;
     const exs: Array<{ isCorrect: boolean; createdAt: string }> = history?.exercises ?? [];
     const result: Record<string, DayData> = {};
     for (const ex of exs) {
@@ -161,7 +178,7 @@ export function StatsPage() {
       if (ex.isCorrect) result[day].correct++;
     }
     return result;
-  }, [history]);
+  }, [history, isPublicView, publicByDay]);
 
   // ── per-day / per-module breakdown from raw exercises ────────────────────
   const byDayModule = useMemo<Record<string, Record<string, ModuleDay>>>(() => {
@@ -263,18 +280,23 @@ export function StatsPage() {
     ? xpToLevel(playerStats.xp) : { level: 1, progressPct: 0, nextLevelXp: 100 };
   const overallAcc = playerStats?.totalExercises > 0
     ? Math.round((playerStats.totalCorrect / playerStats.totalExercises) * 100) : 0;
-  // Best exam run across all modules (the streak metric is now exam-based).
-  const bestExam = Object.values(examRecords).reduce((m, v) => Math.max(m, v), 0);
+  // Best exam run across all modules (advanced or expert).
+  const bestExam = Object.values(examRecords).reduce((m, v) => Math.max(m, v.advanced, v.expert), 0);
 
   const pct = (c: number, tot: number) => tot > 0 ? Math.round(c / tot * 100) : 0;
   const moduleData = [
-    { key: 'preflop',  name: t.training.tab_preflop,               correct: playerStats?.preflopCorrect  || 0, total: playerStats?.preflopTotal  || 0, best: examRecords['preflop']  ?? 0 },
-    { key: 'potodds',  name: t.training.tab_potodds,               correct: playerStats?.potoddsCorrect  || 0, total: playerStats?.potoddsTotal  || 0, best: examRecords['potodds']  ?? 0 },
-    { key: 'equity',   name: t.training.tab_equity,                correct: playerStats?.equityCorrect   || 0, total: playerStats?.equityTotal   || 0, best: examRecords['equity']   ?? 0 },
-    { key: 'outs',     name: t.training.tab_outs,                  correct: playerStats?.outsCorrect     || 0, total: playerStats?.outsTotal     || 0, best: examRecords['outs']     ?? 0 },
-    { key: 'postflop', name: isEn ? 'Post-flop' : 'Post-flop',    correct: playerStats?.postflopCorrect || 0, total: playerStats?.postflopTotal || 0, best: examRecords['postflop'] ?? 0 },
-    { key: 'fullhand', name: isEn ? 'Full Hand' : 'Main Complète', correct: playerStats?.fullhandCorrect || 0, total: playerStats?.fullhandTotal || 0, best: examRecords['fullhand'] ?? 0 },
-  ].map(m => ({ ...m, accuracy: pct(m.correct, m.total) }));
+    { key: 'preflop',  name: t.training.tab_preflop,               correct: playerStats?.preflopCorrect  || 0, total: playerStats?.preflopTotal  || 0 },
+    { key: 'potodds',  name: t.training.tab_potodds,               correct: playerStats?.potoddsCorrect  || 0, total: playerStats?.potoddsTotal  || 0 },
+    { key: 'equity',   name: t.training.tab_equity,                correct: playerStats?.equityCorrect   || 0, total: playerStats?.equityTotal   || 0 },
+    { key: 'outs',     name: t.training.tab_outs,                  correct: playerStats?.outsCorrect     || 0, total: playerStats?.outsTotal     || 0 },
+    { key: 'postflop', name: isEn ? 'Post-flop' : 'Post-flop',    correct: playerStats?.postflopCorrect || 0, total: playerStats?.postflopTotal || 0 },
+    { key: 'fullhand', name: isEn ? 'Full Hand' : 'Main Complète', correct: playerStats?.fullhandCorrect || 0, total: playerStats?.fullhandTotal || 0 },
+  ].map(m => ({
+    ...m,
+    accuracy: pct(m.correct, m.total),
+    advancedBest: examRecords[m.key]?.advanced ?? 0,
+    expertBest:   examRecords[m.key]?.expert   ?? 0,
+  }));
 
   const positionData = [
     { key: 'UTG', label: 'UTG', correct: playerStats?.utgCorrect       || 0, total: playerStats?.utgTotal       || 0 },
@@ -309,7 +331,7 @@ export function StatsPage() {
 
   // ── Guards ────────────────────────────────────────────────────────────────
 
-  if (!user) return (
+  if (!user && !isPublicView) return (
     <div className="flex flex-col items-center gap-6 py-20 text-center">
       <div className="text-6xl">📊</div>
       <h2 className="text-2xl font-bold text-white">{t.stats.login_prompt}</h2>
@@ -328,7 +350,9 @@ export function StatsPage() {
 
   return (
     <div className="flex flex-col gap-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-white">{t.stats.title}</h1>
+      <h1 className="text-3xl font-bold text-white">
+        {isPublicView ? (paramUsername ?? t.stats.title) : t.stats.title}
+      </h1>
 
       {/* ── Level & XP ── */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -338,7 +362,7 @@ export function StatsPage() {
           <div className="text-5xl font-black text-gold-400">{t.stats.level}{level}</div>
           <div className="flex-1">
             <div className="flex justify-between mb-1">
-              <span className="text-white font-semibold">{user.username}</span>
+              <span className="text-white font-semibold">{isPublicView ? paramUsername : user?.username}</span>
               <span className="text-gray-400 text-sm">
                 {playerStats?.xp || 0} XP · {nextLevelXp} {t.stats.xp_for} {level + 1}
               </span>
@@ -649,14 +673,23 @@ export function StatsPage() {
                     {m.correct}/{m.total}
                   </span>
                 </div>
-                {/* Best exam run (the streak metric is now exam-based) */}
-                {m.best > 0 && (
-                  <div className="mt-0.5 ml-1">
-                    <span className="text-[10px] text-gray-500">
-                      🎯 {isEn ? 'Best sprint' : 'Meilleur sprint'} :&nbsp;
-                      <span className="text-gold-400 font-bold">{m.best}</span>
-                      &nbsp;{isEn ? 'correct' : 'réussis'}
-                    </span>
+                {/* Sprint records per mode */}
+                {(m.advancedBest > 0 || m.expertBest > 0) && (
+                  <div className="mt-0.5 ml-1 flex items-center gap-3 flex-wrap">
+                    {m.advancedBest > 0 && (
+                      <span className="text-[10px] text-gray-500">
+                        🟡 {isEn ? 'Adv.' : 'Avancé'}&nbsp;
+                        <span className="text-yellow-400 font-bold">{m.advancedBest}</span>
+                        &nbsp;{isEn ? 'correct' : 'réussis'}
+                      </span>
+                    )}
+                    {m.expertBest > 0 && (
+                      <span className="text-[10px] text-gray-500">
+                        🔥 {isEn ? 'Expert' : 'Expert'}&nbsp;
+                        <span className="text-orange-400 font-bold">{m.expertBest}</span>
+                        &nbsp;{isEn ? 'correct' : 'réussis'}
+                      </span>
+                    )}
                   </div>
                 )}
 

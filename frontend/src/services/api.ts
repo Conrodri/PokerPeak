@@ -237,12 +237,12 @@ export const expertRangesApi = {
 
 // Exam mode best scores (per module, account-scoped)
 export const examApi = {
-  /** All exam best scores for the logged-in user: { [module]: best }. */
-  records: () => api.get('/exam/records').then(r => r.data.data as Record<string, number>),
+  /** All exam best scores: { [module]: { advanced: best, expert: best } }. */
+  records: () => api.get('/exam/records').then(r => r.data.data as Record<string, { advanced: number; expert: number }>),
   /** Submit a run's score; returns the (possibly updated) best, whether it beat
    *  the record, and the module's recent run history. */
-  saveScore: (module: string, score: number) =>
-    api.post('/exam/record', { module, score }).then(r => r.data.data as {
+  saveScore: (module: string, score: number, mode: 'beginner' | 'advanced' | 'expert' = 'advanced') =>
+    api.post('/exam/record', { module, score, mode }).then(r => r.data.data as {
       best: number; isNewRecord: boolean; history: { score: number; createdAt: string }[];
     }),
 };
@@ -280,6 +280,8 @@ export const statsApi = {
     api.get('/stats/leaderboard', { params: { limit } }).then(r => r.data.data),
   getHistory: (days = 30) =>
     api.get('/stats/history', { params: { days } }).then(r => r.data.data),
+  getUserStats: (username: string) =>
+    api.get(`/stats/user/${encodeURIComponent(username)}`).then(r => r.data.data),
 };
 
 /** Fire-and-forget ping to wake up the Render backend (free tier spins down after inactivity). */
