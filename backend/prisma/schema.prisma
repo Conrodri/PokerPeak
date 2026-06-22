@@ -16,6 +16,10 @@ model User {
   avatarUrl String?
   isPremium       Boolean  @default(false)
   isPremiumExpert Boolean  @default(false)
+  premiumSince        DateTime?
+  premiumUntil        DateTime?
+  premiumExpertSince  DateTime?
+  premiumExpertUntil  DateTime?
   tutorialDone Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt DateTime @updatedAt

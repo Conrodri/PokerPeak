@@ -5,6 +5,16 @@ import { JwtPayload } from '../types';
 import { consume, isFreeModule, FreeModule } from '../services/quota';
 import { JWT_SECRET } from '../config/secrets';
 
+/** Return true when a subscription boolean is active, respecting the expiry date.
+ *  - flag=true, until=null  → perpetual (manually granted, never expires)
+ *  - flag=true, until=past  → expired
+ *  - flag=false             → not subscribed */
+function isActive(flag: boolean, until: Date | null): boolean {
+  if (!flag) return false;
+  if (until === null) return true;          // no expiry set = perpetual
+  return until > new Date();
+}
+
 /** Resolve whether the authenticated request belongs to a premium user.
  *  The premium-expert tier implies premium access (OR-clause). */
 async function isRequestPremium(req: Request): Promise<boolean> {
@@ -12,10 +22,15 @@ async function isRequestPremium(req: Request): Promise<boolean> {
   const userId: string | undefined = (req as any).user?.userId;
   if (!userId) return false;
   try {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { isPremium: true, isPremiumExpert: true } });
-    if (user?.isPremium === true || user?.isPremiumExpert === true) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { isPremium: true, isPremiumExpert: true, premiumUntil: true, premiumExpertUntil: true },
+    });
+    const premOk  = isActive(user?.isPremium ?? false,       user?.premiumUntil ?? null);
+    const expOk   = isActive(user?.isPremiumExpert ?? false, user?.premiumExpertUntil ?? null);
+    if (premOk || expOk) {
       (req as any).user.isPremium = true;
-      if (user?.isPremiumExpert === true) (req as any).user.isPremiumExpert = true;
+      if (expOk) (req as any).user.isPremiumExpert = true;
       return true;
     }
   } catch { /* fall through to non-premium */ }
@@ -28,8 +43,11 @@ export async function isRequestPremiumExpert(req: Request): Promise<boolean> {
   const userId: string | undefined = (req as any).user?.userId;
   if (!userId) return false;
   try {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { isPremiumExpert: true } });
-    if (user?.isPremiumExpert === true) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { isPremiumExpert: true, premiumExpertUntil: true },
+    });
+    if (isActive(user?.isPremiumExpert ?? false, user?.premiumExpertUntil ?? null)) {
       (req as any).user.isPremiumExpert = true;
       return true;
     }

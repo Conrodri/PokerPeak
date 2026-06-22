@@ -9,6 +9,10 @@ interface User {
   isPremiumExpert?: boolean;
   tutorialDone?: boolean;
   avatarUrl?: string | null;
+  premiumSince?: string | null;
+  premiumUntil?: string | null;
+  premiumExpertSince?: string | null;
+  premiumExpertUntil?: string | null;
 }
 
 interface AuthState {

@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, LogOut, ChevronDown, ChevronUp,
   Eye, EyeOff, Check, AlertTriangle, Palette,
-  User, Shield, Settings, ZoomIn,
+  User, Shield, Settings, ZoomIn, CreditCard, Flame, ArrowDownCircle, XCircle,
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useShallow } from 'zustand/react/shallow';
-import { authApi } from '../services/api';
+import { authApi, subscriptionApi, type SubscriptionInfo } from '../services/api';
 import {
   useThemeStore,
   BG_THEMES, TABLE_COLORS, CARD_STYLES,
@@ -128,6 +128,20 @@ export function ProfilePage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError,   setDeleteError]   = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  // ── Subscription state ────────────────────────────────────────────────────
+  const [subInfo,          setSubInfo]          = useState<SubscriptionInfo | null>(null);
+  const [subLoading,       setSubLoading]       = useState(false);
+  const [cancelConfirm,    setCancelConfirm]    = useState(false);
+  const [downgradeConfirm, setDowngradeConfirm] = useState(false);
+  const [subActionLoading, setSubActionLoading] = useState(false);
+  const [subActionMsg,     setSubActionMsg]     = useState('');
+
+  useEffect(() => {
+    if (!user) return;
+    setSubLoading(true);
+    subscriptionApi.get().then(d => setSubInfo(d)).catch(() => {}).finally(() => setSubLoading(false));
+  }, [user?.id]);
 
   if (!user) {
     return (
@@ -415,6 +429,185 @@ export function ProfilePage() {
               ))}
             </div>
           </div>
+        </SectionCard>
+      </motion.div>
+
+      {/* ── Abonnement ── */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+        <SectionCard title={isEn ? 'Subscription' : 'Abonnement'} icon={<CreditCard size={16} className="text-gold-400" />}>
+          {subLoading ? (
+            <p className="text-sm text-gray-500">{isEn ? 'Loading…' : 'Chargement…'}</p>
+          ) : subInfo ? (
+            <div className="flex flex-col gap-4">
+
+              {/* Current tier badge */}
+              <div className="flex items-center gap-3">
+                {subInfo.tier === 'expert' ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-900/40 border border-purple-700/60 text-purple-300 text-sm font-bold rounded-full">
+                    <Flame size={13} /> Expert 👑
+                  </span>
+                ) : subInfo.tier === 'premium' ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-900/30 border border-yellow-700/60 text-yellow-300 text-sm font-bold rounded-full">
+                    <Crown size={13} fill="currentColor" /> Premium
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 border border-gray-700 text-gray-400 text-sm font-bold rounded-full">
+                    {isEn ? 'Free plan' : 'Plan Gratuit'}
+                  </span>
+                )}
+                {subActionMsg && (
+                  <span className="text-xs text-green-400 flex items-center gap-1"><Check size={12} />{subActionMsg}</span>
+                )}
+              </div>
+
+              {/* Date details */}
+              {subInfo.tier !== 'free' && (() => {
+                const since = subInfo.tier === 'expert'
+                  ? (subInfo.premiumExpertSince ?? subInfo.premiumSince)
+                  : subInfo.premiumSince;
+                const until = subInfo.tier === 'expert'
+                  ? subInfo.premiumExpertUntil
+                  : subInfo.premiumUntil;
+                const sinceDate  = since ? new Date(since) : null;
+                const untilDate  = until ? new Date(until) : null;
+                const daysLeft   = untilDate ? Math.max(0, Math.ceil((untilDate.getTime() - Date.now()) / 86400000)) : null;
+                const fmt = (d: Date) => d.toLocaleDateString(isEn ? 'en-GB' : 'fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {sinceDate && (
+                      <div className="bg-gray-800/50 rounded-xl px-4 py-3 border border-gray-700">
+                        <p className="text-gray-500 mb-0.5">{isEn ? 'Member since' : 'Membre depuis'}</p>
+                        <p className="text-white font-semibold">{fmt(sinceDate)}</p>
+                      </div>
+                    )}
+                    <div className="bg-gray-800/50 rounded-xl px-4 py-3 border border-gray-700">
+                      <p className="text-gray-500 mb-0.5">{isEn ? 'Valid until' : 'Valide jusqu\'au'}</p>
+                      {untilDate ? (
+                        <>
+                          <p className="text-white font-semibold">{fmt(untilDate)}</p>
+                          <p className={`mt-0.5 font-medium ${daysLeft! <= 7 ? 'text-red-400' : daysLeft! <= 30 ? 'text-yellow-400' : 'text-green-400'}`}>
+                            {daysLeft === 0
+                              ? (isEn ? 'Expires today' : 'Expire aujourd\'hui')
+                              : isEn ? `${daysLeft} days remaining` : `${daysLeft} jours restants`}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-green-400 font-semibold">{isEn ? 'No expiry (manual)' : 'Sans expiration (manuel)'}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Actions */}
+              <div className="flex flex-col gap-2 pt-1 border-t border-gray-800">
+                {/* Upgrade to expert — always shown if not expert, opens mailto */}
+                {subInfo.tier !== 'expert' && (
+                  <a
+                    href={`mailto:contact@pokerpeak.fr?subject=${encodeURIComponent(isEn ? 'Upgrade to Expert' : 'Passer en Expert')}&body=${encodeURIComponent(isEn ? `Hi, I'd like to upgrade my account (${user?.email}) to Expert.` : `Bonjour, je souhaite passer mon compte (${user?.email}) en Expert.`)}`}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-900/30 border border-purple-700/50 text-purple-300 text-sm font-semibold hover:bg-purple-900/50 transition-all"
+                  >
+                    <Flame size={14} />
+                    {isEn ? 'Upgrade to Expert 👑' : 'Passer en Expert 👑'}
+                    <span className="text-xs text-purple-500 ml-auto">{isEn ? 'contact us →' : 'nous contacter →'}</span>
+                  </a>
+                )}
+
+                {/* Downgrade expert → premium */}
+                {subInfo.tier === 'expert' && (
+                  downgradeConfirm ? (
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-yellow-900/20 border border-yellow-700/40 text-sm">
+                      <span className="text-yellow-300 flex-1">
+                        {isEn ? 'Confirm downgrade to Premium?' : 'Confirmer le passage en Premium ?'}
+                      </span>
+                      <button
+                        disabled={subActionLoading}
+                        onClick={async () => {
+                          setSubActionLoading(true);
+                          try {
+                            await subscriptionApi.downgrade();
+                            setSubInfo(await subscriptionApi.get());
+                            setSubActionMsg(isEn ? 'Downgraded to Premium.' : 'Passé en Premium.');
+                            setTimeout(() => setSubActionMsg(''), 3000);
+                          } catch {}
+                          setSubActionLoading(false);
+                          setDowngradeConfirm(false);
+                        }}
+                        className="px-3 py-1 bg-yellow-700 hover:bg-yellow-600 text-white rounded-lg text-xs font-bold transition-colors"
+                      >
+                        {isEn ? 'Confirm' : 'Confirmer'}
+                      </button>
+                      <button onClick={() => setDowngradeConfirm(false)} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-bold transition-colors">
+                        {isEn ? 'Cancel' : 'Annuler'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDowngradeConfirm(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800/60 border border-gray-700 text-gray-300 text-sm font-semibold hover:border-yellow-700/50 hover:text-yellow-300 transition-all"
+                    >
+                      <ArrowDownCircle size={14} />
+                      {isEn ? 'Switch to Premium' : 'Passer en Premium'}
+                    </button>
+                  )
+                )}
+
+                {/* Cancel subscription */}
+                {subInfo.tier !== 'free' && (
+                  cancelConfirm ? (
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-red-900/20 border border-red-700/40 text-sm">
+                      <AlertTriangle size={14} className="text-red-400 shrink-0" />
+                      <span className="text-red-300 flex-1 text-xs">
+                        {isEn ? 'Cancel subscription immediately? Access ends now.' : 'Résilier immédiatement ? L\'accès se termine maintenant.'}
+                      </span>
+                      <button
+                        disabled={subActionLoading}
+                        onClick={async () => {
+                          setSubActionLoading(true);
+                          try {
+                            await subscriptionApi.cancel();
+                            setSubInfo(await subscriptionApi.get());
+                            setSubActionMsg(isEn ? 'Subscription cancelled.' : 'Abonnement résilié.');
+                            setTimeout(() => setSubActionMsg(''), 3000);
+                          } catch {}
+                          setSubActionLoading(false);
+                          setCancelConfirm(false);
+                        }}
+                        className="px-3 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors shrink-0"
+                      >
+                        {isEn ? 'Confirm' : 'Confirmer'}
+                      </button>
+                      <button onClick={() => setCancelConfirm(false)} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-bold transition-colors shrink-0">
+                        {isEn ? 'Cancel' : 'Annuler'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setCancelConfirm(true)}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800/60 border border-gray-700 text-gray-500 text-sm hover:border-red-700/50 hover:text-red-400 transition-all"
+                    >
+                      <XCircle size={14} />
+                      {isEn ? 'Cancel subscription' : 'Résilier l\'abonnement'}
+                    </button>
+                  )
+                )}
+
+                {/* Free plan — contact to subscribe */}
+                {subInfo.tier === 'free' && (
+                  <a
+                    href={`mailto:contact@pokerpeak.fr?subject=${encodeURIComponent(isEn ? 'Subscribe to Premium' : 'S\'abonner en Premium')}&body=${encodeURIComponent(isEn ? `Hi, I'd like to subscribe to Premium (${user?.email}).` : `Bonjour, je souhaite m'abonner en Premium (${user?.email}).`)}`}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-900/20 border border-yellow-700/40 text-yellow-300 text-sm font-semibold hover:bg-yellow-900/40 transition-all"
+                  >
+                    <Crown size={14} fill="currentColor" />
+                    {isEn ? 'Subscribe to Premium' : 'S\'abonner en Premium'}
+                    <span className="text-xs text-yellow-600 ml-auto">{isEn ? 'contact us →' : 'nous contacter →'}</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-600">{isEn ? 'Could not load subscription info.' : 'Impossible de charger les infos d\'abonnement.'}</p>
+          )}
         </SectionCard>
       </motion.div>
 

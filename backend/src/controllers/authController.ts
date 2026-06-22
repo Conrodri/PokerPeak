@@ -39,7 +39,15 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     res.status(201).json({
       success: true,
-      data: { token, user: { id: user.id, username: user.username, email: user.email, isPremium: user.isPremium, isPremiumExpert: user.isPremiumExpert } },
+      data: {
+        token,
+        user: {
+          id: user.id, username: user.username, email: user.email,
+          isPremium: user.isPremium, isPremiumExpert: user.isPremiumExpert,
+          premiumSince: user.premiumSince, premiumUntil: user.premiumUntil,
+          premiumExpertSince: user.premiumExpertSince, premiumExpertUntil: user.premiumExpertUntil,
+        },
+      },
     } as ApiResponse);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Registration failed' } as ApiResponse);
@@ -76,7 +84,15 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     res.json({
       success: true,
-      data: { token, user: { id: user.id, username: user.username, email: user.email, isPremium: user.isPremium, isPremiumExpert: user.isPremiumExpert } },
+      data: {
+        token,
+        user: {
+          id: user.id, username: user.username, email: user.email,
+          isPremium: user.isPremium, isPremiumExpert: user.isPremiumExpert,
+          premiumSince: user.premiumSince, premiumUntil: user.premiumUntil,
+          premiumExpertSince: user.premiumExpertSince, premiumExpertUntil: user.premiumExpertUntil,
+        },
+      },
     } as ApiResponse);
   } catch (error) {
     res.status(500).json({ success: false, error: 'Login failed' } as ApiResponse);

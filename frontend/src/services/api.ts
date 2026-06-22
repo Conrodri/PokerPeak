@@ -256,6 +256,23 @@ export const quotaApi = {
     api.post('/quota/consume', { module }).then(r => r.data.data),
 };
 
+// Subscription management
+export interface SubscriptionInfo {
+  tier: 'free' | 'premium' | 'expert';
+  isPremium: boolean;
+  isPremiumExpert: boolean;
+  premiumSince: string | null;
+  premiumUntil: string | null;
+  premiumExpertSince: string | null;
+  premiumExpertUntil: string | null;
+}
+
+export const subscriptionApi = {
+  get: () => api.get('/subscription').then(r => r.data.data as SubscriptionInfo),
+  downgrade: () => api.post('/subscription/downgrade').then(r => r.data),
+  cancel: () => api.post('/subscription/cancel').then(r => r.data),
+};
+
 // Stats
 export const statsApi = {
   getMyStats: () => api.get('/stats/me').then(r => r.data.data),

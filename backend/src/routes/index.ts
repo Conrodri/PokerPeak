@@ -8,6 +8,7 @@ import profilesRoutes from './profiles';
 import quotaRoutes from './quota';
 import expertRangesRoutes from './expertRanges';
 import examRoutes from './exam';
+import subscriptionRoutes from './subscription';
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.use('/profiles', profilesRoutes);
 router.use('/quota', quotaRoutes);
 router.use('/expert-ranges', expertRangesRoutes);
 router.use('/exam', examRoutes);
+router.use('/subscription', subscriptionRoutes);
 
 router.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
