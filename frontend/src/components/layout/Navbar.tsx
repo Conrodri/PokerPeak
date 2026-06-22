@@ -198,15 +198,14 @@ export function Navbar() {
 
           {/* ── Right side ── */}
           <div className="flex items-center gap-1 shrink-0">
-            {/* Premium CTA — logged-in non-premium OR non-logged */}
+            {/* Devenir membre CTA — non-premium users */}
             {(!user || !user.isPremium) && (
               <Link
                 to={user ? '/premium' : '/login'}
-                className="hidden min-[560px]:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gold-600/20 hover:bg-gold-600/30 border border-gold-600/40 text-gold-400 hover:text-gold-300 text-xs font-bold transition-colors"
-                title={isEn ? (user ? 'Go Premium' : 'Sign up') : (user ? 'Passer Premium' : "S'inscrire")}
+                className="hidden min-[480px]:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-600/20 hover:bg-gold-600/30 border border-gold-600/40 text-gold-400 hover:text-gold-300 text-xs font-bold transition-colors whitespace-nowrap"
               >
                 <Crown size={12} fill="currentColor" />
-                {!user && <span className="hidden lg:inline">{isEn ? 'Sign up' : "S'inscrire"}</span>}
+                {isEn ? 'Become a member' : 'Devenir membre'}
               </Link>
             )}
             <LanguageToggle />
