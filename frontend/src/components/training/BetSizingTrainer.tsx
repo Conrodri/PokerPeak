@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Info, Zap, BookOpen, ExternalLink, Lightbulb } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -49,6 +49,7 @@ interface BetSizingExercise {
   correctKey:      SizingKey;
   conceptTag:      { fr: string; en: string };
   explanation:     { fr: string; en: string };
+  difficulty:      'normal' | 'hard';
 }
 
 // ─── Sizing config ────────────────────────────────────────────────────────────
@@ -108,7 +109,7 @@ const STREET_LABELS: Record<Street, { fr: string; en: string }> = {
 const EXERCISES: BetSizingExercise[] = [
   // ── 1. Range bet, dry flop, IP ─────────────────────────────────────────────
   {
-    id: 'bs-01', street: 'flop',
+    id: 'bs-01', street: 'flop', difficulty: 'normal',
     heroPosition: 'BTN', villainPosition: 'BB',
     heroHand: ['Kh', 'Qd'], board: ['As', '7c', '2d'],
     potSize: 4, effectiveStack: 96, isHeroIP: true,
@@ -129,7 +130,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 2. Protection sur flop mouillé, IP ─────────────────────────────────────
   {
-    id: 'bs-02', street: 'flop',
+    id: 'bs-02', street: 'flop', difficulty: 'normal',
     heroPosition: 'CO', villainPosition: 'BB',
     heroHand: ['Ah', 'Jd'], board: ['9s', '8h', '7d'],
     potSize: 5, effectiveStack: 95, isHeroIP: true,
@@ -150,7 +151,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 3. Valeur fine au river, top pair faible ────────────────────────────────
   {
-    id: 'bs-03', street: 'river',
+    id: 'bs-03', street: 'river', difficulty: 'normal',
     heroPosition: 'BTN', villainPosition: 'BB',
     heroHand: ['Ac', '9h'], board: ['As', '7d', '2c', '5h', 'Kh'],
     potSize: 14, effectiveStack: 86, isHeroIP: true,
@@ -171,7 +172,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 4. Surenchère au river, nuts polarisés ──────────────────────────────────
   {
-    id: 'bs-04', street: 'river',
+    id: 'bs-04', street: 'river', difficulty: 'hard',
     heroPosition: 'BTN', villainPosition: 'BB',
     heroHand: ['Ah', 'Kh'], board: ['8h', '5h', '2c', '7d', 'Jh'],
     potSize: 20, effectiveStack: 80, isHeroIP: true,
@@ -192,7 +193,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 5. Check OOP, désavantage de range ─────────────────────────────────────
   {
-    id: 'bs-05', street: 'flop',
+    id: 'bs-05', street: 'flop', difficulty: 'normal',
     heroPosition: 'BB', villainPosition: 'BTN',
     heroHand: ['7h', '6h'], board: ['As', 'Kd', 'Jc'],
     potSize: 5, effectiveStack: 95, isHeroIP: false,
@@ -213,7 +214,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 6. Overpair protégé face à tirages ─────────────────────────────────────
   {
-    id: 'bs-06', street: 'flop',
+    id: 'bs-06', street: 'flop', difficulty: 'normal',
     heroPosition: 'BTN', villainPosition: 'BB',
     heroHand: ['Qs', 'Qc'], board: ['8h', '7h', '6c'],
     potSize: 5, effectiveStack: 95, isHeroIP: true,
@@ -234,7 +235,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 7. Turn barrel pour la valeur ──────────────────────────────────────────
   {
-    id: 'bs-07', street: 'turn',
+    id: 'bs-07', street: 'turn', difficulty: 'hard',
     heroPosition: 'BTN', villainPosition: 'BB',
     heroHand: ['Jh', 'Td'], board: ['Qd', '9c', '8s', '7h'],
     potSize: 16, effectiveStack: 84, isHeroIP: true,
@@ -255,7 +256,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 8. SPR bas, tout-in sur le flop ────────────────────────────────────────
   {
-    id: 'bs-08', street: 'flop',
+    id: 'bs-08', street: 'flop', difficulty: 'normal',
     heroPosition: 'BB', villainPosition: 'BTN',
     heroHand: ['Ac', 'As'], board: ['Kd', '7c', '2s'],
     potSize: 12, effectiveStack: 18, isHeroIP: false,
@@ -276,7 +277,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 9. Board monotone, pas de flush ────────────────────────────────────────
   {
-    id: 'bs-09', street: 'flop',
+    id: 'bs-09', street: 'flop', difficulty: 'hard',
     heroPosition: 'BTN', villainPosition: 'BB',
     heroHand: ['Kd', 'Ad'], board: ['Qh', 'Jh', 'Th'],
     potSize: 5, effectiveStack: 95, isHeroIP: true,
@@ -297,7 +298,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 10. Bluff polarisé au river ─────────────────────────────────────────────
   {
-    id: 'bs-10', street: 'river',
+    id: 'bs-10', street: 'river', difficulty: 'hard',
     heroPosition: 'BTN', villainPosition: 'BB',
     heroHand: ['Kh', 'Qh'], board: ['As', '8d', '4c', '2h', '7s'],
     potSize: 18, effectiveStack: 82, isHeroIP: true,
@@ -318,7 +319,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 11. Paired board, range advantage BTN ──────────────────────────────────
   {
-    id: 'bs-11', street: 'flop',
+    id: 'bs-11', street: 'flop', difficulty: 'normal',
     heroPosition: 'BTN', villainPosition: 'BB',
     heroHand: ['Ac', 'Kd'], board: ['5s', '5c', '2d'],
     potSize: 4, effectiveStack: 96, isHeroIP: true,
@@ -339,7 +340,7 @@ const EXERCISES: BetSizingExercise[] = [
 
   // ── 12. Contrôle du pot en position ────────────────────────────────────────
   {
-    id: 'bs-12', street: 'turn',
+    id: 'bs-12', street: 'turn', difficulty: 'hard',
     heroPosition: 'BTN', villainPosition: 'BB',
     heroHand: ['Ah', 'Jc'], board: ['As', 'Td', '6h', 'Kd'],
     potSize: 15, effectiveStack: 85, isHeroIP: true,
@@ -355,6 +356,174 @@ const EXERCISES: BetSizingExercise[] = [
     explanation: {
       fr: 'Avec AJ sur ATK, on a top pair bon kicker mais le K au turn donne des quintes à QJ, et la BB peut avoir KT, K6. Une mise médiane (50-55%) extrait de la valeur des mains comme AT, TT, 66 tout en contrôlant le pot contre les draws. Une grosse mise (75%) ferait folder exactement les mains qu\'on bat. Une petite mise laisserait trop de mains continuer gratuitement. 50-55% est l\'équilibre optimal ici.',
       en: 'With AJ on ATK, we have top pair good kicker but K gives QJ a straight, and BB can have KT, K6. A medium bet (50-55%) extracts from hands like AT, TT, 66 while controlling the pot against draws. A large bet (75%) folds exactly the hands we beat. A small bet lets too many hands continue cheaply. 50-55% is the optimal balance.',
+    },
+  },
+
+  // ── 13. Pot 3-bet, set, board sec ──────────────────────────────────────────
+  {
+    id: 'bs-13', street: 'flop', difficulty: 'hard',
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['Ts', 'Tc'], board: ['Th', '5d', '2c'],
+    potSize: 20, effectiveStack: 80, isHeroIP: true,
+    preflopContext: {
+      fr: 'BTN 3-bet à 9bb, BB appelle. Pot 3-bet de 20bb, SPR = 4.',
+      en: 'BTN 3-bets to 9bb, BB calls. 3-bet pot of 20bb, SPR = 4.',
+    },
+    boardTexture: { fr: 'Très sec, T high, arc-en-ciel — set de dix', en: 'Very dry, T-high rainbow — set of tens' },
+    handDescription: { fr: 'Set de dix — main très forte', en: 'Set of tens — very strong hand' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'medium',
+    conceptTag: { fr: 'Valeur fine', en: 'Thin Value' },
+    explanation: {
+      fr: 'Dans un pot 3-bet avec un set sur un board sec, on pourrait vouloir miser gros — mais le SPR de 4 change le calcul. La range de la BB est plus forte (elle a appelé un 3-bet, donc elle a des paires, des broadways). Une mise médiane (50-55%) extrait de la valeur des KK/QQ/JJ qui pensent être ahead et construit le pot pour l\'all-in naturel au turn. Miser 75% force souvent folder les mains qui payeraient un turn. Checker serait une erreur de valeur majeure avec cette main.',
+      en: 'In a 3-bet pot with a set on a dry board, you might want to bet big — but SPR of 4 changes the math. BB\'s range is stronger (she called a 3-bet, so she has pairs, broadways). A medium bet (50-55%) extracts from KK/QQ/JJ that think they\'re ahead and builds toward a natural all-in on the turn. 75% often folds the hands that would pay the turn. Checking is a major value error with this hand.',
+    },
+  },
+
+  // ── 14. River, villain capped, surenchère value ─────────────────────────────
+  {
+    id: 'bs-14', street: 'river', difficulty: 'hard',
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['As', 'Ks'], board: ['Qs', 'Js', 'Ts', '3c', '7h'],
+    potSize: 22, effectiveStack: 78, isHeroIP: true,
+    preflopContext: {
+      fr: 'BTN bet flop et turn. La BB check le river avec une range cappée (sans flush, sans quinte haute).',
+      en: 'BTN bet flop and turn. BB checks river with a capped range (no flush, no top straight).',
+    },
+    boardTexture: { fr: 'River final — couleur complétée, quinte broadway possible', en: 'River final — flush completed, broadway straight possible' },
+    handDescription: { fr: 'Royal flush (quinte flush royale) — main absolue', en: 'Royal flush — the absolute nuts' },
+    options: ['small', 'medium', 'large', 'overbet'],
+    correctKey: 'overbet',
+    conceptTag: { fr: 'Surenchère', en: 'Overbet' },
+    explanation: {
+      fr: 'Avec la quinte flush royale, on détient la main absolue. La BB a checkté river ce qui indique une range cappée — elle ne peut pas avoir le flush max (elle l\'aurait check-raised au turn ou bet river). C\'est la situation idéale pour une surenchère (130%+) : notre range est très polarisée ici, la BB doit payer avec ses secondes meilleures mains. Une mise plus petite sous-extrait massivement de la valeur.',
+      en: 'Holding the royal flush, we have the absolute nuts. BB checked river indicating a capped range — she can\'t have the nut flush (she\'d have check-raised the turn or bet river). This is the ideal overbet spot (130%+): our range is very polarized here, BB must call with her second-best hands. A smaller bet massively under-extracts value.',
+    },
+  },
+
+  // ── 15. Flop, deux overcards + tirage couleur, OOP ─────────────────────────
+  {
+    id: 'bs-15', street: 'flop', difficulty: 'normal',
+    heroPosition: 'BB', villainPosition: 'BTN',
+    heroHand: ['Ah', '9h'], board: ['Kh', '7d', '4h'],
+    potSize: 6, effectiveStack: 94, isHeroIP: false,
+    preflopContext: {
+      fr: 'BTN ouvre, BB défend. Flop K74 bicolore cœurs.',
+      en: 'BTN opens, BB calls. Flop K74 two-tone hearts.',
+    },
+    boardTexture: { fr: 'Semi-humide, tirage couleur A-high, K sur le board', en: 'Semi-wet, A-high flush draw, K on board' },
+    handDescription: { fr: 'Overcard A + tirage couleur nut — semi-bluff', en: 'Ace overcard + nut flush draw — semi-bluff' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'check',
+    conceptTag: { fr: 'Hors position', en: 'Out of Position' },
+    explanation: {
+      fr: 'Avec Ah9h sur K74 bicolore, on a un tirage couleur nut et un overcard. En apparence, une c-bet (donk bet) semble attrayante — mais hors position, la range de la BB n\'est pas assez forte sur ce board (le BTN a plus de K, plus de sets). Checker et check-call si BTN mise petit, ou check-raise si BTN mise gros, est optimal. Cela réalise l\'équité du tirage gratuitement tout en évitant de bloquer les mises de valeur adverses dans une range plus forte.',
+      en: 'With Ah9h on K74 two-tone, we have a nut flush draw and an overcard. A donk-bet looks tempting — but out of position, BB\'s range isn\'t strong enough on this board (BTN has more Ks, more sets). Check and check-call if BTN bets small, or check-raise if BTN bets big, is optimal. This realizes flush draw equity for free while avoiding blocking villain\'s value bets with a stronger range.',
+    },
+  },
+
+  // ── 16. Turn barrel bluff, tirage raté ─────────────────────────────────────
+  {
+    id: 'bs-16', street: 'turn', difficulty: 'hard',
+    heroPosition: 'CO', villainPosition: 'BB',
+    heroHand: ['Jh', 'Th'], board: ['Ks', '8h', '2h', '6d'],
+    potSize: 18, effectiveStack: 82, isHeroIP: true,
+    preflopContext: {
+      fr: 'CO bet le flop K82 avec tirage couleur, BB appelle. Turn 6 — tirage toujours vivant.',
+      en: 'CO bet K82 flop with flush draw, BB calls. Turn 6 — flush draw still live.',
+    },
+    boardTexture: { fr: 'Turn neutre, tirage couleur toujours vivant, range BB cappée', en: 'Neutral turn, flush draw still live, BB range capped' },
+    handDescription: { fr: 'Tirage couleur nut (flush draw) + gutshot — semi-bluff', en: 'Nut flush draw + gutshot — semi-bluff' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'large',
+    conceptTag: { fr: 'Protection', en: 'Protection' },
+    explanation: {
+      fr: 'Avec JhTh sur Ks-8h-2h-6d, on a un flush draw nut (9 outs) et un gutshot (4 outs partiellement overlappants). C\'est 11-12 outs effectifs, soit ~24% d\'équité sur la river. En position, cette main semi-bluff avec une grosse mise (75%+) : (1) on fold immédiatement si villain relance, (2) si villain call, on réalise son équité river, (3) une petite mise donnerait de trop bons pot-odds aux mains qui nous battent actuellement.',
+      en: 'With JhTh on Ks-8h-2h-6d, we have a nut flush draw (9 outs) and a gutshot (4 partially overlapping outs). That\'s 11-12 effective outs, ~24% river equity. In position, this hand semi-bluffs with a large bet (75%+): (1) we fold immediately if villain raises, (2) if villain calls, we realize river equity, (3) a small bet gives too good pot-odds to hands currently beating us.',
+    },
+  },
+
+  // ── 17. River check avec flush non-nut ─────────────────────────────────────
+  {
+    id: 'bs-17', street: 'river', difficulty: 'hard',
+    heroPosition: 'BB', villainPosition: 'BTN',
+    heroHand: ['9h', '8h'], board: ['Kh', '5h', '3d', '2c', 'Jh'],
+    potSize: 24, effectiveStack: 76, isHeroIP: false,
+    preflopContext: {
+      fr: 'BTN ouvre, BB défend. River Jh complète la couleur — pas le nut flush.',
+      en: 'BTN opens, BB calls. River Jh completes flush — not the nut flush.',
+    },
+    boardTexture: { fr: 'River couleur complétée — flush 9-high (non-nut)', en: 'River flush completed — 9-high flush (non-nut)' },
+    handDescription: { fr: 'Flush 9-high — non-nut, vulnerable aux flush supérieurs', en: '9-high flush — non-nut, vulnerable to higher flushes' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'check',
+    conceptTag: { fr: 'Pot Control', en: 'Pot Control' },
+    explanation: {
+      fr: 'Avec 9h8h sur un board monotone cœurs au river, on a un flush — mais pas le nut flush. Le BTN peut avoir Ah, Kh, Qh, Jh, Th facilement. Miser OOP avec un flush non-nut est dangereux : si le BTN raise, on est dans une situation terrible. Les solveurs checkent très fréquemment ici pour contrôler le pot. Si BTN bet, on call. Si BTN check back, on a gagné. Miser serait offrir à BTN une décision parfaite : call avec ses flush inférieurs, raise avec le nut.',
+      en: 'With 9h8h on a monotone heart board on the river, we have a flush — but not the nut flush. BTN can easily have Ah, Kh, Qh, Jh, Th. Betting OOP with a non-nut flush is dangerous: if BTN raises, we\'re in a terrible spot. Solvers check very frequently here to control the pot. If BTN bets, we call. If BTN checks back, we win. Betting offers BTN a perfect decision: call with inferior flushes, raise with the nuts.',
+    },
+  },
+
+  // ── 18. Set au flop, board dynamique, protection max ───────────────────────
+  {
+    id: 'bs-18', street: 'flop', difficulty: 'normal',
+    heroPosition: 'CO', villainPosition: 'BB',
+    heroHand: ['6s', '6c'], board: ['6h', '7d', '8s'],
+    potSize: 5, effectiveStack: 95, isHeroIP: true,
+    preflopContext: {
+      fr: 'CO ouvre, BB défend. Flop 678 bigarré — set de 6, mais board très connecté.',
+      en: 'CO opens, BB calls. Flop 678 rainbow — set of sixes, but highly connected board.',
+    },
+    boardTexture: { fr: 'Connecté, plusieurs quintes possibles (45, 59, T9), semi-sec', en: 'Connected, multiple straight draws (45, 59, T9), semi-dry' },
+    handDescription: { fr: 'Set de 6 — main très forte mais vulnérable aux quintes', en: 'Set of sixes — very strong but vulnerable to straights' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'large',
+    conceptTag: { fr: 'Protection', en: 'Protection' },
+    explanation: {
+      fr: 'Le set de 6 sur 6-7-8 est une main très forte, mais le board est dangereux : 45, 59, T9 ont tous des quintes ou tirages de quinte. Checker ou miser petit permettrait à ces draws de réaliser leur équité gratuitement ou à bon prix. Une mise grande (75%+) : (1) extrait de la valeur de toutes les paires et draws, (2) donne un mauvais prix aux 8 outs des tirages OESD. L\'objectif est de protéger le set ET d\'extraire de la valeur — ces deux objectifs nécessitent une grosse mise.',
+      en: 'Set of sixes on 6-7-8 is a very strong hand, but the board is dangerous: 45, 59, T9 all have straights or straight draws. Checking or small betting lets these draws realize equity for free or at a good price. A large bet (75%+): (1) extracts from all pairs and draws, (2) gives poor odds to 8-out OESD draws. The goal is to protect the set AND extract value — both objectives require a big bet.',
+    },
+  },
+
+  // ── 19. River value bet vs range cappée ────────────────────────────────────
+  {
+    id: 'bs-19', street: 'river', difficulty: 'hard',
+    heroPosition: 'BTN', villainPosition: 'SB',
+    heroHand: ['Ad', 'Kc'], board: ['Ac', 'Td', '4s', '2h', '9c'],
+    potSize: 28, effectiveStack: 72, isHeroIP: true,
+    preflopContext: {
+      fr: 'BTN ouvre, SB 3-bet, BTN appelle. BTN bet flop AT4, SB call. Turn 2 checké par les deux. River 9.',
+      en: 'BTN opens, SB 3-bets, BTN calls. BTN bets AT4 flop, SB calls. Turn 2 both check. River 9.',
+    },
+    boardTexture: { fr: 'River brick, board sec — SB a checkté le turn (range cappée)', en: 'River brick, dry board — SB checked turn (capped range)' },
+    handDescription: { fr: 'Top paire top kicker (TPTK) — excellente main de valeur', en: 'Top pair top kicker (TPTK) — excellent value hand' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'medium',
+    conceptTag: { fr: 'Valeur fine', en: 'Thin Value' },
+    explanation: {
+      fr: 'AK sur A-T-4-2-9 avec le SB qui a checkté le turn — sa range est plafonnée. Il ne peut pas avoir AA/KK (il aurait 3-bet/bet le turn). Une mise médiane (50-55%) extrait de la valeur de AT, TT, T9, A9, etc. qui peuvent appeler. Une grosse mise (75%) polarise trop et fait folder exactement les bluff-catchers que la SB tiendrait. Une petite mise (33%) sous-extrait. La clé est que la SB peut quand même avoir de bonnes mains (AT, TT) qui ne peuvent pas folder face à 50%.',
+      en: 'AK on A-T-4-2-9 with SB having checked the turn — their range is capped. They can\'t have AA/KK (they\'d have bet the turn). A medium bet (50-55%) extracts from AT, TT, T9, A9, etc. that can call. A large bet (75%) over-polarizes and folds exactly the bluff-catchers SB would hold. A small bet (33%) under-extracts. The key: SB can still have good hands (AT, TT) that can\'t fold to 50%.',
+    },
+  },
+
+  // ── 20. Flop 3-bet pot, tirage couleur nut + overcard ──────────────────────
+  {
+    id: 'bs-20', street: 'flop', difficulty: 'hard',
+    heroPosition: 'BB', villainPosition: 'BTN',
+    heroHand: ['As', 'Ks'], board: ['Js', '8s', '3d'],
+    potSize: 20, effectiveStack: 80, isHeroIP: false,
+    preflopContext: {
+      fr: 'BB 3-bet, BTN appelle. Pot 3-bet de 20bb. Flop Js-8s-3d.',
+      en: 'BB 3-bets, BTN calls. 3-bet pot of 20bb. Flop Js-8s-3d.',
+    },
+    boardTexture: { fr: 'Semi-sec, tirage couleur nut disponible, BTN range forte', en: 'Semi-dry, nut flush draw available, BTN has strong calling range' },
+    handDescription: { fr: 'Deux overcards + tirage couleur nut — semi-bluff fort', en: 'Two overcards + nut flush draw — strong semi-bluff' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'large',
+    conceptTag: { fr: 'Polarisation', en: 'Polarisation' },
+    explanation: {
+      fr: 'En tant que 3-betteur OOP dans un pot 3-bet avec AsKs, on a une main qui ne réalise pas son équité en checkant (AK sans pair au flop). Le tirage couleur nut (9 outs) + deux overcards (6 outs) = ~15 outs effectifs. Dans un pot 3-bet, notre range est plus polarisée : on 3-bets AA, KK, AK — donc le board nous favorise (range advantage du 3-betteur). Une mise grande (75%) avec AK ici est un bet à forte valeur attendue : soit villain fold, soit on réalise son équité avec un tirage nut.',
+      en: 'As the 3-bettor OOP in a 3-bet pot with AsKs, we have a hand that doesn\'t realize equity by checking (AK no pair on flop). Nut flush draw (9 outs) + two overcards (6 outs) = ~15 effective outs. In a 3-bet pot, our range is more polarized: we 3-bet AA, KK, AK — so the board favors us (3-bettor range advantage). A large bet (75%) with AK here is high-EV: either villain folds, or we realize equity with a nut draw.',
     },
   },
 ];
@@ -512,6 +681,15 @@ export function BetSizingTrainer() {
 
   // Bet sizing is generated client-side, so we explicitly spend a credit
   // server-side before revealing each exercise (premium users never consume).
+  const buildPool = () => {
+    if (mode === 'expert') {
+      // Hard exercises appear twice → ~2/3 of draws are hard spots
+      const hard = EXERCISES.filter(e => e.difficulty === 'hard');
+      return shuffle([...EXERCISES, ...hard]);
+    }
+    return shuffle(EXERCISES);
+  };
+
   const nextExercise = async (q = queue) => {
     if (!isPremium) {
       try {
@@ -523,7 +701,7 @@ export function BetSizingTrainer() {
       }
     }
     let remaining = q;
-    if (remaining.length === 0) remaining = shuffle(EXERCISES);
+    if (remaining.length === 0) remaining = buildPool();
     const [ex, ...rest] = remaining;
     setExercise(ex);
     setQueue(rest);
@@ -535,7 +713,7 @@ export function BetSizingTrainer() {
     quitRun();              // clear any leftover exam state — normal mode never shows the lives HUD / auto-advance
     setShowIntro(false);
     setTrainerStarted(true);
-    nextExercise(shuffle(EXERCISES));
+    nextExercise(buildPool());
   };
 
   const backToIntro = () => {
@@ -569,7 +747,7 @@ export function BetSizingTrainer() {
     setQuotaBlocked(false);
     setShowIntro(false);
     setTrainerStarted(true);
-    nextExercise(shuffle(EXERCISES));
+    nextExercise(buildPool());
   };
 
   const handleQuitExam = () => {
@@ -1008,3 +1186,4 @@ export function BetSizingTrainer() {
     </div>
   );
 }
+

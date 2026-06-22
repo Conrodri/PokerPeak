@@ -110,6 +110,82 @@ interface FullHandScenario {
   };
 }
 
+// ─── Draw detection (inlined from PostflopTrainer) ───────────────────────────
+
+const RANK_LABEL_FR: Record<string, string> = {
+  A: 'As', K: 'Rois', Q: 'Dames', J: 'Valets', T: 'Dix',
+  '9': '9', '8': '8', '7': '7', '6': '6', '5': '5', '4': '4', '3': '3', '2': '2',
+};
+const RANK_LABEL_EN: Record<string, string> = {
+  A: 'Aces', K: 'Kings', Q: 'Queens', J: 'Jacks', T: 'Tens',
+  '9': '9s', '8': '8s', '7': '7s', '6': '6s', '5': '5s', '4': '4s', '3': '3s', '2': '2s',
+};
+
+function computeDraws(hero: string[], board: string[]) {
+  const rankOf = (c: string) => c[0];
+  const suitOf = (c: string) => c[c.length - 1];
+  const all = [...hero, ...board];
+  const rankCount: Record<string, number> = {};
+  for (const c of all) rankCount[rankOf(c)] = (rankCount[rankOf(c)] || 0) + 1;
+
+  const pairOuts: Array<{ rank: string; count: number }> = [];
+  const seen = new Set<string>();
+  for (const c of hero) {
+    const r = rankOf(c);
+    if (seen.has(r)) continue;
+    seen.add(r);
+    if (rankCount[r] === 1) pairOuts.push({ rank: r, count: 3 });
+    else if (rankCount[r] === 2 && hero.filter(h => rankOf(h) === r).length === 2) pairOuts.push({ rank: r, count: 2 });
+  }
+
+  let flushType: 'draw' | 'backdoor' | null = null;
+  let flushOuts = 0;
+  for (const suit of new Set(hero.map(suitOf))) {
+    const heroCount  = hero.filter(c => suitOf(c) === suit).length;
+    const boardCount = board.filter(c => suitOf(c) === suit).length;
+    const total = heroCount + boardCount;
+    if (total >= 4) { flushType = 'draw'; flushOuts = 13 - total; break; }
+    if (total === 3 && board.length <= 3) { flushType = 'backdoor'; flushOuts = 13 - total; }
+  }
+
+  const directOuts = pairOuts.reduce((s, o) => s + o.count, 0) + (flushType === 'draw' ? flushOuts : 0);
+  return { pairOuts, flushType, flushOuts, directOuts };
+}
+
+function HeroOutsPanel({ heroHand, board, isEn }: { heroHand: string[]; board: string[]; isEn: boolean }) {
+  const draws = computeDraws(heroHand, board);
+  const cardsLeft = 5 - board.length;
+  const pct = draws.directOuts * (cardsLeft === 2 ? 4 : 2);
+  if (draws.pairOuts.length === 0 && !draws.flushType) return null;
+  return (
+    <div className="w-full rounded-xl border border-teal-800/40 bg-teal-950/20 px-4 py-3 text-xs">
+      <p className="font-bold text-teal-300 mb-2">
+        🎯 {isEn ? 'Your improvement outs' : 'Tes outs (cartes qui améliorent ta main)'}
+      </p>
+      <ul className="space-y-1 text-gray-300">
+        {draws.pairOuts.map(o => (
+          <li key={o.rank}>
+            • {isEn ? RANK_LABEL_EN[o.rank] : RANK_LABEL_FR[o.rank]} → {isEn ? 'Pair' : 'Paire'} : <span className="text-white font-semibold">{o.count} outs</span>
+          </li>
+        ))}
+        {draws.flushType === 'draw' && (
+          <li>• {isEn ? `Flush draw : ${draws.flushOuts} outs` : `Tirage couleur : ${draws.flushOuts} outs`}</li>
+        )}
+        {draws.flushType === 'backdoor' && (
+          <li className="text-gray-500">• {isEn ? 'Backdoor flush draw (needs 2 running cards)' : 'Tirage couleur backdoor (2 cartes consécutives nécessaires)'}</li>
+        )}
+      </ul>
+      {draws.directOuts > 0 && (
+        <p className="mt-2 text-teal-200 font-semibold">
+          → {draws.directOuts} {isEn
+            ? `direct outs ≈ ${pct}% chance to improve (rule of ${cardsLeft === 2 ? '4' : '2'})`
+            : `outs directs ≈ ${pct}% de chance d'amélioration (règle du ${cardsLeft === 2 ? '4' : '2'})`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Stepper ─────────────────────────────────────────────────────────────────
 
 const STEP_KEYS = ['preflop', 'flop', 'turn', 'river'] as const;
@@ -723,7 +799,18 @@ export function FullHandTrainer() {
                 <Lightbulb size={15} className="text-amber-400 mt-0.5 shrink-0" />
                 <div className="text-xs text-gray-300 leading-relaxed">
                   <p className="font-bold text-amber-300 mb-1">{isEn ? 'Hint' : 'Indice'}</p>
-                  <p>{postflopHint({ equity: decision.street.heroEquity, facingBet: decision.street.villainAction === 'bet', bet: decision.street.villainBetSize, pot: decision.street.potSize, isEn })}</p>
+                  <p>{postflopHint({
+                    equity: decision.street.heroEquity,
+                    facingBet: decision.street.villainAction === 'bet',
+                    bet: decision.street.villainBetSize,
+                    pot: decision.street.potSize,
+                    isEn,
+                    handRank: decision.street.heroHandRank,
+                    handLabel: isEn ? decision.street.heroHandLabel.en : decision.street.heroHandLabel.fr,
+                    street: currentStep as 'flop' | 'turn' | 'river',
+                    isHeroIP: scenario.isHeroIP,
+                    hasDraw: computeDraws(scenario.heroHand as string[], board as string[]).directOuts > 0,
+                  })}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 w-full">
@@ -828,6 +915,42 @@ export function FullHandTrainer() {
                 </span>
               )}
             </p>
+
+            {/* ── 2b. Pot odds breakdown — shown when villain bet ── */}
+            {'street' in decision && decision.street.villainAction === 'bet' && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full rounded-xl border border-blue-800/40 bg-blue-950/20 px-4 py-3 text-xs"
+              >
+                <p className="font-bold text-blue-300 mb-2">
+                  📊 {isEn ? 'Pot odds breakdown' : 'Calcul pot odds'}
+                </p>
+                {(() => {
+                  const bet = decision.street.villainBetSize;
+                  const pot = decision.street.potSize;
+                  const req = Math.round((bet / (pot + bet + bet)) * 1000) / 10;
+                  const equity = decision.street.heroEquity;
+                  const profitable = equity >= req;
+                  return (
+                    <div className="space-y-1 text-gray-300">
+                      <p>• {isEn ? `Call: ${bet}bb to win a ${pot + bet}bb pot` : `Call : ${bet}bb pour gagner un pot de ${pot + bet}bb`}</p>
+                      <p>• {isEn ? `Required equity: ${req}%` : `Équité requise : ${req}%`}</p>
+                      <p className={profitable ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>
+                        • {isEn
+                          ? `Your equity (${equity}%) ${profitable ? '≥' : '<'} ${req}% → call is ${profitable ? 'profitable ✓' : 'unprofitable ✗'}`
+                          : `Ton équité (${equity}%) ${profitable ? '≥' : '<'} ${req}% → le call est ${profitable ? 'rentable ✓' : 'non rentable ✗'}`}
+                      </p>
+                    </div>
+                  );
+                })()}
+              </motion.div>
+            )}
+
+            {/* ── 2c. Outs panel — shown on flop/turn when hero has draws ── */}
+            {'street' in decision && (currentStep === 'flop' || currentStep === 'turn') && (
+              <HeroOutsPanel heroHand={scenario.heroHand as string[]} board={board as string[]} isEn={isEn} />
+            )}
 
             {/* Continue / stats / explanation — hidden during an exam (auto-advances) */}
             {!examActive && (<>
