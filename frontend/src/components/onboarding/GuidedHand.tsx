@@ -194,38 +194,48 @@ export function GuidedHand({ onFinish, onSkip }: GuidedHandProps) {
               potDisplay={step.pot}
               heroCards={HERO}
               boardCards={step.board}
-              boardCardSize={isMobile ? 'sm' : 'lg'}
+              boardCardSize={isMobile ? 'sm' : 'md'}
               compact={isMobile}
               seatInfos={seatInfos}
-              showHeroStack
+              showVillainCards={!step.revealVillain}
             />
           </div>
 
-          {/* Hero cards at the BB seat — face-down until "Ta main" step (i >= 2) */}
-          <div className="-mt-4 sm:-mt-5 flex gap-1.5 relative z-10">
-            {HERO.map((c, k) =>
-              i < 2 ? (
-                <div
-                  key={k}
-                  style={{
-                    width:        isMobile ? 26 : 36,
-                    height:       isMobile ? 36 : 50,
-                    borderRadius: isMobile ? 4 : 5,
-                    background:   'linear-gradient(145deg, #1e3a6e 0%, #0f1e3d 100%)',
-                    border:       '1.5px solid rgba(255,255,255,0.15)',
-                    boxShadow:    '0 3px 8px rgba(0,0,0,0.8)',
-                    flexShrink:   0,
-                  }}
-                />
-              ) : (
-                <Card
-                  key={k}
-                  card={c as CardStr}
-                  size={isMobile ? 'sm' : 'md'}
-                  animate={k === 0 && i === 2}
-                />
-              )
-            )}
+          {/* Hero cards + stack below the table */}
+          <div className="flex flex-col items-center gap-1 -mt-2 sm:-mt-3 relative z-10">
+            <div className="flex gap-1.5">
+              {HERO.map((c, k) =>
+                i < 2 ? (
+                  <div
+                    key={k}
+                    style={{
+                      width:        isMobile ? 26 : 36,
+                      height:       isMobile ? 36 : 50,
+                      borderRadius: isMobile ? 4 : 5,
+                      background:   'linear-gradient(145deg, #1e3a6e 0%, #0f1e3d 100%)',
+                      border:       '1.5px solid rgba(255,255,255,0.15)',
+                      boxShadow:    '0 3px 8px rgba(0,0,0,0.8)',
+                      flexShrink:   0,
+                    }}
+                  />
+                ) : (
+                  <Card
+                    key={k}
+                    card={c as CardStr}
+                    size={isMobile ? 'sm' : 'md'}
+                    animate={k === 0 && i === 2}
+                  />
+                )
+              )}
+            </div>
+            {/* Hero stack badge below cards */}
+            <div style={{
+              fontSize: 10, fontWeight: 800, color: '#e2e8f0',
+              background: 'rgba(8,14,26,0.82)', border: '1px solid #dc262655',
+              borderRadius: 4, padding: '2px 8px', boxShadow: '0 1px 4px rgba(0,0,0,0.7)',
+            }}>
+              {step.heroStack}
+            </div>
           </div>
 
           {/* Villain reveal at showdown */}

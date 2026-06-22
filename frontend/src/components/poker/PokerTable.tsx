@@ -8,24 +8,61 @@ import { useThemeStore, SUIT_COLORS } from '../../store/themeStore';
 const CLOCKWISE: Position[] = ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'];
 
 // ─── Seat layout: hero always at S0 (bottom center) ───────────────────────
-// cx/cy = blind-token / dealer-chip position.
-// Tokens for S1/S5 (bottom-left/-right) are pushed DOWN (cy>60) to sit below
-// the board-card row (~y 38-62%).  Tokens for S2/S3/S4 (upper arc) are pushed
-// UP (cy<28) to sit above the board-card row.  This prevents any overlap with
-// the community cards regardless of board size.
+// cx/cy  = blind-token / dealer-chip position.
+// cardX/cardY = position (% of outer table div) where face-down villain cards
+//   are rendered OUTSIDE the oval, like hero cards are rendered below.
+//   null = hero seat (no villain cards).
+// cardX/cardY are in OUTER-div coordinate space (0–100%).
+// Outer div has paddingTop=10% (of its width) → oval starts at ~21% of outer div HEIGHT.
+// Left/right cards occupy the 0–10% / 90–100% x-zones (10% width margin each side).
+// S3 top cards sit in the paddingTop zone (cardY ≈ 8%) — above the oval, below the page title.
 const SEAT_LAYOUT = [
-  { sx: 50, sy: 78, cx: 50, cy: 65, side: 'bottom' },  // S0: hero (bottom center)
-  { sx: 17, sy: 63, cx: 29, cy: 67, side: 'left'   },  // S1: bottom-left  ← SB  (below cards)
-  { sx: 13, sy: 26, cx: 27, cy: 22, side: 'left'   },  // S2: left         ← BB  (above cards)
-  { sx: 50, sy: 8,  cx: 50, cy: 19, side: 'top'    },  // S3: top          ← UTG (above cards)
-  { sx: 87, sy: 26, cx: 73, cy: 22, side: 'right'  },  // S4: right        ← HJ  (above cards)
-  { sx: 83, sy: 63, cx: 71, cy: 67, side: 'right'  },  // S5: bottom-right ← CO  (below cards)
+  { sx: 50, sy: 78, cx: 50, cy: 73, side: 'bottom', cardX: null, cardY: null },  // S0: hero
+  { sx: 17, sy: 63, cx: 29, cy: 67, side: 'left',   cardX:    4, cardY:   76 },  // S1: bottom-left
+  { sx: 13, sy: 26, cx: 27, cy: 22, side: 'left',   cardX:    4, cardY:   42 },  // S2: left
+  { sx: 50, sy: 8,  cx: 50, cy: 19, side: 'top',    cardX:   50, cardY:    5 },  // S3: top (paddingTop zone)
+  { sx: 87, sy: 26, cx: 73, cy: 22, side: 'right',  cardX:   96, cardY:   42 },  // S4: right
+  { sx: 83, sy: 63, cx: 71, cy: 67, side: 'right',  cardX:   96, cardY:   76 },  // S5: bottom-right
 ] as const;
 
 export const POSITION_COLORS: Record<Position, string> = {
   BTN: '#16a34a', SB: '#2563eb', BB: '#dc2626',
   UTG: '#b45309', HJ: '#7c3aed', CO: '#0891b2',
 };
+
+// ─── Face-down card back (villain hole cards on the felt) ────────────────────
+
+function FaceDownMiniCard({ compact, tilt = 0 }: { compact: boolean; tilt?: number }) {
+  const w = compact ? 28 : 40;
+  const h = compact ? 38 : 55;
+  const r = compact ? 4  : 6;
+  return (
+    <div style={{
+      width:        w,
+      height:       h,
+      borderRadius: r,
+      flexShrink:   0,
+      background:   'linear-gradient(145deg, #1e3a8a 0%, #1e3a6e 40%, #0f1e3d 100%)',
+      border:       '1.5px solid rgba(255,255,255,0.22)',
+      boxShadow:    '0 4px 12px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.1)',
+      transform:    tilt ? `rotate(${tilt}deg)` : undefined,
+      display:      'flex',
+      alignItems:   'center',
+      justifyContent: 'center',
+      overflow:     'hidden',
+    }}>
+      {/* Card back pattern */}
+      <div style={{
+        width:        '80%',
+        height:       '80%',
+        borderRadius: r - 2,
+        border:       '1px solid rgba(255,255,255,0.12)',
+        background:   'repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 6px)',
+      }} />
+    </div>
+  );
+}
+
 
 // ─── Mini card (for board + hero hand display on table) ──────────────────────
 
@@ -105,13 +142,16 @@ export interface PokerTableProps {
   boardCardSize?: 'sm' | 'md' | 'lg';
   /** Also show the hero's stack badge (off by default — trainers hide it to avoid overlapping hole cards) */
   showHeroStack?: boolean;
+  /** Show face-down hole cards for active villain seats (default: true) */
+  showVillainCards?: boolean;
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function PokerTable({
   heroPosition, onPositionChange, interactive = true, className = '', compact = false,
-  activePlayers, potDisplay, heroCards, boardCards, seatInfos, boardCardSize, showHeroStack = false,
+  activePlayers, potDisplay, heroCards, boardCards, seatInfos, boardCardSize,
+  showHeroStack = false, showVillainCards = true,
 }: PokerTableProps) {
   // Effective board-card size: explicit prop > compact default > full default
   const bCardSize = boardCardSize ?? (compact ? 'sm' : 'md');
@@ -137,7 +177,9 @@ export function PokerTable({
   const hasHeroCards = !!heroCards?.length; // eslint-disable-line @typescript-eslint/no-unused-vars
 
   return (
-    <div className={`select-none w-full ${className}`}>
+    <div className={`select-none w-full relative ${className}`} style={{ paddingTop: '10%' }}>
+      {/* 10% horizontal margin creates space for villain cards outside the oval */}
+      <div style={{ margin: '0 10%' }}>
       {/* ── Table oval (fixed 46% aspect ratio regardless of hero cards) ── */}
       <div className="relative w-full" style={{ paddingBottom: '46%' }}>
         <div className="absolute inset-0">
@@ -293,10 +335,30 @@ export function PokerTable({
         )}
         </div>{/* end absolute inset-0 */}
       </div>{/* end table oval (paddingBottom 46%) */}
+      </div>{/* end 10% margin wrapper */}
 
-      {/* Hero hole cards are NOT rendered inside PokerTable.
-          Each trainer renders them separately in normal flow below the table.
-          This prevents any overflow / overlap regardless of screen size or JS state. */}
+      {/* ── Villain face-down hole cards — outside the oval ── */}
+      {showVillainCards && SEAT_LAYOUT.map((seat, idx) => {
+        if (seat.cardX === null) return null;
+        const pos = seatPositions[idx];
+        const isActive = !activePlayers || activePlayers.includes(pos);
+        if (!isActive) return null;
+        return (
+          <div key={`vc-${idx}`} style={{
+            position:      'absolute',
+            left:          `${seat.cardX}%`,
+            top:           `${seat.cardY}%`,
+            transform:     'translate(-50%, -50%)',
+            display:       'flex',
+            gap:           2,
+            zIndex:        25,
+            pointerEvents: 'none',
+          }}>
+            <FaceDownMiniCard compact={compact} tilt={-5} />
+            <FaceDownMiniCard compact={compact} tilt={5} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -424,6 +486,7 @@ function SeatNode({ seat, position, color, isHero, isClickable, isActive, compac
           <BetChipStack amount={info.bet} compact={compact} />
         </div>
       )}
+
     </>
   );
 }
