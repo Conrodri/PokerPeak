@@ -209,7 +209,6 @@ export function Navbar() {
                 {!user && <span className="hidden lg:inline">{isEn ? 'Sign up' : "S'inscrire"}</span>}
               </Link>
             )}
-            <ModeToggle />
             <LanguageToggle />
 
             {/* User avatar — always visible */}

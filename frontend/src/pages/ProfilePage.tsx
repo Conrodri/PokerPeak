@@ -615,16 +615,32 @@ export function ProfilePage() {
                   )
                 )}
 
-                {/* Free plan — contact to subscribe */}
+                {/* Free plan — contact to subscribe (Premium or Expert) */}
                 {subInfo.tier === 'free' && (
-                  <a
-                    href={`mailto:contact@pokerpeak.fr?subject=${encodeURIComponent(isEn ? 'Subscribe to Premium' : 'S\'abonner en Premium')}&body=${encodeURIComponent(isEn ? `Hi, I'd like to subscribe to Premium (${user?.email}).` : `Bonjour, je souhaite m'abonner en Premium (${user?.email}).`)}`}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-900/20 border border-yellow-700/40 text-yellow-300 text-sm font-semibold hover:bg-yellow-900/40 transition-all"
-                  >
-                    <Crown size={14} fill="currentColor" />
-                    {isEn ? 'Subscribe to Premium' : 'S\'abonner en Premium'}
-                    <span className="text-xs text-yellow-600 ml-auto">{isEn ? 'contact us →' : 'nous contacter →'}</span>
-                  </a>
+                  <>
+                    <a
+                      href={`mailto:contact@pokerpeak.fr?subject=${encodeURIComponent(isEn ? 'Subscribe to Premium' : 'S\'abonner en Premium')}&body=${encodeURIComponent(isEn ? `Hi, I'd like to subscribe to Premium (${user?.email}).` : `Bonjour, je souhaite m'abonner en Premium (${user?.email}).`)}`}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-yellow-900/20 border border-yellow-700/40 text-yellow-300 text-sm font-semibold hover:bg-yellow-900/40 transition-all"
+                    >
+                      <Crown size={14} fill="currentColor" />
+                      <span className="flex-1 text-left">
+                        {isEn ? 'Subscribe to Premium' : "S'abonner en Premium"}
+                        <span className="block text-xs font-normal text-yellow-600 mt-0.5">9,99 €/mois</span>
+                      </span>
+                      <span className="text-xs text-yellow-700">{isEn ? 'contact us →' : 'nous contacter →'}</span>
+                    </a>
+                    <a
+                      href={`mailto:contact@pokerpeak.fr?subject=${encodeURIComponent(isEn ? 'Subscribe to Expert' : 'S\'abonner en Expert')}&body=${encodeURIComponent(isEn ? `Hi, I'd like to subscribe to Expert (${user?.email}).` : `Bonjour, je souhaite m'abonner en Expert (${user?.email}).`)}`}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-900/20 border border-purple-700/40 text-purple-300 text-sm font-semibold hover:bg-purple-900/40 transition-all"
+                    >
+                      <Flame size={14} />
+                      <span className="flex-1 text-left">
+                        {isEn ? 'Subscribe to Expert 👑' : "S'abonner en Expert 👑"}
+                        <span className="block text-xs font-normal text-purple-500 mt-0.5">24,99 €/mois</span>
+                      </span>
+                      <span className="text-xs text-purple-700">{isEn ? 'contact us →' : 'nous contacter →'}</span>
+                    </a>
+                  </>
                 )}
               </div>
             </div>
