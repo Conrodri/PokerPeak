@@ -31,10 +31,10 @@ const FEATURE_ROWS: Row[] = [
 ];
 
 const PERKS = [
-  { icon: <Zap size={18} className="text-gold-400" />,       fr: 'Tous les modules d\'entraînement', en: 'All training modules' },
-  { icon: <BarChart2 size={18} className="text-gold-400" />, fr: 'Statistiques détaillées par module', en: 'Detailed stats per module' },
-  { icon: <Star size={18} className="text-gold-400" />,      fr: 'Badge Premium sur le classement', en: 'Premium badge on the leaderboard' },
-  { icon: <Sliders size={18} className="text-gold-400" />,   fr: 'Éditeur de ranges personnalisées', en: 'Custom range editor' },
+  { icon: <Zap size={14} className="text-gold-400" />,       fr: 'Tous les modules d\'entraînement', en: 'All training modules' },
+  { icon: <BarChart2 size={14} className="text-gold-400" />, fr: 'Statistiques détaillées par module', en: 'Detailed stats per module' },
+  { icon: <Star size={14} className="text-gold-400" />,      fr: 'Badge Premium sur le classement', en: 'Premium badge on the leaderboard' },
+  { icon: <Sliders size={14} className="text-gold-400" />,   fr: 'Éditeur de ranges personnalisées', en: 'Custom range editor' },
 ] as const;
 
 const EXPERT_PERKS = [
@@ -99,31 +99,31 @@ export function PremiumPage() {
       <div className="grid sm:grid-cols-3 gap-4">
 
         {/* Free */}
-        <div className="rounded-2xl border border-gray-700 bg-gray-900/40 p-5 flex flex-col gap-4">
+        <div className="rounded-2xl border border-gray-700 bg-gray-900/40 p-4 flex flex-col gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-0.5">
               {isEn ? 'Free' : 'Gratuit'}
             </p>
             <div className="flex items-end gap-1">
-              <p className="text-3xl font-black text-white">0€</p>
-              <p className="text-xs text-gray-500 mb-1">/ {isEn ? 'forever' : 'toujours'}</p>
+              <p className="text-2xl font-black text-white">0€</p>
+              <p className="text-xs text-gray-500 mb-0.5">/ {isEn ? 'forever' : 'toujours'}</p>
             </div>
           </div>
-          <ul className="flex flex-col gap-2 text-sm">
+          <ul className="flex flex-col gap-1.5 text-xs">
             {['Pré-flop', 'Outs', 'Équité', 'Pot Odds'].map(f => (
               <li key={f} className="flex items-center gap-2 text-gray-300">
-                <Check size={13} className="text-green-400 shrink-0" />{f}
+                <Check size={12} className="text-green-400 shrink-0" />{f}
               </li>
             ))}
             <li className="flex items-center gap-2 text-gray-500">
-              <Minus size={13} className="text-gray-700 shrink-0" />
+              <Minus size={12} className="text-gray-700 shrink-0" />
               {isEn ? 'Premium modules limited' : 'Modules premium limités'}
             </li>
           </ul>
           {!user && (
             <Link
               to="/login"
-              className="mt-auto text-center py-2 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 text-sm font-semibold transition-colors"
+              className="mt-auto text-center py-1.5 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 text-xs font-semibold transition-colors"
             >
               {isEn ? 'Sign up free' : 'Inscription gratuite'}
             </Link>
@@ -133,39 +133,39 @@ export function PremiumPage() {
         {/* Premium */}
         <motion.div
           whileHover={{ scale: 1.01 }}
-          className="rounded-2xl border border-gold-600/60 bg-gradient-to-br from-gold-900/30 to-gray-900/80 p-5 flex flex-col gap-4 relative overflow-hidden"
+          className="rounded-2xl border border-gold-600/60 bg-gradient-to-br from-gold-900/30 to-gray-900/80 p-4 flex flex-col gap-3 relative overflow-hidden"
         >
-          <div className="absolute top-3 right-3 bg-gold-600 text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+          <div className="absolute top-2.5 right-2.5 bg-gold-600 text-gray-900 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
             {isEn ? 'Popular' : 'Populaire'}
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gold-500 mb-1 flex items-center gap-1">
-              <Crown size={11} fill="currentColor" /> Premium
+            <p className="text-[11px] font-bold uppercase tracking-wider text-gold-500 mb-0.5 flex items-center gap-1">
+              <Crown size={10} fill="currentColor" /> Premium
             </p>
-            <div className="flex items-end gap-2">
-              <p className="text-3xl font-black text-white">9,99€</p>
-              <p className="text-xs text-gray-400 mb-1">/ {isEn ? 'month' : 'mois'}</p>
+            <div className="flex items-end gap-1.5">
+              <p className="text-2xl font-black text-white">9,99€</p>
+              <p className="text-xs text-gray-400 mb-0.5">/ {isEn ? 'month' : 'mois'}</p>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">{isEn ? 'No commitment' : 'Sans engagement'}</p>
+            <p className="text-[11px] text-gray-500">{isEn ? 'No commitment' : 'Sans engagement'}</p>
           </div>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-1.5">
             {PERKS.map((p, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-gray-200">
+              <li key={i} className="flex items-center gap-2 text-xs text-gray-200">
                 {p.icon}<span>{isEn ? p.en : p.fr}</span>
               </li>
             ))}
           </ul>
           {isPremium ? (
-            <div className="mt-auto text-center py-2 rounded-xl bg-gold-600/20 border border-gold-600/40 text-gold-300 text-sm font-semibold">
+            <div className="mt-auto text-center py-1.5 rounded-xl bg-gold-600/20 border border-gold-600/40 text-gold-300 text-xs font-semibold">
               {isExpert ? (isEn ? '✓ Included' : '✓ Inclus') : (isEn ? '✓ Active' : '✓ Actif')}
             </div>
           ) : (
             <a
               href={subscribeHref('Premium')}
-              className="mt-auto text-center py-2.5 rounded-xl bg-gold-600 hover:bg-gold-500 text-gray-900 text-sm font-black transition-colors flex items-center justify-center gap-1.5"
+              className="mt-auto text-center py-2 rounded-xl bg-gold-600 hover:bg-gold-500 text-gray-900 text-xs font-black transition-colors flex items-center justify-center gap-1.5"
             >
               {isEn ? 'Choose Premium' : 'Choisir Premium'}
-              <ChevronRight size={15} />
+              <ChevronRight size={13} />
             </a>
           )}
         </motion.div>
@@ -173,39 +173,39 @@ export function PremiumPage() {
         {/* Expert */}
         <motion.div
           whileHover={{ scale: 1.01 }}
-          className="rounded-2xl border border-purple-600/60 bg-gradient-to-br from-purple-900/30 to-gray-900/80 p-5 flex flex-col gap-4 relative overflow-hidden"
+          className="rounded-2xl border border-purple-600/60 bg-gradient-to-br from-purple-900/30 to-gray-900/80 p-4 flex flex-col gap-3 relative overflow-hidden"
         >
-          <div className="absolute top-3 right-3 bg-purple-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-            {isEn ? 'Pro' : 'Pro'}
+          <div className="absolute top-2.5 right-2.5 bg-purple-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+            Pro
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-purple-400 mb-1 flex items-center gap-1">
-              <Flame size={11} fill="currentColor" /> Expert
+            <p className="text-[11px] font-bold uppercase tracking-wider text-purple-400 mb-0.5 flex items-center gap-1">
+              <Flame size={10} fill="currentColor" /> Expert
             </p>
-            <div className="flex items-end gap-2">
-              <p className="text-3xl font-black text-white">24,99€</p>
-              <p className="text-xs text-gray-400 mb-1">/ {isEn ? 'month' : 'mois'}</p>
+            <div className="flex items-end gap-1.5">
+              <p className="text-2xl font-black text-white">24,99€</p>
+              <p className="text-xs text-gray-400 mb-0.5">/ {isEn ? 'month' : 'mois'}</p>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">{isEn ? 'No commitment' : 'Sans engagement'}</p>
+            <p className="text-[11px] text-gray-500">{isEn ? 'No commitment' : 'Sans engagement'}</p>
           </div>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-1.5">
             {EXPERT_PERKS.map((p, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-gray-200">
+              <li key={i} className="flex items-center gap-2 text-xs text-gray-200">
                 {p.icon}<span className={i === 0 ? 'font-semibold text-purple-200' : ''}>{isEn ? p.en : p.fr}</span>
               </li>
             ))}
           </ul>
           {isExpert ? (
-            <div className="mt-auto text-center py-2 rounded-xl bg-purple-600/20 border border-purple-600/40 text-purple-200 text-sm font-semibold">
+            <div className="mt-auto text-center py-1.5 rounded-xl bg-purple-600/20 border border-purple-600/40 text-purple-200 text-xs font-semibold">
               {isEn ? '✓ Active' : '✓ Actif'}
             </div>
           ) : (
             <a
               href={subscribeHref('Expert')}
-              className="mt-auto text-center py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-black transition-colors flex items-center justify-center gap-1.5"
+              className="mt-auto text-center py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black transition-colors flex items-center justify-center gap-1.5"
             >
-              {isExpert ? '' : isPremium ? (isEn ? 'Upgrade to Expert' : 'Passer à Expert') : (isEn ? 'Choose Expert' : 'Choisir Expert')}
-              <ChevronRight size={15} />
+              {isPremium ? (isEn ? 'Upgrade to Expert' : 'Passer à Expert') : (isEn ? 'Choose Expert' : 'Choisir Expert')}
+              <ChevronRight size={13} />
             </a>
           )}
         </motion.div>
