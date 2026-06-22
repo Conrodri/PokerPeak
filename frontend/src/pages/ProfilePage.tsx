@@ -578,31 +578,35 @@ export function ProfilePage() {
                 {/* Cancel subscription */}
                 {subInfo.tier !== 'free' && (
                   cancelConfirm ? (
-                    <div className="flex items-center gap-2 p-3 rounded-xl bg-red-900/20 border border-red-700/40 text-sm">
-                      <AlertTriangle size={14} className="text-red-400 shrink-0" />
-                      <span className="text-red-300 flex-1 text-xs">
-                        {isEn ? 'Cancel subscription immediately? Access ends now.' : 'Résilier immédiatement ? L\'accès se termine maintenant.'}
-                      </span>
-                      <button
-                        disabled={subActionLoading}
-                        onClick={async () => {
-                          setSubActionLoading(true);
-                          try {
-                            await subscriptionApi.cancel();
-                            setSubInfo(await subscriptionApi.get());
-                            setSubActionMsg(isEn ? 'Subscription cancelled.' : 'Abonnement résilié.');
-                            setTimeout(() => setSubActionMsg(''), 3000);
-                          } catch {}
-                          setSubActionLoading(false);
-                          setCancelConfirm(false);
-                        }}
-                        className="px-3 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors shrink-0"
-                      >
-                        {isEn ? 'Confirm' : 'Confirmer'}
-                      </button>
-                      <button onClick={() => setCancelConfirm(false)} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-bold transition-colors shrink-0">
-                        {isEn ? 'Cancel' : 'Annuler'}
-                      </button>
+                    <div className="flex flex-col gap-2 p-3 rounded-xl bg-red-900/20 border border-red-700/40 text-sm">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
+                        <span className="text-red-300 text-xs">
+                          {isEn ? 'Cancel subscription immediately? Access ends now.' : "Résilier immédiatement ? L'accès se termine maintenant."}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={subActionLoading}
+                          onClick={async () => {
+                            setSubActionLoading(true);
+                            try {
+                              await subscriptionApi.cancel();
+                              setSubInfo(await subscriptionApi.get());
+                              setSubActionMsg(isEn ? 'Subscription cancelled.' : 'Abonnement résilié.');
+                              setTimeout(() => setSubActionMsg(''), 3000);
+                            } catch {}
+                            setSubActionLoading(false);
+                            setCancelConfirm(false);
+                          }}
+                          className="flex-1 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors"
+                        >
+                          {isEn ? 'Confirm cancellation' : 'Confirmer la résiliation'}
+                        </button>
+                        <button onClick={() => setCancelConfirm(false)} className="flex-1 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-bold transition-colors">
+                          {isEn ? 'Keep subscription' : 'Garder mon abonnement'}
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <button
