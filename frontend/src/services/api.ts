@@ -56,6 +56,12 @@ export const authApi = {
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.put('/auth/password', data).then(r => r.data),
 
+  verifyEmail: (token: string) =>
+    api.get('/auth/verify-email', { params: { token } }).then(r => r.data.data),
+
+  resendVerification: (email: string) =>
+    api.post('/auth/resend-verify', { email }).then(r => r.data),
+
   deleteAccount: (data: { password: string }) =>
     api.delete('/auth/account', { data }).then(r => r.data),
 };

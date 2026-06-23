@@ -20,13 +20,16 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   error: string | null;
+  verificationPending: string | null; // email waiting for verification
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   loginWithToken: (token: string) => Promise<void>;
+  setUser: (user: User) => void;
   logout: () => void;
   fetchMe: () => Promise<void>;
   dismissTutorial: () => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
+  clearVerificationPending: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -34,15 +37,22 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: localStorage.getItem('token'),
   isLoading: false,
   error: null,
+  verificationPending: null,
 
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
       const data = await authApi.login({ email, password });
       localStorage.setItem('token', data.token);
-      set({ user: data.user, token: data.token, isLoading: false });
+      set({ user: data.user, token: data.token, isLoading: false, verificationPending: null });
     } catch (err: any) {
-      set({ error: err.response?.data?.error || 'Connexion échouée', isLoading: false });
+      const apiError = err.response?.data?.error;
+      if (apiError === 'EMAIL_NOT_VERIFIED') {
+        const pendingEmail = err.response?.data?.data?.email ?? email;
+        set({ verificationPending: pendingEmail, error: null, isLoading: false });
+      } else {
+        set({ error: apiError || 'Connexion échouée', isLoading: false });
+      }
       throw err;
     }
   },
@@ -51,13 +61,22 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await authApi.register({ username, email, password });
-      localStorage.setItem('token', data.token);
-      set({ user: data.user, token: data.token, isLoading: false });
+      if (data?.needsVerification) {
+        set({ verificationPending: data.email ?? email, isLoading: false });
+      } else {
+        // Fallback: old behavior if emailVerified is skipped
+        localStorage.setItem('token', data.token);
+        set({ user: data.user, token: data.token, isLoading: false });
+      }
     } catch (err: any) {
       set({ error: err.response?.data?.error || 'Inscription échouée', isLoading: false });
       throw err;
     }
   },
+
+  setUser: (user: User) => set({ user }),
+
+  clearVerificationPending: () => set({ verificationPending: null }),
 
   loginWithToken: async (token: string) => {
     localStorage.setItem('token', token);

@@ -25,8 +25,9 @@ const GlossaryPage = lazy(() => import('./pages/GlossaryPage').then(m => ({ defa
 const LearningPathPage = lazy(() => import('./pages/LearningPathPage').then(m => ({ default: m.LearningPathPage })));
 const PremiumPage = lazy(() => import('./pages/PremiumPage').then(m => ({ default: m.PremiumPage })));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage').then(m => ({ default: m.AuthCallbackPage })));
-const CGUPage     = lazy(() => import('./pages/CGUPage').then(m => ({ default: m.CGUPage })));
-const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
+const CGUPage          = lazy(() => import('./pages/CGUPage').then(m => ({ default: m.CGUPage })));
+const PrivacyPage      = lazy(() => import('./pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
+const VerifyEmailPage  = lazy(() => import('./pages/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })));
 
 export default function App() {
   const fetchMe = useAuthStore(s => s.fetchMe);
@@ -68,6 +69,7 @@ export default function App() {
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/cgu"          element={<CGUPage />} />
               <Route path="/privacy"      element={<PrivacyPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>

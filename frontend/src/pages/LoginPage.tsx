@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MailCheck, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '../components/ui/Button';
@@ -8,6 +9,7 @@ import { OnboardingModal } from '../components/onboarding/OnboardingModal';
 import { isOnboardingDone } from '../components/onboarding/onboardingState';
 import { useT } from '../i18n';
 import { useLangStore } from '../store/langStore';
+import { authApi } from '../services/api';
 
 type Mode = 'login' | 'register';
 
@@ -22,12 +24,14 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const oauthError = searchParams.get('error');
-  const { login, register, isLoading, error } = useAuthStore(
-    useShallow(s => ({ login: s.login, register: s.register, isLoading: s.isLoading, error: s.error }))
+  const { login, register, isLoading, error, verificationPending, clearVerificationPending } = useAuthStore(
+    useShallow(s => ({ login: s.login, register: s.register, isLoading: s.isLoading, error: s.error, verificationPending: s.verificationPending, clearVerificationPending: s.clearVerificationPending }))
   );
   const [mode, setMode] = useState<Mode>('login');
   const [form, setForm] = useState({ username: '', email: '', password: '' });
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendDone, setResendDone] = useState(false);
 
   const apiBase = import.meta.env.VITE_API_URL || '';
   const handleGoogleLogin = () => {
@@ -47,6 +51,56 @@ export function LoginPage() {
       }
     } catch {/* error shown via store */}
   };
+
+  const handleResend = async () => {
+    if (!verificationPending) return;
+    setResendLoading(true);
+    try {
+      await authApi.resendVerification(verificationPending);
+      setResendDone(true);
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  // Show the "check your email" screen after register or after EMAIL_NOT_VERIFIED login error
+  if (verificationPending) {
+    return (
+      <div className="max-w-md mx-auto pt-10">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gray-900/60 border border-gray-800 rounded-2xl p-8 text-center space-y-4"
+        >
+          <MailCheck size={48} className="mx-auto text-blue-400" />
+          <h1 className="text-xl font-bold text-white">Vérifie ta boîte mail</h1>
+          <p className="text-gray-400 text-sm">
+            Un lien de confirmation a été envoyé à{' '}
+            <span className="text-white font-medium">{verificationPending}</span>.
+            <br />Clique sur le lien pour activer ton compte.
+          </p>
+          {resendDone ? (
+            <p className="text-green-400 text-sm">E-mail renvoyé !</p>
+          ) : (
+            <button
+              onClick={handleResend}
+              disabled={resendLoading}
+              className="text-blue-400 hover:underline text-sm flex items-center gap-1 mx-auto"
+            >
+              {resendLoading && <Loader2 size={14} className="animate-spin" />}
+              Renvoyer l'e-mail
+            </button>
+          )}
+          <button
+            onClick={() => { clearVerificationPending(); setResendDone(false); }}
+            className="text-xs text-gray-500 hover:text-gray-400 block mx-auto"
+          >
+            Retour à la connexion
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto pt-10">
