@@ -4,7 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import routes from './routes';
-import { initFlopPool, initExpertFlopPool } from './controllers/postflopController';
+import { initFlopPool, initExpertFlopPool, initFullHandPool } from './controllers/postflopController';
 import { initEquityPool } from './controllers/trainingController';
 
 const app = express();
@@ -80,6 +80,7 @@ app.listen(PORT, () => {
   initFlopPool();
   initExpertFlopPool();
   initEquityPool();
+  initFullHandPool();
 });
 
 export default app;

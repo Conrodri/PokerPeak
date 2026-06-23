@@ -9,12 +9,12 @@ import { OPEN_RAISE } from '../services/poker/ranges';
 
 const PREGEN_FILE = path.resolve(__dirname, '../../data/pregenerated.json');
 
-function loadPregen(): { flop: object[]; expertFlop: object[] } {
+function loadPregen(): { flop: object[]; expertFlop: object[]; fullHand: object[] } {
   try {
     const raw = JSON.parse(fs.readFileSync(PREGEN_FILE, 'utf8'));
-    return { flop: raw.flop ?? [], expertFlop: raw.expertFlop ?? [] };
+    return { flop: raw.flop ?? [], expertFlop: raw.expertFlop ?? [], fullHand: raw.fullHand ?? [] };
   } catch {
-    return { flop: [], expertFlop: [] };
+    return { flop: [], expertFlop: [], fullHand: [] };
   }
 }
 
@@ -887,6 +887,134 @@ export function initExpertFlopPool(): void {
   }
 }
 
+// ─── Full hand pool ───────────────────────────────────────────────────────────
+// Full-hand exercises use deterministic equity (no Monte Carlo) so they're only
+// ~11ms each, but we still pool them for zero-latency responses.
+
+const FULLHAND_POOL_TARGET    = 20;
+const FULLHAND_POOL_THRESHOLD = 5;
+const fullHandPool: object[]  = [];
+let   fullHandRefilling       = false;
+
+export function buildFullHandExercise(): object {
+  const matchup     = RFI_MATCHUPS[Math.floor(Math.random() * RFI_MATCHUPS.length)];
+  const wantInRange = Math.random() < 0.80;
+  let deck          = shuffleDeck(createDeck());
+  let heroHand: [Card, Card] = [deck[0], deck[1]];
+  let rangeFreq     = getHandRangeFreq(heroHand, matchup.hero);
+
+  if (wantInRange && rangeFreq < 0.3) {
+    for (let attempt = 0; attempt < 8 && rangeFreq < 0.3; attempt++) {
+      deck     = shuffleDeck(createDeck());
+      heroHand = [deck[0], deck[1]];
+      rangeFreq = getHandRangeFreq(heroHand, matchup.hero);
+    }
+  }
+
+  const villainHand: [Card, Card]       = [deck[2], deck[3]];
+  const flop:        [Card, Card, Card] = [deck[4], deck[5], deck[6]];
+  const turn:        Card               = deck[7];
+  const river:       Card               = deck[8];
+
+  const isInRange        = rangeFreq >= 0.3;
+  const preflopCorrect: 'fold' | 'raise' = isInRange ? 'raise' : 'fold';
+  const notation         = toHandNotation(heroHand[0], heroHand[1]);
+
+  const preflopDecision = {
+    correctAction: preflopCorrect,
+    rangeFreq,
+    isInRange,
+    options: [
+      { key: 'fold',  labelFr: 'Fold',          labelEn: 'Fold' },
+      { key: 'raise', labelFr: 'Open raise 3bb', labelEn: 'Open raise 3bb' },
+    ],
+    explanation: {
+      fr: isInRange
+        ? `**${notation}** est dans la range ${matchup.hero} (fréquence ${Math.round(rangeFreq * 100)}%). L'open raise est la bonne action ici.`
+        : `**${notation}** n'est pas dans la range ${matchup.hero} (fréquence ${Math.round(rangeFreq * 100)}%). Le fold est correct — cette main n'est pas assez forte pour ouvrir depuis cette position.`,
+      en: isInRange
+        ? `**${notation}** is in the ${matchup.hero} opening range (${Math.round(rangeFreq * 100)}% frequency). Open raising is correct here.`
+        : `**${notation}** is not in the ${matchup.hero} opening range (${Math.round(rangeFreq * 100)}% frequency). Fold is correct — this hand isn't strong enough to open from this position.`,
+    },
+  };
+
+  let pot = matchup.potBB;
+
+  const flopDecision = buildStreetDecision(heroHand, villainHand, flop, pot, matchup.heroIP, matchup.villain);
+  pot = nextPot(pot, flopDecision.correctAction, flopDecision.villainAction, flopDecision.villainBetSize);
+
+  let turnDecision:  ReturnType<typeof buildStreetDecision> | null = null;
+  let riverDecision: ReturnType<typeof buildStreetDecision> | null = null;
+  let lastStreet: 'flop' | 'turn' | 'river' = 'flop';
+
+  if (flopDecision.correctAction !== 'fold') {
+    lastStreet   = 'turn';
+    turnDecision = buildStreetDecision(heroHand, villainHand, [...flop, turn], pot, matchup.heroIP, matchup.villain);
+    pot = nextPot(pot, turnDecision.correctAction, turnDecision.villainAction, turnDecision.villainBetSize);
+
+    if (turnDecision.correctAction !== 'fold') {
+      lastStreet    = 'river';
+      riverDecision = buildStreetDecision(heroHand, villainHand, [...flop, turn, river], pot, matchup.heroIP, matchup.villain);
+    }
+  }
+
+  const community    = [flop[0], flop[1], flop[2], turn, river];
+  const heroFinal    = evaluateBestHand([...heroHand, ...community]);
+  const villainFinal = evaluateBestHand([...villainHand, ...community]);
+  const heroWins     = heroFinal.score > villainFinal.score;
+  const isTie        = heroFinal.score === villainFinal.score;
+
+  return {
+    heroPosition:    matchup.hero,
+    villainPosition: matchup.villain,
+    heroHand,
+    heroNotation:    notation,
+    villainHand,
+    villainNotation: toHandNotation(villainHand[0], villainHand[1]),
+    flop,
+    turn,
+    river,
+    isHeroIP:       matchup.heroIP,
+    preflopContext: { fr: matchup.descFr, en: matchup.descEn },
+    lastStreet,
+    preflopDecision,
+    flopDecision,
+    turnDecision,
+    riverDecision,
+    showdown: {
+      heroWins,
+      isTie,
+      heroHandDescription:    heroFinal.description,
+      villainHandDescription: villainFinal.description,
+    },
+  };
+}
+
+async function refillFullHandPool(): Promise<void> {
+  if (fullHandRefilling) return;
+  fullHandRefilling = true;
+  try {
+    while (fullHandPool.length < FULLHAND_POOL_TARGET) {
+      fullHandPool.push(buildFullHandExercise());
+      await new Promise(resolve => setImmediate(resolve));
+    }
+  } finally {
+    fullHandRefilling = false;
+  }
+}
+
+/** Call once from server.ts after startup to warm the full hand pool. */
+export function initFullHandPool(): void {
+  const { fullHand } = loadPregen();
+  if (fullHand.length > 0) {
+    fullHandPool.push(...fullHand.slice(0, FULLHAND_POOL_TARGET));
+    console.log(`[fullHandPool] loaded ${fullHandPool.length} pre-generated exercises from file`);
+  }
+  if (fullHandPool.length < FULLHAND_POOL_TARGET) {
+    refillFullHandPool().catch(err => console.error('[fullHandPool] init error:', err));
+  }
+}
+
 // ─── Single-street exercise ───────────────────────────────────────────────────
 
 export async function getPostflopExercise(req: Request, res: Response): Promise<void> {
@@ -1002,6 +1130,16 @@ export async function getPostflopExercise(req: Request, res: Response): Promise<
 
 export async function getFullHandScenario(req: Request, res: Response): Promise<void> {
   try {
+    // Serve from pool when available (zero latency)
+    if (fullHandPool.length > 0) {
+      const data = fullHandPool.shift()!;
+      if (fullHandPool.length < FULLHAND_POOL_THRESHOLD) {
+        refillFullHandPool().catch(err => console.error('[fullHandPool] refill error:', err));
+      }
+      return void res.json({ success: true, data });
+    }
+
+    // On-demand fallback when pool is empty
     const matchup = RFI_MATCHUPS[Math.floor(Math.random() * RFI_MATCHUPS.length)];
 
     // Deal all cards from a shuffled deck.
