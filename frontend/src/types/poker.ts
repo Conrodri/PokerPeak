@@ -5,7 +5,7 @@ export type CardStr = `${Rank}${Suit}`;
 // 6-max positions only. UTG1 does not exist in 6-max (9-max concept).
 export type Position = 'UTG' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
 export type Action = 'fold' | 'call' | 'raise' | 'check' | '3bet' | '4bet';
-export type TrainingModule = 'preflop' | 'potodds' | 'equity' | 'outs' | 'bbdefense' | 'postflop' | 'fullhand' | 'rules' | 'betsizing';
+export type TrainingModule = 'preflop' | 'potodds' | 'equity' | 'outs' | 'bbdefense' | 'postflop' | 'fullhand' | 'rules' | 'betsizing' | 'bluff';
 
 export const SUIT_SYMBOL: Record<Suit, string> = {
   h: '♥', d: '♦', c: '♣', s: '♠',
@@ -97,6 +97,34 @@ export interface BBDefenseExercise {
   isMixed: boolean;
   kind: 'value3bet' | 'bluff3bet' | 'call' | 'fold';
   explanation: string;
+}
+
+export type BluffAction = 'check-fold' | 'bluff-small' | 'bluff-medium' | 'bluff-large';
+export type BluffFactorScore = 'positive' | 'neutral' | 'negative';
+
+interface BluffFactor { score: BluffFactorScore; fr: string; en: string }
+interface BluffBi { fr: string; en: string }
+
+export interface BluffExercise {
+  heroHand:         CardStr[];
+  board:            CardStr[];
+  street:           'flop' | 'turn' | 'river';
+  heroPosition:     string;
+  villainPosition:  string;
+  heroIsIP:         boolean;
+  potBB:            number;
+  stackBB:          number;
+  preflopNarrative: BluffBi;
+  streetNarrative:  BluffBi[];
+  correctAction:    BluffAction;
+  bluffAmountBB:    number;
+  factors: {
+    position:     BluffFactor;
+    board:        BluffFactor;
+    villainRange: BluffFactor;
+    heroHand:     BluffFactor;
+  };
+  explanation: BluffBi;
 }
 
 export interface ExerciseResult {

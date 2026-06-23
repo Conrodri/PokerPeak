@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { TrainingModule, Position, PreflopExercise, PotOddsExercise, EquityExercise, OutsExercise, BBDefenseExercise, ExerciseResult } from '../types/poker';
+import { TrainingModule, Position, PreflopExercise, PotOddsExercise, EquityExercise, OutsExercise, BBDefenseExercise, BluffExercise, ExerciseResult } from '../types/poker';
 import { trainingApi } from '../services/api';
 import { useModeStore } from './modeStore';
 
@@ -23,6 +23,7 @@ interface TrainingState {
   equityExercise: EquityExercise | null;
   outsExercise: OutsExercise | null;
   bbDefenseExercise: BBDefenseExercise | null;
+  bluffExercise: BluffExercise | null;
   lastResult: ExerciseResult | null;
 
   /** True while the user has an active question on screen (blocks range panel access). */
@@ -60,6 +61,7 @@ interface TrainingState {
   fetchEquityExercise: () => Promise<void>;
   fetchOutsExercise: () => Promise<void>;
   fetchBBDefenseExercise: () => Promise<void>;
+  fetchBluffExercise: () => Promise<void>;
   /** Record a client-scored result: updates local stats AND persists to backend if logged in. */
   recordResult: (isCorrect: boolean, xpEarned: number, module: string, timeTaken?: number) => Promise<void>;
   /** @deprecated Use recordResult instead */
@@ -90,6 +92,7 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   equityExercise: null,
   outsExercise: null,
   bbDefenseExercise: null,
+  bluffExercise: null,
   lastResult: null,
 
   setModule: (module) => set({ module }),
@@ -227,6 +230,16 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
     try {
       const exercise = await trainingApi.getBBDefenseExercise();
       set({ bbDefenseExercise: exercise, isLoading: false });
+    } catch {
+      set({ error: 'Impossible de charger l\'exercice', isLoading: false });
+    }
+  },
+
+  fetchBluffExercise: async () => {
+    set({ isLoading: true, error: null, lastResult: null });
+    try {
+      const exercise = await trainingApi.getBluffExercise();
+      set({ bluffExercise: exercise, isLoading: false });
     } catch {
       set({ error: 'Impossible de charger l\'exercice', isLoading: false });
     }

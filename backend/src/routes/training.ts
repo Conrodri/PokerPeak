@@ -3,6 +3,7 @@ import {
   getPreflopExercise, checkPreflopAnswer,
   getPotOddsExercise, checkPotOddsAnswer,
   getEquityExercise, getOutsExercise, getBBDefenseExercise, getBBDefenseRange,
+  getBluffExercise,
   getRangeData, startSession, recordClientResult,
 } from '../controllers/trainingController';
 import { optionalAuth } from '../middleware/auth';
@@ -32,5 +33,8 @@ router.get('/outs/exercise', getOutsExercise);
 // BB defense
 router.get('/bbdefense/exercise', getBBDefenseExercise);
 router.get('/bbdefense/range', getBBDefenseRange);
+
+// Bluff
+router.get('/bluff/exercise', getBluffExercise);
 
 export default router;

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import * as fs   from 'fs';
 import * as path from 'path';
 import { generatePreflopExercise, generatePotOddsExercise, generateEquityExercise, generateOutsExercise, generateBBDefenseExercise, calculateExerciseXP } from '../services/trainingService';
+import { generateBluffExercise } from '../services/poker/bluffService';
 import { calculatePotOdds } from '../services/poker/potOdds';
 import { getRangeMatrix, getRangeFrequency, getRangePercentage, getCorrectAction } from '../services/poker/ranges';
 import { buildBBDefenseGrid } from '../services/poker/bbDefense';
@@ -295,6 +296,15 @@ export async function getBBDefenseRange(_req: Request, res: Response): Promise<v
     res.json({ success: true, data: { grid } } as ApiResponse);
   } catch {
     res.status(500).json({ success: false, error: 'Failed to build range' } as ApiResponse);
+  }
+}
+
+export async function getBluffExercise(_req: Request, res: Response): Promise<void> {
+  try {
+    const exercise = generateBluffExercise();
+    res.json({ success: true, data: exercise } as ApiResponse);
+  } catch {
+    res.status(500).json({ success: false, error: 'Failed to generate bluff exercise' } as ApiResponse);
   }
 }
 

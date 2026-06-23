@@ -24,6 +24,7 @@ const OutsTrainer = lazy(() => import('../components/training/OutsTrainer').then
 const PostflopTrainer = lazy(() => import('../components/training/PostflopTrainer').then(m => ({ default: m.PostflopTrainer })));
 const FullHandTrainer = lazy(() => import('../components/training/FullHandTrainer').then(m => ({ default: m.FullHandTrainer })));
 const BetSizingTrainer = lazy(() => import('../components/training/BetSizingTrainer').then(m => ({ default: m.BetSizingTrainer })));
+const BluffTrainer = lazy(() => import('../components/training/BluffTrainer').then(m => ({ default: m.BluffTrainer })));
 
 const PREFLOP_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
@@ -77,6 +78,7 @@ export function TrainingPage() {
     { id: 'postflop',  label: isEn ? 'Post-flop'   : 'Post-flop',     icon: '🃏', premium: true },
     { id: 'betsizing', label: isEn ? 'Bet Sizing'  : 'Bet Sizing',    icon: '📐', premium: true },
     { id: 'fullhand',  label: isEn ? 'Full Hand'   : 'Main complète', icon: '🎰', premium: true },
+    { id: 'bluff',     label: isEn ? 'Bluff'       : 'Bluff',         icon: '🎭' },
   ], [t, isEn]);
 
   // Sync activeModule when URL param changes (e.g. navbar dropdown click)
@@ -181,6 +183,7 @@ export function TrainingPage() {
             {activeModule === 'postflop'  && <PostflopTrainer />}
             {activeModule === 'fullhand'  && <FullHandTrainer />}
             {activeModule === 'betsizing' && <BetSizingTrainer />}
+            {activeModule === 'bluff'     && <BluffTrainer />}
           </Suspense>
         </ErrorBoundary>
       </motion.div>
