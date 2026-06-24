@@ -89,6 +89,8 @@ interface RangeSectionProps {
 }
 
 function RangeSection({ matrix, mix, highlightNotation, position, isCustom, resolvedLabel, heroStack, isEn, showRange, setShowRange, t }: RangeSectionProps) {
+  const sectionRef = useRef<HTMLDivElement>(null);
+
   // BB-defense legend + tooltip, stabilized (t is a stable per-language object)
   // so the memoized RangeMatrix isn't re-rendered on every parent update.
   const bbLegend = useMemo(() => [
@@ -105,13 +107,24 @@ function RangeSection({ matrix, mix, highlightNotation, position, isCustom, reso
   if (!matrix && !mix) return null;
   return (
     <motion.div
+      ref={sectionRef}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
       className="w-full"
     >
       <button
-        onClick={() => setShowRange(v => !v)}
+        onClick={() => {
+          setShowRange(v => {
+            if (!v) {
+              // Opening: scroll to this section after a brief render delay
+              setTimeout(() => {
+                sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 50);
+            }
+            return !v;
+          });
+        }}
         className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border transition-colors mb-1
           border-gray-700 bg-gray-800/50 hover:bg-gray-800 text-sm font-semibold"
       >
