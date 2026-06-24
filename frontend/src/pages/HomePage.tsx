@@ -91,9 +91,9 @@ export function HomePage() {
       badgeColor: 'bg-purple-900 text-purple-300',
       href: '/training?module=equity',
       tiers: [
-        T_FREE(isEn ? 'Compare two hands, guided result' : 'Comparer deux mains, résultat guidé'),
-        T_ADV(isEn ? 'Hidden hints — estimate equity on your own' : 'Indice caché — estime l\'équité sans aide'),
-        T_EXP(isEn ? 'Tougher matchups, faster timer, no equity shown — pure estimation' : 'Confrontations plus dures, chrono réduit, équité masquée — estimation pure'),
+        T_FREE(isEn ? 'Min equity to call — formula shown step by step' : 'Équité min pour call — formule guidée étape par étape'),
+        T_ADV(isEn ? 'Hidden hints — calculate pot odds mentally' : 'Indice caché — calcule les cotes du pot de tête'),
+        T_EXP(isEn ? 'Tournament bounty — adjusted equity calculation' : 'Bounty tournoi — calcul d\'équité ajusté'),
       ] as Tier[],
     },
     {

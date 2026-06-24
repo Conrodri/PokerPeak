@@ -1,135 +1,93 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Info, Lightbulb } from 'lucide-react';
-import { SourcesFooter } from '../ui/SourcesFooter';
-import type { Source } from '../ui/SourcesFooter';
-
-const EQUITY_SOURCES: Source[] = [
-  { authors: 'Chen, B. & Ankenman, J.', title: 'The Mathematics of Poker', year: '2006', note: { fr: 'Calcul d\'équité, confrontations de mains et théorie de la domination', en: 'Equity calculation, hand matchups and domination theory' } },
-  { authors: 'Sklansky, D.', title: 'The Theory of Poker', year: '1994', note: { fr: 'Force relative des mains et concept d\'équité en situation', en: 'Relative hand strength and situational equity concepts' } },
-  { authors: 'PokerStrategy', title: 'Equilab — Equity calculator', year: '2012–', note: { fr: 'Calculs d\'équité main vs main et main vs range utilisés pour valider les exercices', en: 'Hand vs hand and hand vs range equity computations used to validate exercises' }, url: 'https://www.pokerstrategy.com/poker-software/equilab-holdem/' },
-  { authors: 'GTO Wizard', title: 'Equity distributions database', year: '2023', note: { fr: 'Équités réelles des confrontations clés en cash game 6-max', en: 'Actual equities for key matchups in 6-max cash game' }, url: 'https://gtowizard.com' },
-];
-const EQUITY_METHODOLOGY = {
-  fr: 'Les équités sont calculées par énumération complète (ou Monte-Carlo pour les boards ouverts) sur l\'ensemble des 48 cartes restantes. Les scénarios d\'exercice sont tirés de confrontations réelles fréquentes en cash game 6-max 100bb.',
-  en: 'Equities are computed by full enumeration (or Monte-Carlo for open boards) across all 48 remaining cards. Exercise scenarios are drawn from frequent real matchups in 6-max cash games at 100bb.',
-};
+import { ChevronRight, Info, Lightbulb, Trophy } from 'lucide-react';
 import { useTrainingStore } from '../../store/trainingStore';
-import { Hand } from '../poker/Card';
 import { Button } from '../ui/Button';
-import { ProgressBar } from '../ui/ProgressBar';
 import { SessionStatsBar } from '../ui/SessionStatsBar';
 import { VerdictBanner } from '../ui/VerdictBanner';
 import { Spinner } from '../ui/Spinner';
 import { ExplanationPanel } from '../ui/ExplanationPanel';
-import { RichLine } from '../ui/RichText';
 import { BeginnerGuide } from '../ui/BeginnerGuide';
 import { SpoilableHint } from '../ui/SpoilableHint';
 import { TrainerIntro } from '../ui/TrainerIntro';
 import { useModeStore } from '../../store/modeStore';
-import { handToDisplay } from '../../utils/pokerUtils';
 import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
-import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
+import { SourcesFooter } from '../ui/SourcesFooter';
+import type { Source } from '../ui/SourcesFooter';
+
+const EQUITY_SOURCES: Source[] = [
+  { authors: 'Sklansky, D.', title: 'The Theory of Poker', year: '1994', note: { fr: 'Cotes du pot et équité requise pour appeler', en: 'Pot odds and required equity to call' } },
+  { authors: 'Chen, B. & Ankenman, J.', title: 'The Mathematics of Poker', year: '2006', note: { fr: 'Formule de break-even et espérance de valeur', en: 'Break-even formula and expected value' } },
+];
+const EQUITY_METHODOLOGY = {
+  fr: 'Les exercices sont générés aléatoirement à partir de tailles de mises réalistes (1/3 à 1.25x pot) et de pots courants en cash game 6-max. La formule appliquée est : équité requise = appel / (pot + mise + appel).',
+  en: 'Exercises are randomly generated from realistic bet sizes (1/3 to 1.25x pot) and common 6-max cash game pots. The formula applied is: required equity = call / (pot + bet + call).',
+};
+
+const STREET_COLORS: Record<string, string> = {
+  flop:  'bg-green-900/30 text-green-300 border-green-700/50',
+  turn:  'bg-blue-900/30 text-blue-300 border-blue-700/50',
+  river: 'bg-purple-900/30 text-purple-300 border-purple-700/50',
+};
+const STREET_LABEL_FR: Record<string, string> = { flop: 'Flop', turn: 'Turn', river: 'River' };
+const STREET_LABEL_EN: Record<string, string> = { flop: 'Flop', turn: 'Turn', river: 'River' };
 
 type Phase = 'exercise' | 'result';
-
-// Build 4 equity % options around the correct value, sufficiently spread apart.
-function buildEquityOptions(correct: number): number[] {
-  const opts: number[] = [correct];
-  for (const off of [-13, 13, -7, 7, -18, 18]) {
-    if (opts.length >= 4) break;
-    const v = Math.round(Math.max(5, Math.min(90, correct + off)));
-    if (opts.every(o => Math.abs(o - v) >= 5)) opts.push(v);
-  }
-  for (let i = opts.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [opts[i], opts[j]] = [opts[j], opts[i]];
-  }
-  return opts;
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function EquityTrainer() {
-  const t = useT();
+  const t    = useT();
   const isEn = useLangStore(s => s.lang) === 'en';
-  const { equityExercise, isLoading, sessionStats, fetchEquityExercise, recordResult, setTrainerStarted } = useTrainingStore(
-    useShallow(s => ({ equityExercise: s.equityExercise, isLoading: s.isLoading, sessionStats: s.sessionStats, fetchEquityExercise: s.fetchEquityExercise, recordResult: s.recordResult, setTrainerStarted: s.setTrainerStarted }))
-  );
+  const { equityExercise, isLoading, sessionStats, fetchEquityExercise, recordResult, setTrainerStarted } =
+    useTrainingStore(useShallow(s => ({
+      equityExercise:    s.equityExercise,
+      isLoading:         s.isLoading,
+      sessionStats:      s.sessionStats,
+      fetchEquityExercise: s.fetchEquityExercise,
+      recordResult:      s.recordResult,
+      setTrainerStarted: s.setTrainerStarted,
+    })));
 
   const [showIntro, setShowIntro] = useState(true);
-  const [phase, setPhase] = useState<Phase>('exercise');
-  const [userAnswer, setUserAnswer] = useState<1 | 2 | null>(null);
-  const [userEquityAnswer, setUserEquityAnswer] = useState<number | null>(null);
+  const [phase, setPhase]         = useState<Phase>('exercise');
+  const [picked, setPicked]       = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState(false);
   const mode = useModeStore(s => s.mode);
-
-  // Expert: 4 equity % options for hand 1 — regenerated each new exercise.
-  const equityOptions = useMemo(() => {
-    if (!equityExercise || mode !== 'expert') return [];
-    return buildEquityOptions(Math.round(equityExercise.hand1Equity));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equityExercise?.hand1Notation, equityExercise?.hand2Notation, equityExercise?.board?.join(''), mode]);
 
   useEffect(() => {
     if (phase === 'result') window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [phase]);
 
-  // Lock mode switching while a question is on screen.
   useExerciseLock(!showIntro && phase === 'exercise' && !!equityExercise && !isLoading);
 
-  // Exam mode (advanced/expert): loop exercises until 3 errors; score = correct.
   const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('equity');
 
   const handleNext = async () => {
     setPhase('exercise');
-    setUserAnswer(null);
-    setUserEquityAnswer(null);
+    setPicked(null);
     setIsCorrect(false);
     await fetchEquityExercise();
   };
 
-  const handleAnswer = (hand: 1 | 2) => {
-    if (!equityExercise) return;
-    const winner = equityExercise.hand1Equity > equityExercise.hand2Equity ? 1 : 2;
-    const correct = hand === winner;
-    setUserAnswer(hand);
-    setIsCorrect(correct);
+  const handleAnswer = (option: number) => {
+    if (!equityExercise || picked !== null) return;
+    const correct      = Math.round(equityExercise.requiredEquity);
+    const isRight      = option === correct;
+    setPicked(option);
+    setIsCorrect(isRight);
     setPhase('result');
-    recordResult(correct, correct ? 15 : 5, 'equity');
-    if (examActive) recordAnswer(correct, handleNext);
-  };
-
-  // Expert: estimate hand 1's equity from 4 options. Correct = within 3% of actual.
-  const handleAnswerEquity = (pickedPct: number) => {
-    if (!equityExercise || phase !== 'exercise') return;
-    const correct = Math.abs(pickedPct - Math.round(equityExercise.hand1Equity)) <= 3;
-    setUserEquityAnswer(pickedPct);
-    setIsCorrect(correct);
-    setPhase('result');
-    recordResult(correct, correct ? 15 : 5, 'equity');
-    if (examActive) recordAnswer(correct, handleNext);
-  };
-
-  // Expert sprint: no decision within 5s → auto-pick an obviously wrong option.
-  const handleTimeout = () => {
-    if (!equityExercise || phase !== 'exercise') return;
-    if (mode === 'expert') {
-      const correctPct = Math.round(equityExercise.hand1Equity);
-      const wrong = equityOptions.find(o => Math.abs(o - correctPct) > 10) ?? (correctPct > 50 ? 20 : 80);
-      handleAnswerEquity(wrong);
-    } else {
-      handleAnswer(equityExercise.hand1Equity > equityExercise.hand2Equity ? 2 : 1);
-    }
+    recordResult(isRight, isRight ? 15 : 5, 'equity');
+    if (examActive) recordAnswer(isRight, handleNext);
   };
 
   const handleStart = async () => {
-    quitRun();              // clear any leftover exam state — normal mode never shows the lives HUD / auto-advance
+    quitRun();
     setShowIntro(false);
     setTrainerStarted(true);
     await fetchEquityExercise();
@@ -139,7 +97,7 @@ export function EquityTrainer() {
     startRun();
     setShowIntro(false);
     setTrainerStarted(true);
-    setUserAnswer(null);
+    setPicked(null);
     setIsCorrect(false);
     setPhase('exercise');
     await fetchEquityExercise();
@@ -152,56 +110,55 @@ export function EquityTrainer() {
     setPhase('exercise');
   };
 
-  // Beginner gets the simple explanation; advanced AND expert get the detailed one.
   const currentExplanation = equityExercise
     ? (mode === 'beginner' ? equityExercise.explanation : equityExercise.explanationAdvanced)
     : '';
 
+  // ── Intro ──────────────────────────────────────────────────────────────────
   if (showIntro) {
     return (
       <div className="flex flex-col gap-5 max-w-2xl mx-auto">
         <TrainerIntro
           emoji="⚖️"
-          title={isEn ? 'Equity Trainer' : 'Entraîneur Équité'}
+          title={isEn ? 'Required Equity Trainer' : 'Entraîneur Équité Requise'}
           description={isEn
-            ? 'Compare two hands and identify which has the higher equity before the showdown.'
-            : 'Comparez deux mains et identifiez celle qui a la plus forte équité avant le showdown.'}
-          whatTitle={isEn ? 'What is equity?' : "Qu'est-ce que l'équité ?"}
+            ? 'Given a pot size and a villain bet, calculate the minimum equity you need to make a profitable call.'
+            : 'Calculez l\'équité minimale nécessaire pour rentabiliser un appel, en fonction du pot et de la mise adverse.'}
+          whatTitle={isEn ? 'What is required equity?' : "Qu'est-ce que l'équité requise ?"}
           whatContent={
             <>
               <p className="text-gray-400 text-xs leading-snug mb-2.5">
-                <RichLine text={isEn
-                  ? 'Your percentage chance of winning the pot at showdown. Two hands can be close (55/45) or very unbalanced (80/20) depending on the board and card combinations.'
-                  : 'Le pourcentage de chances de gagner le pot au showdown. Deux mains peuvent être proches (55/45) ou très déséquilibrées (80/20) selon le board et les combinaisons de cartes.'} />
+                {isEn
+                  ? 'When villain bets, calling is only profitable if your chance of winning (equity) exceeds the mathematical threshold imposed by the pot odds.'
+                  : 'Quand vilain mise, appeler n\'est rentable que si votre chance de gagner (équité) dépasse le seuil mathématique imposé par les cotes du pot.'}
               </p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {[
-                  { emoji: '🔴', label: isEn ? 'Dominated hand' : 'Main dominée', desc: isEn ? 'e.g. A♠K♦ vs A♣K♣ — 30/70' : 'ex. A♠K♦ vs A♣K♣ — 30/70' },
-                  { emoji: '🟡', label: isEn ? 'Coin flip' : 'Coin flip', desc: isEn ? 'e.g. J♠J♦ vs A♠K♠ — 53/47' : 'ex. V♠V♦ vs A♠K♠ — 53/47' },
-                ].map(s => (
-                  <div key={s.label} className="bg-gray-800/50 rounded-lg px-2 py-1.5 border border-gray-700 text-center">
-                    <div className="text-base mb-0.5">{s.emoji}</div>
-                    <div className="text-white font-bold text-xs">{s.label}</div>
-                    <div className="text-gray-500 text-[10px] mt-0.5 leading-tight">{s.desc}</div>
-                  </div>
-                ))}
+              <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 font-mono text-sm text-center mb-2">
+                <p className="text-gray-400 text-xs mb-1">{isEn ? 'Formula' : 'Formule'}</p>
+                <p className="text-white font-bold">
+                  {isEn ? 'Equity = Call ÷ (Pot + Bet + Call)' : 'Équité = Appel ÷ (Pot + Mise + Appel)'}
+                </p>
+              </div>
+              <div className="bg-gray-800/30 rounded-lg px-3 py-2 text-xs text-gray-400">
+                {isEn
+                  ? '→ Example: Pot 15 BB, bet 5 BB → 5 ÷ (15 + 5 + 5) = 5/25 = 20%'
+                  : '→ Exemple : Pot 15 BB, mise 5 BB → 5 ÷ (15 + 5 + 5) = 5/25 = 20%'}
               </div>
             </>
           }
           steps={isEn ? [
-            '🎯 Two hands are displayed (with or without a board)',
-            '⚖️ Choose which hand has the higher equity',
-            '📊 Monte Carlo simulation (5,000 iterations) gives the exact result',
-            '💡 Analysis of key factors: raw strength, blockers, board texture',
+            '🎯 A street is shown with the pot size and villain\'s bet',
+            '🧮 Calculate the minimum equity to call profitably',
+            '✅ Choose from 4 percentage options',
+            '📊 See the full calculation breakdown with explanation',
           ] : [
-            '🎯 Deux mains sont affichées (avec ou sans board)',
-            '⚖️ Choisissez laquelle a la plus forte équité',
-            '📊 Simulation Monte Carlo (5 000 itérations) donne le résultat exact',
-            '💡 Analyse des facteurs clés : force brute, blockers, texture du board',
+            '🎯 Un spot est affiché avec le pot et la mise de vilain',
+            '🧮 Calculez l\'équité minimale pour appeler en profit',
+            '✅ Choisissez parmi 4 options en pourcentage',
+            '📊 Visualisez le calcul complet avec explication',
           ]}
-          beginnerHint={isEn ? "Shows hand strengths & equity hints" : "Affiche la force des mains & l'équité"}
-          advancedHint={isEn ? 'No hints — trust your read' : 'Sans indices — faites confiance à votre lecture'}
-          expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
+          beginnerHint={isEn ? 'Formula shown step by step' : 'Formule affichée étape par étape'}
+          advancedHint={isEn ? 'No formula — calculate mentally' : 'Sans formule — calculez de tête'}
+          expertHint={isEn ? 'Tournament bounty — adjusted calculation' : 'Tournoi avec bounty — calcul ajusté'}
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
@@ -219,17 +176,25 @@ export function EquityTrainer() {
     );
   }
 
+  const ex = equityExercise;
+  const resetKey = ex ? `${ex.potBB}-${ex.betBB}-${ex.street}` : 'loading';
+  const correctInt = ex ? Math.round(ex.requiredEquity) : 0;
+
   return (
     <div className="flex flex-col gap-6 max-w-xl mx-auto">
 
-      {/* Header — replaced by the lives HUD during an exam */}
+      {/* Header */}
       {examActive ? (
         <ExamHud onQuit={handleQuitExam} />
       ) : (
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white mb-1">{t.training.equity_title}</h2>
-            <p className="text-gray-400 text-sm">{t.training.equity_subtitle}</p>
+            <h2 className="text-2xl font-bold text-white mb-1">
+              {isEn ? 'Required Equity' : 'Équité Requise'}
+            </h2>
+            <p className="text-gray-400 text-sm">
+              {isEn ? 'What % equity to call villain?' : 'Quelle % d\'équité pour call vilain ?'}
+            </p>
           </div>
           <button
             onClick={() => { setShowIntro(true); setTrainerStarted(false); }}
@@ -241,142 +206,96 @@ export function EquityTrainer() {
         </div>
       )}
 
-      {/* Expert sprint countdown */}
-      {phase === 'exercise' && (
-        <SprintTimer
-          active={examActive && mode === 'expert' && !!equityExercise && !isLoading}
-          resetKey={`${equityExercise?.hand1Notation}-${equityExercise?.hand2Notation}-${equityExercise?.board?.join('')}`}
-          onTimeout={handleTimeout}
-        />
-      )}
-
-      {/* ── Exercise ── */}
+      {/* Exercise */}
       {phase === 'exercise' && (
         <AnimatePresence mode="wait">
           <motion.div
-            key={equityExercise?.hand1Notation}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            key={resetKey}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             className="flex flex-col gap-5"
           >
             {isLoading ? (
               <Spinner />
-            ) : equityExercise ? (
+            ) : ex ? (
               <>
-                {/* Board */}
-                {equityExercise.board.length > 0 && (
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-px flex-1 bg-gray-800" />
-                      <p className="text-gray-500 text-xs uppercase tracking-wider font-semibold">
-                        {equityExercise.board.length === 3 ? 'Flop' : equityExercise.board.length === 4 ? 'Turn' : 'River'}
-                      </p>
-                      <div className="h-px flex-1 bg-gray-800" />
-                    </div>
-                    <div className="p-3 rounded-xl border border-felt-800/40" style={{ background: 'rgba(10,53,32,0.5)' }}>
-                      <Hand cards={equityExercise.board} size="md" />
-                    </div>
+                {/* Street badge */}
+                <div className="flex justify-center">
+                  <span className={`px-4 py-1 rounded-full border text-xs font-bold ${STREET_COLORS[ex.street]}`}>
+                    {isEn ? STREET_LABEL_EN[ex.street] : STREET_LABEL_FR[ex.street]}
+                  </span>
+                </div>
+
+                {/* Spot info card */}
+                <div className="rounded-2xl border border-gray-700 bg-gray-800/50 divide-y divide-gray-700/60">
+                  <div className="flex items-center justify-between px-5 py-3">
+                    <span className="text-gray-400 text-sm">{isEn ? 'Pot' : 'Pot'}</span>
+                    <span className="font-mono font-bold text-white text-lg">{ex.potBB} BB</span>
                   </div>
-                )}
-
-                {/* Expert: estimate hand 1's equity; non-expert: pick the winning hand */}
-                {mode === 'expert' ? (
-                  <>
-                    {/* Both hands displayed (non-clickable) */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {([1, 2] as const).map(handNum => {
-                        const hand = handNum === 1 ? equityExercise.hand1 : equityExercise.hand2;
-                        const notation = handNum === 1 ? equityExercise.hand1Notation : equityExercise.hand2Notation;
-                        return (
-                          <div key={handNum} className="bg-gray-800/60 border border-gray-700 rounded-2xl p-4 flex flex-col items-center gap-2">
-                            <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide">{t.training.hand_lbl} {handNum}</p>
-                            <Hand cards={hand} size="md" />
-                            <p className="text-gold-400 font-mono font-bold">{handToDisplay(notation)}</p>
-                          </div>
-                        );
-                      })}
+                  <div className="flex items-center justify-between px-5 py-3">
+                    <span className="text-gray-400 text-sm">
+                      {isEn ? `Villain (${ex.villainPosition}) bets` : `Vilain (${ex.villainPosition}) mise`}
+                      <span className="ml-2 text-xs text-gray-600">({ex.betFractionLabel})</span>
+                    </span>
+                    <span className="font-mono font-bold text-amber-400 text-lg">{ex.betBB} BB</span>
+                  </div>
+                  {/* Expert: bounty */}
+                  {ex.hasBounty && (
+                    <div className="flex items-center justify-between px-5 py-3 bg-yellow-900/10">
+                      <span className="text-yellow-400 text-sm flex items-center gap-1.5">
+                        <Trophy size={13} />
+                        {isEn ? 'Tournament bounty at stake' : 'Bounty en jeu (tournoi)'}
+                      </span>
+                      <span className="font-mono font-bold text-yellow-300 text-lg">{ex.bountyBB} BB</span>
                     </div>
+                  )}
+                </div>
 
-                    {/* Question */}
-                    <p className="text-center text-white font-semibold text-lg">
-                      {isEn ? "What is Hand 1's equity?" : "Quelle est l'équité de la Main 1 ?"}
-                    </p>
-
-                    {/* 4 equity % buttons */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {equityOptions.map(pct => (
-                        <motion.button
-                          key={pct}
-                          onClick={() => handleAnswerEquity(pct)}
-                          whileHover={{ scale: 1.03, borderColor: '#a78bfa' }}
-                          whileTap={{ scale: 0.97 }}
-                          className="bg-gray-800/80 border-2 border-gray-600 rounded-xl p-4 text-white font-mono font-bold text-2xl transition-all"
-                        >
-                          {pct}%
-                        </motion.button>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Question */}
-                    <p className="text-center text-white font-semibold text-lg">
-                      {isEn ? 'Which hand has more equity?' : "Quelle main a le plus d'equity ?"}
-                    </p>
-
-                    {/* Hand buttons */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {([1, 2] as const).map(handNum => {
-                        const hand = handNum === 1 ? equityExercise.hand1 : equityExercise.hand2;
-                        const notation = handNum === 1 ? equityExercise.hand1Notation : equityExercise.hand2Notation;
-                        return (
-                          <motion.button
-                            key={handNum}
-                            onClick={() => handleAnswer(handNum)}
-                            whileHover={{ scale: 1.03, borderColor: '#a78bfa' }}
-                            whileTap={{ scale: 0.97 }}
-                            className="bg-gray-800/80 border-2 border-gray-600 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer transition-all group"
-                          >
-                            <p className="text-gray-400 text-xs font-semibold uppercase tracking-wide">
-                              {t.training.hand_lbl} {handNum}
-                            </p>
-                            <Hand cards={hand} size="md" />
-                            <p className="text-gold-400 font-mono font-bold text-lg">{handToDisplay(notation)}</p>
-                            <p className="text-purple-400 text-xs font-semibold group-hover:text-purple-300">
-                              {t.training.select_hand}
-                            </p>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-
-                <p className="text-center text-gray-500 text-xs">
-                  {equityExercise.board.length === 0
-                    ? (isEn ? 'Pre-flop equity' : 'Equity pré-flop')
-                    : `${isEn ? 'Board with' : 'Board à'} ${equityExercise.board.length} ${isEn ? 'cards' : 'cartes'}`}
+                {/* Question */}
+                <p className="text-center text-white font-semibold text-lg">
+                  {ex.hasBounty
+                    ? (isEn ? 'With this bounty, what minimum equity to call?' : 'Avec ce bounty, quelle équité minimale pour appeler ?')
+                    : (isEn ? 'What minimum equity do you need to call?' : 'Quelle équité minimale pour appeler ?')}
                 </p>
 
-                {/* Guidance below the decision — no scrolling needed to answer. */}
+                {/* 4 option buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  {ex.options.map(opt => (
+                    <motion.button
+                      key={opt}
+                      onClick={() => handleAnswer(opt)}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="bg-gray-800/80 border-2 border-gray-600 hover:border-purple-500 rounded-xl p-4 text-white font-mono font-bold text-2xl transition-all"
+                    >
+                      {opt}%
+                    </motion.button>
+                  ))}
+                </div>
+
+                {/* Beginner guide */}
                 <BeginnerGuide
-                  title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
+                  title={isEn ? 'How to calculate' : 'Comment calculer'}
                   text={isEn
-                    ? `Two players show their cards. ${equityExercise.board.length > 0 ? 'Some shared cards (the board) are already on the table.' : 'No shared card yet — this is pre-flop.'}\n**Equity** = the chance a hand has to win if we go all the way to the end.\n👉 Your job: just guess **which of the two hands is more likely to win**. Tap on Hand 1 or Hand 2.\n💡 A bigger pair, two high cards, or cards that fit the board usually win more often.`
-                    : `Deux joueurs montrent leurs cartes. ${equityExercise.board.length > 0 ? 'Des cartes communes (le board) sont déjà sur la table.' : 'Aucune carte commune encore — on est pré-flop.'}\nL'**équité** = la chance qu'a une main de gagner si on va jusqu'au bout.\n👉 Ton travail : devine simplement **quelle main a le plus de chances de gagner**. Clique sur Main 1 ou Main 2.\n💡 Une plus grosse paire, deux grosses cartes, ou des cartes qui collent au board gagnent plus souvent.`}
+                    ? `Use the pot odds formula:\n**Equity = Call ÷ (Pot + Bet + Call)**\n→ Call = ${ex.betBB} BB (you must match villain's bet)\n→ Total pot = ${ex.potBB} + ${ex.betBB} + ${ex.betBB} = ${ex.potBB + 2 * ex.betBB} BB\n→ Required equity = ${ex.betBB} ÷ ${ex.potBB + 2 * ex.betBB} = **${ex.requiredEquity}%**${ex.hasBounty ? `\n\n🏆 **With bounty:** total value = ${ex.potBB + 2 * ex.betBB} + ${ex.bountyBB} = ${ex.potBB + 2 * ex.betBB + ex.bountyBB} BB\n→ Adjusted equity = ${ex.betBB} ÷ ${ex.potBB + 2 * ex.betBB + ex.bountyBB} = **${ex.requiredEquityBounty}%**` : ''}`
+                    : `Utilisez la formule des cotes du pot :\n**Équité = Appel ÷ (Pot + Mise + Appel)**\n→ Appel = ${ex.betBB} BB (vous devez matcher la mise de vilain)\n→ Pot total = ${ex.potBB} + ${ex.betBB} + ${ex.betBB} = ${ex.potBB + 2 * ex.betBB} BB\n→ Équité requise = ${ex.betBB} ÷ ${ex.potBB + 2 * ex.betBB} = **${ex.requiredEquity}%**${ex.hasBounty ? `\n\n🏆 **Avec bounty :** valeur totale = ${ex.potBB + 2 * ex.betBB} + ${ex.bountyBB} = ${ex.potBB + 2 * ex.betBB + ex.bountyBB} BB\n→ Équité ajustée = ${ex.betBB} ÷ ${ex.potBB + 2 * ex.betBB + ex.bountyBB} = **${ex.requiredEquityBounty}%**` : ''}`}
                 />
 
-                {/* Indice — beginner shows it; advanced reveals behind a
-                    streak-breaking spoiler; expert hides it. */}
-                <SpoilableHint resetKey={equityExercise.hand1Notation + equityExercise.hand2Notation} className="w-full">
+                {/* Spoilable hint */}
+                <SpoilableHint resetKey={resetKey} className="w-full">
                   <div className="w-full rounded-xl border border-amber-700/40 bg-amber-950/30 px-4 py-3 flex items-start gap-2 text-left">
                     <Lightbulb size={15} className="text-amber-400 mt-0.5 shrink-0" />
                     <div className="text-xs text-gray-300 leading-relaxed">
-                      <p className="font-bold text-amber-300 mb-1">{isEn ? 'How to compare' : 'Comment comparer'}</p>
-                      <p>• {isEn ? 'A made hand (pair, trips…) beats a simple draw.' : 'Une main faite (paire, brelan…) bat un simple tirage.'}</p>
-                      <p>• {isEn ? 'Equal pairs → the bigger pair or better kicker wins.' : 'À paires égales → la plus grosse paire ou le meilleur kicker gagne.'}</p>
-                      <p>• {isEn ? 'More draws (flush, straight, overcards) = more equity.' : 'Plus de tirages (couleur, quinte, surcartes) = plus d\'équité.'}</p>
-                      <p>• {isEn ? 'Suited / connected cards add bonus equity.' : 'Cartes assorties / connectées = équité bonus.'}</p>
+                      <p className="font-bold text-amber-300 mb-1">{isEn ? 'Hint' : 'Indice'}</p>
+                      <p>• {isEn
+                        ? `Call = ${ex.betBB} BB. Total pot if you call = ${ex.potBB + 2 * ex.betBB} BB.`
+                        : `Appel = ${ex.betBB} BB. Pot total si vous appelez = ${ex.potBB + 2 * ex.betBB} BB.`}</p>
+                      <p>• {isEn ? 'Divide: call ÷ total pot.' : 'Divisez : appel ÷ pot total.'}</p>
+                      {ex.hasBounty && (
+                        <p>• {isEn
+                          ? `Add the bounty (${ex.bountyBB} BB) to the total pot before dividing.`
+                          : `Ajoutez le bounty (${ex.bountyBB} BB) au pot total avant de diviser.`}</p>
+                      )}
                     </div>
                   </div>
                 </SpoilableHint>
@@ -386,77 +305,76 @@ export function EquityTrainer() {
         </AnimatePresence>
       )}
 
-      {/* ── Result ── */}
-      {phase === 'result' && equityExercise && (
+      {/* Result */}
+      {phase === 'result' && ex && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
 
-          {/* Verdict */}
           <VerdictBanner isCorrect={isCorrect} />
 
-          {/* Equity comparison */}
-          <div className="bg-gray-800/60 rounded-2xl p-5 border border-gray-700 space-y-4">
-            <p className="font-semibold text-gray-300 text-sm flex items-center gap-1.5">
-              <Info size={14} /> {t.training.real_equity}
+          {/* Calculation breakdown */}
+          <div className="rounded-2xl border border-gray-700 bg-gray-800/50 p-5 space-y-4">
+            <p className="text-sm font-semibold text-gray-300">
+              {isEn ? 'Calculation' : 'Calcul'}
             </p>
 
-            {([1, 2] as const).map(handNum => {
-              const notation = handNum === 1 ? equityExercise.hand1Notation : equityExercise.hand2Notation;
-              const hand     = handNum === 1 ? equityExercise.hand1 : equityExercise.hand2;
-              const equity   = handNum === 1 ? equityExercise.hand1Equity : equityExercise.hand2Equity;
-              const isWinner = handNum === (equityExercise.hand1Equity > equityExercise.hand2Equity ? 1 : 2);
-              const wasSelected = userAnswer === handNum;
-
-              return (
-                <div key={handNum} className={`p-3 rounded-xl border ${isWinner ? 'border-green-600/50 bg-green-900/15' : 'border-gray-700 bg-gray-900/40'}`}>
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <Hand cards={hand} size="sm" animate={false} />
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-gold-400 font-bold">{handToDisplay(notation)}</span>
-                      {wasSelected && (
-                        <span className="text-xs bg-blue-900/60 text-blue-300 px-2 py-0.5 rounded-full border border-blue-800">
-                          {t.training.your_choice}
-                        </span>
-                      )}
-                      {isWinner && (
-                        <span className="text-xs bg-green-900/60 text-green-300 px-2 py-0.5 rounded-full border border-green-800">
-                          {t.training.winner_lbl}
-                        </span>
-                      )}
-                    </div>
-                    <span className={`ml-auto font-mono font-black text-xl ${isWinner ? 'text-green-400' : 'text-gray-400'}`}>
-                      {equity}%
-                    </span>
-                  </div>
-                  <ProgressBar value={equity} color={isWinner ? 'green' : 'red'} size="sm" />
-                </div>
-              );
-            })}
-
-            {mode === 'expert' && userEquityAnswer !== null && (
-              <div className="flex items-center justify-center gap-3 text-sm">
-                <span className="text-gray-400">{isEn ? 'Your estimate' : 'Votre estimation'} :</span>
-                <span className="font-mono font-bold text-white">{userEquityAnswer}%</span>
-                <span className="text-gray-600">→</span>
-                <span className="text-gray-400">{isEn ? 'Actual' : 'Réel'} :</span>
-                <span className="font-mono font-bold text-green-400">{Math.round(equityExercise.hand1Equity)}%</span>
-              </div>
-            )}
-
-            {equityExercise.hand1Equity + equityExercise.hand2Equity < 99 && (
-              <p className="text-xs text-gray-500 text-center">
-                {t.training.draw_lbl} {(100 - equityExercise.hand1Equity - equityExercise.hand2Equity).toFixed(1)}%
+            {/* Formula */}
+            <div className="bg-gray-900/60 rounded-xl p-4 font-mono text-sm space-y-1.5">
+              <p className="text-gray-500 text-xs mb-2">
+                {isEn ? 'Required equity = call ÷ (pot + bet + call)' : 'Équité requise = appel ÷ (pot + mise + appel)'}
               </p>
-            )}
+              <p className="text-white">
+                = <span className="text-amber-400">{ex.betBB}</span>
+                {' '}÷ ({ex.potBB} + {ex.betBB} + {ex.betBB})
+              </p>
+              <p className="text-white">
+                = <span className="text-amber-400">{ex.betBB}</span>
+                {' '}÷{' '}
+                <span className="text-white">{ex.potBB + 2 * ex.betBB}</span>
+              </p>
+              <p className="text-green-400 font-bold text-base">
+                = {ex.requiredEquity}%
+              </p>
+            </div>
 
-            {equityExercise.board.length > 0 && (
-              <div className="flex flex-col items-center gap-1.5 pt-2 border-t border-gray-700">
-                <p className="text-xs text-gray-500 uppercase tracking-wide">{t.training.board_lbl}</p>
-                <Hand cards={equityExercise.board} size="sm" animate={false} />
+            {/* Expert bounty breakdown */}
+            {ex.hasBounty && (
+              <div className="bg-yellow-900/10 border border-yellow-700/30 rounded-xl p-4 font-mono text-sm space-y-1.5">
+                <p className="text-yellow-400 text-xs font-semibold mb-2 flex items-center gap-1">
+                  <Trophy size={11} />
+                  {isEn ? 'With bounty adjustment' : 'Avec ajustement bounty'}
+                </p>
+                <p className="text-gray-300">
+                  {isEn ? 'Effective pot' : 'Pot effectif'} = {ex.potBB + 2 * ex.betBB} + <span className="text-yellow-400">{ex.bountyBB}</span> = {ex.potBB + 2 * ex.betBB + ex.bountyBB} BB
+                </p>
+                <p className="text-white">
+                  = {ex.betBB} ÷ {ex.potBB + 2 * ex.betBB + ex.bountyBB}
+                </p>
+                <p className="text-yellow-300 font-bold text-base">
+                  = {ex.requiredEquityBounty}%
+                  <span className="text-xs text-yellow-600 ml-2">
+                    ({isEn ? `${(ex.requiredEquity - ex.requiredEquityBounty).toFixed(1)}% saved vs no bounty` : `${(ex.requiredEquity - ex.requiredEquityBounty).toFixed(1)}% économisés vs sans bounty`})
+                  </span>
+                </p>
               </div>
             )}
+
+            {/* Your answer vs correct */}
+            <div className="flex items-center gap-3 text-sm pt-1">
+              <span className="text-gray-400">{isEn ? 'Your answer' : 'Votre réponse'} :</span>
+              <span className={`font-mono font-bold text-lg ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
+                {picked}%
+              </span>
+              {!isCorrect && (
+                <>
+                  <span className="text-gray-600">→</span>
+                  <span className="text-gray-400">{isEn ? 'Correct' : 'Correct'} :</span>
+                  <span className="font-mono font-bold text-lg text-green-400">{correctInt}%</span>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Next button + session stats — hidden during an exam (auto-advances) */}
+          {/* Next + stats */}
           {!examActive && (
             <>
               <Button size="lg" variant="gold" onClick={handleNext} fullWidth>
@@ -470,10 +388,10 @@ export function EquityTrainer() {
             </>
           )}
 
-          {/* Explanation — beginner only, hidden during an exam */}
           {!examActive && <ExplanationPanel text={currentExplanation} />}
         </motion.div>
       )}
+
       <SourcesFooter isEn={isEn} sources={EQUITY_SOURCES} methodology={EQUITY_METHODOLOGY} />
     </div>
   );

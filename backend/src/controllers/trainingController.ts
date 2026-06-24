@@ -33,59 +33,7 @@ function loadPregenTraining(): {
 
 type Lang = 'fr' | 'en';
 
-// ─── Equity beginner pool ─────────────────────────────────────────────────────
-
-const EQUITY_POOL_TARGET    = 40;
-const EQUITY_POOL_THRESHOLD = 10;
-const equityPoolFr: object[] = [];
-const equityPoolEn: object[] = [];
-let   equityRefilling        = false;
-
-async function refillEquityPool(): Promise<void> {
-  if (equityRefilling) return;
-  equityRefilling = true;
-  try {
-    while (equityPoolFr.length < EQUITY_POOL_TARGET || equityPoolEn.length < EQUITY_POOL_TARGET) {
-      if (equityPoolFr.length < EQUITY_POOL_TARGET) {
-        equityPoolFr.push(generateEquityExercise('fr', 'beginner'));
-        await new Promise(resolve => setImmediate(resolve));
-      }
-      if (equityPoolEn.length < EQUITY_POOL_TARGET) {
-        equityPoolEn.push(generateEquityExercise('en', 'beginner'));
-        await new Promise(resolve => setImmediate(resolve));
-      }
-    }
-  } finally {
-    equityRefilling = false;
-  }
-}
-
-// ─── Equity advanced pool ─────────────────────────────────────────────────────
-
-const EQUITY_ADV_TARGET    = 40;
-const EQUITY_ADV_THRESHOLD = 10;
-const equityAdvPoolFr: object[] = [];
-const equityAdvPoolEn: object[] = [];
-let   equityAdvRefilling        = false;
-
-async function refillEquityAdvPool(): Promise<void> {
-  if (equityAdvRefilling) return;
-  equityAdvRefilling = true;
-  try {
-    while (equityAdvPoolFr.length < EQUITY_ADV_TARGET || equityAdvPoolEn.length < EQUITY_ADV_TARGET) {
-      if (equityAdvPoolFr.length < EQUITY_ADV_TARGET) {
-        equityAdvPoolFr.push(generateEquityExercise('fr', 'advanced'));
-        await new Promise(resolve => setImmediate(resolve));
-      }
-      if (equityAdvPoolEn.length < EQUITY_ADV_TARGET) {
-        equityAdvPoolEn.push(generateEquityExercise('en', 'advanced'));
-        await new Promise(resolve => setImmediate(resolve));
-      }
-    }
-  } finally {
-    equityAdvRefilling = false;
-  }
-}
+// Equity exercises are now O(1) pure-math — no pool needed.
 
 // ─── Preflop pool ─────────────────────────────────────────────────────────────
 
@@ -117,23 +65,14 @@ async function refillPreflopPool(): Promise<void> {
 // ─── Init (called from server.ts) ────────────────────────────────────────────
 
 export function initEquityPool(): void {
-  const { equityFr, equityEn, equityAdvancedFr, equityAdvancedEn, preflopFr, preflopEn } = loadPregenTraining();
+  const { preflopFr, preflopEn } = loadPregenTraining();
 
-  equityPoolFr.push(...equityFr.slice(0, EQUITY_POOL_TARGET));
-  equityPoolEn.push(...equityEn.slice(0, EQUITY_POOL_TARGET));
-  equityAdvPoolFr.push(...equityAdvancedFr.slice(0, EQUITY_ADV_TARGET));
-  equityAdvPoolEn.push(...equityAdvancedEn.slice(0, EQUITY_ADV_TARGET));
   preflopPoolFr.push(...preflopFr.slice(0, PREFLOP_POOL_TARGET));
   preflopPoolEn.push(...preflopEn.slice(0, PREFLOP_POOL_TARGET));
 
-  console.log(`[equityPool]    beginner: ${equityPoolFr.length} FR + ${equityPoolEn.length} EN`);
-  console.log(`[equityPool]    advanced: ${equityAdvPoolFr.length} FR + ${equityAdvPoolEn.length} EN`);
   console.log(`[preflopPool]   ${preflopPoolFr.length} FR + ${preflopPoolEn.length} EN`);
+  // Equity exercises are now pure-math — generated on-demand, no pool.
 
-  if (equityPoolFr.length < EQUITY_POOL_TARGET || equityPoolEn.length < EQUITY_POOL_TARGET)
-    refillEquityPool().catch(err => console.error('[equityPool] init error:', err));
-  if (equityAdvPoolFr.length < EQUITY_ADV_TARGET || equityAdvPoolEn.length < EQUITY_ADV_TARGET)
-    refillEquityAdvPool().catch(err => console.error('[equityAdvPool] init error:', err));
   if (preflopPoolFr.length < PREFLOP_POOL_TARGET || preflopPoolEn.length < PREFLOP_POOL_TARGET)
     refillPreflopPool().catch(err => console.error('[preflopPool] init error:', err));
 }
@@ -236,33 +175,12 @@ export async function checkPotOddsAnswer(req: Request, res: Response): Promise<v
   }
 }
 
-export async function getEquityExercise(req: Request, res: Response): Promise<void> {
+export function getEquityExercise(req: Request, res: Response): void {
   try {
     const lang       = getLang(req);
     const mode       = (req.query.mode === 'advanced' ? 'advanced' : 'beginner') as 'beginner' | 'advanced';
     const difficulty = req.query.difficulty === 'expert' ? 'expert' : undefined;
-
-    // Serve from pool for non-expert beginner and advanced cases
-    if (mode === 'beginner' && !difficulty) {
-      const pool = lang === 'en' ? equityPoolEn : equityPoolFr;
-      if (pool.length > 0) {
-        const data = pool.shift()!;
-        if (equityPoolFr.length < EQUITY_POOL_THRESHOLD || equityPoolEn.length < EQUITY_POOL_THRESHOLD)
-          refillEquityPool().catch(err => console.error('[equityPool] refill error:', err));
-        return void res.json({ success: true, data } as ApiResponse);
-      }
-    }
-    if (mode === 'advanced' && !difficulty) {
-      const pool = lang === 'en' ? equityAdvPoolEn : equityAdvPoolFr;
-      if (pool.length > 0) {
-        const data = pool.shift()!;
-        if (equityAdvPoolFr.length < EQUITY_ADV_THRESHOLD || equityAdvPoolEn.length < EQUITY_ADV_THRESHOLD)
-          refillEquityAdvPool().catch(err => console.error('[equityAdvPool] refill error:', err));
-        return void res.json({ success: true, data } as ApiResponse);
-      }
-    }
-
-    const exercise = generateEquityExercise(lang, mode, difficulty);
+    const exercise   = generateEquityExercise(lang, mode, difficulty);
     res.json({ success: true, data: exercise } as ApiResponse);
   } catch {
     res.status(500).json({ success: false, error: 'Failed to generate exercise' } as ApiResponse);

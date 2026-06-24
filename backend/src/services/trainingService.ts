@@ -1,10 +1,7 @@
-import { Card, Position, PreflopExercise, EquityExercise } from '../types';
-import { dealHand, dealBoard, toHandNotation } from './poker/cards';
+import { Position, PreflopExercise, EquityExercise } from '../types';
+import { dealHand, toHandNotation } from './poker/cards';
 import { getCorrectAction } from './poker/ranges';
-import { calculateEquity } from './poker/equity';
-import { preflopEquityResult } from './poker/preflopEquity';
 import { getRandomScenario, generateClosePotOddsScenario, calculatePotOdds, buildEquityExplanation, buildThresholdExplanation } from './poker/potOdds';
-import { generateEquityExplanation } from './poker/equityAnalyzer';
 import { getRandomOutsScenario, buildOutsOptions, buildOutsExplanation, estimateEquityFromOuts } from './poker/outs';
 import { getBBDefenseAction, buildBBDefenseExplanation } from './poker/bbDefense';
 
@@ -150,85 +147,82 @@ export function generatePotOddsExercise(lang: 'fr' | 'en' = 'fr', difficulty?: '
   };
 }
 
+// ─── Equity: required-equity-to-call generator ───────────────────────────────
+// Pure math — no Monte Carlo needed. O(1) per exercise.
+
+const EQUITY_POTS     = [6, 8, 9, 10, 12, 14, 15, 18, 20, 24, 25, 28, 30, 36, 40, 50];
+const EQUITY_BETS     = [
+  { label: '1/3 pot',   labelEn: '1/3 pot',   frac: 1 / 3  },
+  { label: '1/2 pot',   labelEn: '1/2 pot',   frac: 1 / 2  },
+  { label: '2/3 pot',   labelEn: '2/3 pot',   frac: 2 / 3  },
+  { label: 'pot',       labelEn: 'pot',        frac: 1      },
+  { label: '1.25x pot', labelEn: '1.25x pot',  frac: 1.25   },
+];
+const EQUITY_STREETS  = ['flop', 'turn', 'river'] as const;
+const EQUITY_BOUNTIES = [8, 10, 12, 15, 20, 25];
+const ALL_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+
+function buildEquityCallOptions(correctInt: number): number[] {
+  const opts: number[] = [correctInt];
+  for (const off of [-8, 8, -14, 14, -5, 5, -20, 20]) {
+    if (opts.length >= 4) break;
+    const v = Math.max(5, Math.min(50, correctInt + off));
+    if (opts.every(o => Math.abs(o - v) >= 4)) opts.push(v);
+  }
+  // Fisher-Yates shuffle
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  return opts;
+}
+
 export function generateEquityExercise(
   lang: 'fr' | 'en' = 'fr',
-  mode: 'beginner' | 'advanced' = 'beginner',
+  _mode: 'beginner' | 'advanced' = 'beginner',
   difficulty?: 'expert',
-): EquityExercise & {
-  hand1Notation: string;
-  hand2Notation: string;
-  explanation: string;
-  explanationAdvanced: string;
-} {
-  const expert = difficulty === 'expert';
+): EquityExercise {
+  const potBB  = EQUITY_POTS[Math.floor(Math.random() * EQUITY_POTS.length)];
+  const betCfg = EQUITY_BETS[Math.floor(Math.random() * EQUITY_BETS.length)];
+  const betBB  = Math.max(1, Math.round(potBB * betCfg.frac));
 
-  // Non-expert: 1 000 sims is more than enough for a binary "which is higher" question.
-  // Expert: 2 000 sims per candidate; pre-filter handles weed-out before spending them.
-  const boardSims = expert ? 2000 : 1000;
-  const dealMatchup = () => {
-    const h1 = dealHand();
-    const h2 = dealHand([...h1]);
-    // Expert always shows a board — postflop equity is much harder to eyeball.
-    const withBoard = expert || Math.random() > 0.5;
-    const b: Card[] = withBoard ? [...dealBoard([...h1, ...h2], 3)] : [];
-    const eq = b.length === 0 ? preflopEquityResult(h1, h2) : calculateEquity(h1, h2, b, boardSims);
-    return { h1, h2, b, eq };
-  };
+  // Required equity = call / (pot_after_call) = bet / (pot + 2*bet)
+  const requiredEquity = Math.round(betBB / (potBB + 2 * betBB) * 1000) / 10;
+  const options        = buildEquityCallOptions(Math.round(requiredEquity));
 
-  // Expert pre-filter: 300-sim quick check before committing 2 000 sims.
-  // Rejects deals where the gap > 35% (obviously easy) or chop% > 20%,
-  // cutting wasted work by ~5× vs. running full sims on every candidate.
-  const dealFiltered = (): ReturnType<typeof dealMatchup> => {
-    for (let i = 0; i < 20; i++) {
-      const h1 = dealHand();
-      const h2 = dealHand([...h1]);
-      const b: Card[] = [...dealBoard([...h1, ...h2], 3)];
-      const pre = calculateEquity(h1, h2, b, 300);
-      if (Math.abs(pre.hand1WinPct - pre.hand2WinPct) > 35 || pre.tiePct > 20) continue;
-      const eq = calculateEquity(h1, h2, b, boardSims);
-      return { h1, h2, b, eq };
-    }
-    return dealMatchup();
-  };
+  const street        = EQUITY_STREETS[Math.floor(Math.random() * EQUITY_STREETS.length)];
+  const heroIdx       = Math.floor(Math.random() * ALL_POSITIONS.length);
+  const villainIdx    = (heroIdx + 1 + Math.floor(Math.random() * (ALL_POSITIONS.length - 1))) % ALL_POSITIONS.length;
+  const heroPosition  = ALL_POSITIONS[heroIdx];
+  const villainPosition = ALL_POSITIONS[villainIdx];
 
-  type Matchup = typeof m;
-  const winGap = (x: Matchup) => Math.abs(x.eq.hand1WinPct - x.eq.hand2WinPct);
-  const scoreOf = (x: Matchup) => {
-    if (x.eq.tiePct > 25) return 9999;
-    const gap = winGap(x);
-    return gap < 4 ? 1000 + gap : gap;
-  };
-  let m = expert ? dealFiltered() : dealMatchup();
-  if (expert) {
-    // Tighter accept band 4–10% (was 4–18%): forces spots where you genuinely
-    // need to count outs/blockers rather than eyeballing a 60/40 matchup.
-    let best = scoreOf(m);
-    for (let i = 0; i < 15 && !(best >= 4 && best <= 10); i++) {
-      const cand = dealFiltered();
-      const cs = scoreOf(cand);
-      if (cs < best) { m = cand; best = cs; }
-    }
-  }
-  const hand1 = m.h1, hand2 = m.h2, board = m.b, equity = m.eq;
+  const hasBounty          = difficulty === 'expert';
+  const bountyBB           = hasBounty ? EQUITY_BOUNTIES[Math.floor(Math.random() * EQUITY_BOUNTIES.length)] : 0;
+  const requiredEquityBounty = hasBounty
+    ? Math.round(betBB / (potBB + 2 * betBB + bountyBB) * 1000) / 10
+    : 0;
 
-  // Preflop (no board): equity depends only on the two hands → O(1) table
-  // lookup instead of a 3000-sim Monte Carlo. With a board, simulate as before.
-  const hand1Notation = toHandNotation(hand1[0], hand1[1]);
-  const hand2Notation = toHandNotation(hand2[0], hand2[1]);
+  const betLabel = lang === 'en' ? betCfg.labelEn : betCfg.label;
+  const streetFr = { flop: 'flop', turn: 'turn', river: 'river' }[street];
+  const streetEn = street;
 
-  const explanation = generateEquityExplanation(
-    hand1, hand2, board, equity.hand1WinPct, equity.hand2WinPct, lang, 'beginner'
-  );
-  const explanationAdvanced = generateEquityExplanation(
-    hand1, hand2, board, equity.hand1WinPct, equity.hand2WinPct, lang, 'advanced'
-  );
+  const totalPot = potBB + 2 * betBB;
+  const pct      = requiredEquity;
+
+  const explanation = lang === 'en'
+    ? `**Required equity = call ÷ total pot** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${pct}%**.\n\nWith at least ${pct}% equity you break even in the long run. Below that, folding is the better mathematical play.`
+    : `**Équité requise = appel ÷ pot total** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${pct}%**.\n\nAvec au moins ${pct}% d'équité vous êtes break-even sur le long terme. En dessous, coucher est le meilleur choix mathématique.`;
+
+  const explanationAdvanced = lang === 'en'
+    ? `Pot odds formula: **call / (pot + bet + call)** → ${betBB}/${totalPot} = **${pct}%**.\n\nVillain bet ${betCfg.labelEn} on the ${streetEn}. Any time you have more than ${pct}% equity, calling has positive expected value.`
+    : `Formule des cotes du pot : **appel / (pot + mise + appel)** → ${betBB}/${totalPot} = **${pct}%**.\n\nVilain a misé ${betLabel} au ${streetFr}. Dès lors que votre équité dépasse ${pct}%, appeler a une espérance positive.`;
 
   return {
-    hand1, hand2, board,
-    hand1Equity: equity.hand1WinPct,
-    hand2Equity: equity.hand2WinPct,
-    question: 'which_better',
-    hand1Notation, hand2Notation, explanation, explanationAdvanced,
+    street, potBB, betBB, villainPosition, heroPosition,
+    betFractionLabel: betLabel,
+    requiredEquity, options,
+    explanation, explanationAdvanced,
+    hasBounty, bountyBB, requiredEquityBounty,
   };
 }
 

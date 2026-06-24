@@ -40,12 +40,20 @@ export interface PotOddsExercise {
 }
 
 export interface EquityExercise {
-  hand1: [Card, Card];
-  hand2: [Card, Card];
-  board: Card[];
-  hand1Equity: number; // 0-100
-  hand2Equity: number; // 0-100
-  question: 'which_better' | 'estimate_equity';
+  street: 'flop' | 'turn' | 'river';
+  potBB: number;
+  betBB: number;
+  villainPosition: Position;
+  heroPosition: Position;
+  betFractionLabel: string; // e.g. "1/2 pot"
+  requiredEquity: number;   // correct answer, 1-decimal %
+  options: number[];        // 4 integer MC choices (always includes round(requiredEquity))
+  explanation: string;
+  explanationAdvanced: string;
+  // Expert: tournament bounty
+  hasBounty: boolean;
+  bountyBB: number;
+  requiredEquityBounty: number; // adjusted required equity when bounty is counted
 }
 
 export interface PostflopExercise {

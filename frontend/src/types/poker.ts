@@ -64,15 +64,19 @@ export interface PotOddsExercise {
 }
 
 export interface EquityExercise {
-  hand1: [CardStr, CardStr];
-  hand2: [CardStr, CardStr];
-  board: CardStr[];
-  hand1Equity: number;
-  hand2Equity: number;
-  hand1Notation: string;
-  hand2Notation: string;
+  street: 'flop' | 'turn' | 'river';
+  potBB: number;
+  betBB: number;
+  villainPosition: Position;
+  heroPosition: Position;
+  betFractionLabel: string;
+  requiredEquity: number;
+  options: number[];
   explanation: string;
   explanationAdvanced: string;
+  hasBounty: boolean;
+  bountyBB: number;
+  requiredEquityBounty: number;
 }
 
 export interface OutsExercise {
