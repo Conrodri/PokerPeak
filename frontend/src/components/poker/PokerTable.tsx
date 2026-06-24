@@ -280,11 +280,15 @@ export function PokerTable({
         })}
 
         {/* ── Dealer button ── */}
+        {/* When the hero (seat S0, bottom-center) is on the button, the default
+            token position sits on top of the hero seat circle and hides its
+            "BTN / VOUS" label. Nudge it to the upper-right of the seat (classic
+            "button beside the player" placement) so the seat stays readable. */}
         <AnimatePresence mode="wait">
           <TokenChip
             key={`D-${btnSeat}`}
-            x={SEAT_LAYOUT[btnSeat].cx}
-            y={SEAT_LAYOUT[btnSeat].cy}
+            x={btnSeat === 0 ? 64 : SEAT_LAYOUT[btnSeat].cx}
+            y={btnSeat === 0 ? 70 : SEAT_LAYOUT[btnSeat].cy}
             label="D"
             bg="#dde4ee"
             fg="#1a202c"
