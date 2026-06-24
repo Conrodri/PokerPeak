@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../store/authStore';
 import { TrainingModule, Position } from '../types/poker';
 import { Spinner } from '../components/ui/Spinner';
+import { ModeBadge } from '../components/ui/ModeBadge';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { profilesApi } from '../services/api';
 import { useT } from '../i18n';
@@ -163,6 +164,14 @@ export function TrainingPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* Active-mode reminder — shown once an exercise session is running (the
+          tabs are hidden then, so this tells the user which mode they're in). */}
+      {trainerStarted && (
+        <div className="flex justify-center -mb-2">
+          <ModeBadge />
+        </div>
+      )}
 
       <motion.div
         key={activeModule}
