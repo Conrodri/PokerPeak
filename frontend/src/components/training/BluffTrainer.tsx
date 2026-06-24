@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, TrendingUp, Info } from 'lucide-react';
+import { ChevronRight, TrendingUp, Info, Zap, Lightbulb } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
 import { useModeStore, showHints } from '../../store/modeStore';
@@ -13,12 +13,15 @@ import { SessionStatsBar } from '../ui/SessionStatsBar';
 import { VerdictBanner } from '../ui/VerdictBanner';
 import { TrainerIntro } from '../ui/TrainerIntro';
 import { QuotaLockPanel } from '../ui/QuotaLockPanel';
+import { ExplanationPanel } from '../ui/ExplanationPanel';
+import { SpoilableHint } from '../ui/SpoilableHint';
+import { BeginnerGuide } from '../ui/BeginnerGuide';
+import { RichLine } from '../ui/RichText';
 import { Spinner } from '../ui/Spinner';
-import { RichText } from '../ui/RichText';
-import { Card } from '../poker/Card';
+import { PokerTable, SeatInfo } from '../poker/PokerTable';
+import { Hand } from '../poker/Card';
 import { quotaApi } from '../../services/api';
-import type { BluffAction, BluffExercise, BluffFactorScore } from '../../types/poker';
-import type { CardStr } from '../../types/poker';
+import type { BluffAction, BluffExercise, BluffFactorScore, Position } from '../../types/poker';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,7 +62,25 @@ const FACTOR_LABEL_EN: Record<string, string> = {
   heroHand:     'Your hand',
 };
 
+const STREET_COLORS: Record<BluffExercise['street'], string> = {
+  flop:  'text-blue-400 border-blue-700 bg-blue-900/20',
+  turn:  'text-yellow-400 border-yellow-700 bg-yellow-900/20',
+  river: 'text-red-400 border-red-700 bg-red-900/20',
+};
+const STREET_LABELS: Record<BluffExercise['street'], { fr: string; en: string }> = {
+  flop:  { fr: 'Flop',  en: 'Flop'  },
+  turn:  { fr: 'Turn',  en: 'Turn'  },
+  river: { fr: 'River', en: 'River' },
+};
+
 const ALL_ACTIONS: BluffAction[] = ['check-fold', 'bluff-small', 'bluff-medium', 'bluff-large'];
+
+const ACTION_ICON: Record<BluffAction, string> = {
+  'check-fold':   '✋',
+  'bluff-small':  '💙',
+  'bluff-medium': '💜',
+  'bluff-large':  '🔥',
+};
 
 function actionButtonVariant(action: BluffAction, selected: BluffAction | null, correct: BluffAction): string {
   if (!selected) return 'secondary';
@@ -68,16 +89,14 @@ function actionButtonVariant(action: BluffAction, selected: BluffAction | null, 
   return 'secondary';
 }
 
-// ─── Street label ─────────────────────────────────────────────────────────────
-
-function streetLabel(street: BluffExercise['street'], isEn: boolean): string {
-  const map = { flop: isEn ? 'Flop' : 'Flop', turn: 'Turn', river: 'River' };
-  return map[street];
-}
-
 // ─── Intro ────────────────────────────────────────────────────────────────────
 
-function BluffIntro({ onStart }: { onStart: () => void }) {
+function BluffIntro({ onStart, locked, lockedVariant, freeInfo }: {
+  onStart: () => void;
+  locked?: boolean;
+  lockedVariant?: 'login' | 'quota';
+  freeInfo?: { remaining: number; limit: number };
+}) {
   const isEn  = useLangStore(s => s.lang) === 'en';
   const mode  = useModeStore(s => s.mode);
 
@@ -120,6 +139,9 @@ function BluffIntro({ onStart }: { onStart: () => void }) {
       startLabel={isEn ? 'Start Bluffing' : 'Commencer'}
       onStart={onStart}
       mode={mode}
+      locked={locked}
+      lockedVariant={lockedVariant}
+      freeInfo={freeInfo}
     />
   );
 }
@@ -134,7 +156,7 @@ function FactorGrid({ factors, isEn }: {
   const labels = isEn ? FACTOR_LABEL_EN : FACTOR_LABEL_FR;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 w-full">
       {keys.map(k => {
         const f = factors[k];
         const borderColor = f.score === 'positive' ? 'border-green-800' : f.score === 'negative' ? 'border-red-900' : 'border-yellow-900';
@@ -149,40 +171,6 @@ function FactorGrid({ factors, isEn }: {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-// ─── Board display ────────────────────────────────────────────────────────────
-
-function BoardDisplay({ board, street, isEn }: {
-  board: CardStr[];
-  street: BluffExercise['street'];
-  isEn: boolean;
-}) {
-  const flop  = board.slice(0, 3) as CardStr[];
-  const extra = board.slice(3)    as CardStr[];
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-xs text-gray-500 uppercase tracking-widest">
-        {streetLabel(street, isEn)}
-      </span>
-      <div className="flex items-center gap-2">
-        {/* Flop */}
-        <div className="flex gap-1.5">
-          {flop.map((c, i) => <Card key={i} card={c} size="md" />)}
-        </div>
-        {/* Turn / River cards (separator + cards) */}
-        {extra.length > 0 && (
-          <>
-            <div className="w-px h-10 bg-gray-700 mx-1" />
-            <div className="flex gap-1.5">
-              {extra.map((c, i) => <Card key={i} card={c} size="md" />)}
-            </div>
-          </>
-        )}
-      </div>
     </div>
   );
 }
@@ -215,7 +203,7 @@ function ActionButton({
       onClick={() => onClick(action)}
     >
       <span className={`mr-2 text-base ${isBet ? 'text-blue-400' : 'text-gray-400'}`}>
-        {action === 'check-fold' ? '✋' : action === 'bluff-small' ? '💙' : action === 'bluff-medium' ? '💜' : '🔥'}
+        {ACTION_ICON[action]}
       </span>
       {label}
     </Button>
@@ -245,13 +233,14 @@ export function BluffTrainer() {
   const isPremium = !!user?.isPremium;
   const loggedIn  = !!user;
   const quota     = useQuotaStore();
+  const freeRemaining = isPremium ? Infinity : quota.remaining.bluff;
   const [quotaBlocked, setQuotaBlocked] = useState(false);
 
   const [showIntro, setShowIntro]       = useState(true);
   const [phase, setPhase]               = useState<Phase>('exercise');
   const [selected, setSelected]         = useState<BluffAction | null>(null);
   const [startTime, setStartTime]       = useState(Date.now());
-  const [showFullExplanation, setShowFullExplanation] = useState(false);
+  const [xpEarned, setXpEarned]         = useState(0);
 
   // Refresh free-quota counts when a non-premium user opens the module
   useEffect(() => {
@@ -294,6 +283,7 @@ export function BluffTrainer() {
     const isCorrect = action === bluffExercise.correctAction;
     const xp        = isCorrect ? 20 : 5;
     setSelected(action);
+    setXpEarned(xp);
     setPhase('result');
     setIsExercising(false);
     await recordResult(isCorrect, xp, 'bluff', timeTaken);
@@ -302,7 +292,6 @@ export function BluffTrainer() {
   const handleNext = () => {
     setSelected(null);
     setPhase('exercise');
-    setShowFullExplanation(false);
     setStartTime(Date.now());
     nextExercise();
     setIsExercising(true);
@@ -313,7 +302,16 @@ export function BluffTrainer() {
     if (!showIntro && phase === 'exercise') setIsExercising(true);
   }, [showIntro, phase, setIsExercising]);
 
-  if (showIntro) return <BluffIntro onStart={handleStart} />;
+  if (showIntro) return (
+    <BluffIntro
+      onStart={handleStart}
+      locked={!isPremium && (!loggedIn || freeRemaining <= 0)}
+      lockedVariant={!loggedIn ? 'login' : 'quota'}
+      freeInfo={!isPremium && loggedIn && freeRemaining > 0
+        ? { remaining: freeRemaining, limit: quota.limit }
+        : undefined}
+    />
+  );
 
   if (quotaBlocked) {
     return (
@@ -331,50 +329,221 @@ export function BluffTrainer() {
     );
   }
 
-  const ex      = bluffExercise;
-  const correct = ex.correctAction;
-  const isRight = selected === correct;
+  const ex        = bluffExercise;
+  const correct   = ex.correctAction;
+  const isRight   = selected === correct;
+  const resetKey  = ex.board.join('') + ex.heroHand.join('');
+  const actionLabels = isEn ? ACTION_LABELS_EN : ACTION_LABELS_FR;
 
-  // ── Result phase ───────────────────────────────────────────────────────────
+  const heroPos    = ex.heroPosition as Position;
+  const villainPos = ex.villainPosition as Position;
+  const seatInfos  = {
+    [heroPos]:    { stack: `${ex.stackBB}bb` },
+    [villainPos]: { stack: `${ex.stackBB}bb` },
+  } as Partial<Record<Position, SeatInfo>>;
 
-  if (phase === 'result' && selected) {
-    const actionLabels = isEn ? ACTION_LABELS_EN : ACTION_LABELS_FR;
+  return (
+    <div className="flex flex-col gap-5 max-w-2xl mx-auto">
 
-    return (
-      <motion.div
-        key="result"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-5 max-w-2xl mx-auto"
-      >
-        <SessionStatsBar total={sessionStats.total} correct={sessionStats.correct} xp={sessionStats.xp} />
-
-        <VerdictBanner isCorrect={isRight} />
-
-        {/* Correct action reminder */}
-        <div className="text-center text-sm text-gray-400">
-          {isEn ? 'Correct action:' : 'Action correcte :'}{' '}
-          <span className="font-bold text-white">{actionLabels[correct](ex.potBB)}</span>
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white mb-1">
+            {isEn ? 'Bluff Training' : 'Entraînement au Bluff'}
+          </h2>
+          <p className="text-gray-400 text-sm">
+            {isEn ? 'Decide whether to bluff, and how big' : 'Décidez s\'il faut bluffer, et de combien'}
+          </p>
         </div>
+        <button
+          onClick={backToIntro}
+          className="text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1 mt-1"
+          title={isEn ? 'Module info' : 'Infos du module'}
+        >
+          <Info size={14} />
+        </button>
+      </div>
 
-        {/* Board + hands recap */}
-        <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-4 flex flex-col gap-4">
-          <BoardDisplay board={ex.board as CardStr[]} street={ex.street} isEn={isEn} />
-          <div className="flex items-center justify-between text-xs text-gray-500 border-t border-gray-800 pt-3">
-            <span>{isEn ? 'Your hand' : 'Votre main'}</span>
-            <div className="flex gap-1.5">
-              {(ex.heroHand as CardStr[]).map((c, i) => <Card key={i} card={c} size="sm" />)}
+      {/* ════════════ EXERCISE ════════════ */}
+      {phase === 'exercise' && (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={resetKey}
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            className="flex flex-col items-center gap-4"
+          >
+            {/* Street badge */}
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <div className={`px-3 py-1 rounded-full border text-xs font-bold ${STREET_COLORS[ex.street]}`}>
+                {isEn ? STREET_LABELS[ex.street].en : STREET_LABELS[ex.street].fr}
+              </div>
+              <div className={`px-3 py-1 rounded-full border text-xs font-bold ${
+                ex.heroIsIP ? 'text-green-400 border-green-700 bg-green-900/20' : 'text-orange-400 border-orange-700 bg-orange-900/20'
+              }`}>
+                {isEn
+                  ? (ex.heroIsIP ? 'In Position' : 'Out of Position')
+                  : (ex.heroIsIP ? 'En position' : 'Hors position')}
+              </div>
+            </div>
+
+            {/* Poker table */}
+            <div className="w-full max-w-xs sm:max-w-xl mx-auto">
+              <PokerTable
+                heroPosition={heroPos}
+                interactive={false}
+                activePlayers={[heroPos, villainPos]}
+                potDisplay={`${ex.potBB}bb`}
+                heroCards={ex.heroHand}
+                boardCards={ex.board}
+                boardCardSize="md"
+                compact={true}
+                seatInfos={seatInfos}
+              />
+            </div>
+
+            {/* Hero hand block */}
+            <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-4 py-3 flex flex-col items-center gap-2">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {isEn ? 'Your hand' : 'Votre main'}
+              </span>
+              <Hand cards={ex.heroHand} size="md" gap="gap-2" animate={false} />
+            </div>
+
+            {/* Context block — hand history + question */}
+            <div className="w-full rounded-2xl border border-gray-700 overflow-hidden text-sm">
+              {/* Hand history */}
+              <div className="flex items-start gap-3 px-4 py-3 bg-gray-900/70 border-b border-gray-700/60">
+                <span className="text-gray-500 font-bold text-xs uppercase tracking-wide pt-0.5 shrink-0 w-16">
+                  {isEn ? 'History' : 'Histoire'}
+                </span>
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <p className="text-gray-300">{isEn ? ex.preflopNarrative.en : ex.preflopNarrative.fr}</p>
+                  {ex.streetNarrative.map((n, i) => (
+                    <p key={i} className="text-gray-400">{isEn ? n.en : n.fr}</p>
+                  ))}
+                </div>
+              </div>
+
+              {/* Question */}
+              <div className="flex items-start gap-3 px-4 py-3 bg-yellow-900/10">
+                <span className="text-yellow-600 font-bold text-xs uppercase tracking-wide pt-0.5 shrink-0 w-16">
+                  {isEn ? 'Question' : 'Question'}
+                </span>
+                <p className="text-yellow-100 font-semibold flex-1">
+                  {isEn ? 'What do you do?' : 'Que faites-vous ?'}
+                </p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="flex flex-col gap-2.5 w-full max-w-sm"
+            >
+              {ALL_ACTIONS.map(action => (
+                <ActionButton
+                  key={action}
+                  action={action}
+                  pot={ex.potBB}
+                  isEn={isEn}
+                  selected={selected}
+                  correct={correct}
+                  onClick={handleAnswer}
+                />
+              ))}
+            </motion.div>
+
+            {/* Indices — beginner shows them; advanced reveals behind a streak-breaking
+                spoiler; expert hides them. */}
+            <SpoilableHint resetKey={resetKey} className="w-full">
+              <div className="w-full rounded-xl border border-amber-700/40 bg-amber-950/30 px-4 py-3 flex items-start gap-2 text-left">
+                <Lightbulb size={15} className="text-amber-400 mt-0.5 shrink-0" />
+                <div className="text-xs text-gray-300 leading-relaxed">
+                  <p className="font-bold text-amber-300 mb-1">{isEn ? 'Hint' : 'Indice'}</p>
+                  <p><RichLine text={isEn
+                    ? 'Bluff when the board favours your range and villain\'s range is weak/capped — and pick a size that makes them fold the hands they\'re continuing with. Give up when you\'re out of position with no equity against a strong range.'
+                    : 'Bluffez quand le board favorise votre range et que celle de vilain est faible/cappée — et choisissez une taille qui fait coucher les mains avec lesquelles il continue. Abandonnez hors position sans équité face à une range forte.'} /></p>
+                </div>
+              </div>
+            </SpoilableHint>
+
+            {/* Beginner guidance */}
+            <BeginnerGuide
+              title={isEn ? 'What you must do' : 'Ce qu\'on te demande'}
+              text={isEn
+                ? `Your hand isn't strong enough to win at showdown. The question is whether a **bluff** can make villain fold a better hand — and if so, **how big** should it be?\n👉 Look at the board, your position, and the story you've told so far. If everything points to villain being weak, bluff — and size up when you need to fold out their medium hands.\n💡 If you're out of position with no backup equity against a strong range, just **give up** (check / fold).`
+                : `Votre main n'est pas assez forte pour gagner au showdown. La question : un **bluff** peut-il faire coucher une meilleure main à vilain — et si oui, **de combien** ?\n👉 Regardez le board, votre position et l'histoire racontée jusqu'ici. Si tout indique que vilain est faible, bluffez — et augmentez la taille quand il faut faire coucher ses mains moyennes.\n💡 Hors position et sans équité de secours face à une range forte ? **Abandonnez** (check / fold).`}
+            />
+          </motion.div>
+        </AnimatePresence>
+      )}
+
+      {/* ════════════ RESULT ════════════ */}
+      {phase === 'result' && selected && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center gap-5"
+        >
+          <VerdictBanner isCorrect={isRight} />
+
+          {/* Table recap */}
+          <div className="w-full max-w-xs sm:max-w-full">
+            <PokerTable
+              heroPosition={heroPos}
+              interactive={false}
+              activePlayers={[heroPos, villainPos]}
+              potDisplay={`${ex.potBB}bb`}
+              heroCards={ex.heroHand}
+              boardCards={ex.board}
+              compact={false}
+              seatInfos={seatInfos}
+            />
+          </div>
+
+          {/* Street badge */}
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <div className={`px-3 py-1 rounded-full border text-xs font-bold ${STREET_COLORS[ex.street]}`}>
+              {isEn ? STREET_LABELS[ex.street].en : STREET_LABELS[ex.street].fr}
             </div>
           </div>
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>Pot</span>
-            <span className="font-semibold text-white">{ex.potBB} BB</span>
-          </div>
-        </div>
 
-        {/* Factor grid — always visible in beginner; collapsible toggle in advanced/expert */}
-        {(showBeginnerHints || showFullExplanation) ? (
-          <div className="flex flex-col gap-3">
+          {/* Answer recap pills */}
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+            <span className="px-2.5 py-1 rounded-full border bg-green-900/30 text-green-300 border-green-700">
+              ✓ {isEn ? 'Correct:' : 'Correct :'}{' '}
+              <strong>{actionLabels[correct](ex.potBB)}</strong>
+            </span>
+            {!isRight && (
+              <span className="px-2.5 py-1 rounded-full border bg-red-900/30 text-red-300 border-red-700">
+                ✗ {isEn ? 'You chose:' : 'Votre choix :'}{' '}
+                <strong>{actionLabels[selected](ex.potBB)}</strong>
+              </span>
+            )}
+            <span className="px-2.5 py-1 rounded-full border bg-blue-900/30 text-blue-300 border-blue-700">
+              <Zap size={10} className="inline mr-1" />+{xpEarned} XP
+            </span>
+          </div>
+
+          {/* Next + stats */}
+          <div className="w-full max-w-xs">
+            <Button size="lg" variant="gold" onClick={handleNext} fullWidth>
+              {isEn ? 'Next exercise' : 'Exercice suivant'}{' '}
+              <ChevronRight size={18} className="inline" />
+            </Button>
+          </div>
+          <SessionStatsBar
+            total={sessionStats.total}
+            correct={sessionStats.correct}
+            xp={sessionStats.xp}
+          />
+
+          {/* Factor analysis — bluff-specific breakdown */}
+          <div className="flex flex-col gap-3 w-full">
             <div className="flex items-center gap-2">
               <TrendingUp size={14} className="text-blue-400" />
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
@@ -383,132 +552,11 @@ export function BluffTrainer() {
             </div>
             <FactorGrid factors={ex.factors} isEn={isEn} />
           </div>
-        ) : null}
 
-        {/* Explanation toggle (beginner always shown; advanced/expert behind button) */}
-        {showBeginnerHints ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Info size={14} className="text-yellow-400" />
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                {isEn ? 'Detailed Explanation' : 'Explication Détaillée'}
-              </span>
-            </div>
-            <div className="bg-gray-900/40 border border-gray-800 rounded-xl p-4">
-              <RichText text={isEn ? ex.explanation.en : ex.explanation.fr} />
-            </div>
-          </div>
-        ) : !showFullExplanation ? (
-          <button
-            onClick={() => setShowFullExplanation(true)}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-300 transition-colors mx-auto"
-          >
-            <Info size={13} />
-            {isEn ? 'Show explanation' : 'Afficher l\'explication'}
-          </button>
-        ) : (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Info size={14} className="text-yellow-400" />
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                {isEn ? 'Detailed Explanation' : 'Explication Détaillée'}
-              </span>
-            </div>
-            <div className="bg-gray-900/40 border border-gray-800 rounded-xl p-4">
-              <RichText text={isEn ? ex.explanation.en : ex.explanation.fr} />
-            </div>
-          </div>
-        )}
-
-        {/* Next button */}
-        <Button variant="gold" size="lg" onClick={handleNext} className="w-full mt-2">
-          {isEn ? 'Next exercise' : 'Exercice suivant'}
-          <ChevronRight size={16} className="ml-1" />
-        </Button>
-      </motion.div>
-    );
-  }
-
-  // ── Exercise phase ─────────────────────────────────────────────────────────
-
-  return (
-    <motion.div
-      key="exercise"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-5 max-w-2xl mx-auto"
-    >
-      <SessionStatsBar total={sessionStats.total} correct={sessionStats.correct} xp={sessionStats.xp} />
-
-      {/* Board */}
-      <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5">
-        <BoardDisplay board={ex.board as CardStr[]} street={ex.street} isEn={isEn} />
-      </div>
-
-      {/* Hand context / narrative */}
-      <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-4 flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            {isEn ? 'Hand history' : 'Historique de la main'}
-          </span>
-        </div>
-        <p className="text-sm text-gray-300 leading-relaxed">
-          {isEn ? ex.preflopNarrative.en : ex.preflopNarrative.fr}
-        </p>
-        {ex.streetNarrative.map((n, i) => (
-          <p key={i} className="text-sm text-gray-400 leading-relaxed">
-            {isEn ? n.en : n.fr}
-          </p>
-        ))}
-      </div>
-
-      {/* Position badge */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-1.5 bg-gray-800/60 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-300">
-          <span>🎯</span>
-          <span>{isEn ? 'Hero' : 'Héros'}: <strong className="text-white">{ex.heroPosition}</strong></span>
-        </div>
-        <div className="flex items-center gap-1.5 bg-gray-800/60 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-300">
-          <span>😈</span>
-          <span>{isEn ? 'Villain' : 'Vilain'}: <strong className="text-white">{ex.villainPosition}</strong></span>
-        </div>
-        <div className="flex items-center gap-1.5 bg-gray-800/60 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-300">
-          <span>💰</span>
-          <span>Pot: <strong className="text-white">{ex.potBB} BB</strong></span>
-        </div>
-        <div className="flex items-center gap-1.5 bg-gray-800/60 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-300">
-          <span>📦</span>
-          <span>Stack: <strong className="text-white">{ex.stackBB} BB</strong></span>
-        </div>
-      </div>
-
-      {/* Hero hand */}
-      <div className="flex flex-col items-center gap-3">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          {isEn ? 'Your hand' : 'Votre main'}
-        </span>
-        <div className="flex gap-2">
-          {(ex.heroHand as CardStr[]).map((c, i) => <Card key={i} card={c} size="lg" />)}
-        </div>
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex flex-col gap-2.5">
-        <span className="text-sm font-semibold text-gray-300 text-center">
-          {isEn ? 'What do you do?' : 'Que faites-vous ?'}
-        </span>
-        {ALL_ACTIONS.map(action => (
-          <ActionButton
-            key={action}
-            action={action}
-            pot={ex.potBB}
-            isEn={isEn}
-            selected={selected}
-            correct={correct}
-            onClick={handleAnswer}
-          />
-        ))}
-      </div>
-    </motion.div>
+          {/* Detailed explanation */}
+          <ExplanationPanel text={isEn ? ex.explanation.en : ex.explanation.fr} className="p-5" />
+        </motion.div>
+      )}
+    </div>
   );
 }
