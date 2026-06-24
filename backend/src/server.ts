@@ -36,6 +36,8 @@ app.use(cors({
     }
     // Also allow *.vercel.app subdomains automatically
     if (/^https:\/\/[^.]+\.vercel\.app$/.test(origin)) return cb(null, true);
+    // Production custom domain — apex + any subdomain (e.g. www.pokerpeak.fr)
+    if (/^https:\/\/([^.]+\.)?pokerpeak\.fr$/.test(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
