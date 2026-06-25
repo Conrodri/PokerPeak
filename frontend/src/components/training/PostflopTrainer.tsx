@@ -256,6 +256,14 @@ export function PostflopTrainer() {
     if (loggedIn && !isPremium) quota.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn, isPremium]);
+
+  // Listen for global back-to-intro event
+  useEffect(() => {
+    const onBack = () => { backToIntro(); };
+    window.addEventListener('training:back', onBack);
+    return () => window.removeEventListener('training:back', onBack);
+  }, []);
+
   const [streetFilter, setStreetFilter] = useState<StreetFilter>(
     () => (localStorage.getItem(STREET_KEY) as StreetFilter) || 'random'
   );
@@ -436,17 +444,7 @@ export function PostflopTrainer() {
     <div className="flex flex-col gap-5 max-w-2xl mx-auto">
 
       {/* ── Header — lives HUD during an exam ── */}
-      {examActive ? <ExamHud onQuit={handleQuitExam} /> : (
-      <div className="flex items-end justify-end">
-        <button
-          onClick={() => { setShowIntro(true); setTrainerStarted(false); }}
-          className="text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1"
-          title={isEn ? 'Module info' : 'Infos du module'}
-        >
-          <Info size={14} />
-        </button>
-      </div>
-      )}
+      {examActive && <ExamHud onQuit={handleQuitExam} />}
 
       {/* ── Street selector — hidden during an exam ── */}
       {!examActive && (

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronRight, ChevronDown, ChevronUp, Zap, Target,
-  Check, Lock, Trophy, Shuffle, Info, Lightbulb,
+  Check, Lock, Trophy, Shuffle, Lightbulb,
 } from 'lucide-react';
 import { SourcesFooter } from '../ui/SourcesFooter';
 import type { Source } from '../ui/SourcesFooter';
@@ -361,6 +361,13 @@ export function FullHandTrainer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loggedIn, isPremium]);
 
+  // Listen for global back-to-intro event
+  useEffect(() => {
+    const onBack = () => { backToIntro(); };
+    window.addEventListener('training:back', onBack);
+    return () => window.removeEventListener('training:back', onBack);
+  }, []);
+
   useEffect(() => {
     if (phase.endsWith('_result')) window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [phase]);
@@ -583,17 +590,7 @@ export function FullHandTrainer() {
     <div className="flex flex-col gap-5 max-w-2xl mx-auto">
 
       {/* ── Header — lives HUD during an exam ── */}
-      {examActive ? <ExamHud onQuit={handleQuitExam} /> : (
-      <div className="flex items-end justify-end">
-        <button
-          onClick={() => { setShowIntro(true); setTrainerStarted(false); }}
-          className="text-gray-500 hover:text-gray-300 transition-colors p-1 shrink-0"
-          title={isEn ? 'Module info' : 'Infos du module'}
-        >
-          <Info size={14} />
-        </button>
-      </div>
-      )}
+      {examActive && <ExamHud onQuit={handleQuitExam} />}
 
       {/* Expert sprint countdown — one per street decision */}
       <SprintTimer

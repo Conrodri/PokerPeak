@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, TrendingUp, Info, Zap, Lightbulb } from 'lucide-react';
+import { ChevronRight, TrendingUp, Zap, Lightbulb } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
 import { useModeStore, showHints } from '../../store/modeStore';
@@ -302,6 +302,13 @@ export function BluffTrainer() {
     if (!showIntro && phase === 'exercise') setIsExercising(true);
   }, [showIntro, phase, setIsExercising]);
 
+  // Listen for global back-to-intro event
+  useEffect(() => {
+    const onBack = () => { backToIntro(); };
+    window.addEventListener('training:back', onBack);
+    return () => window.removeEventListener('training:back', onBack);
+  }, []);
+
   if (showIntro) return (
     <BluffIntro
       onStart={handleStart}
@@ -344,17 +351,6 @@ export function BluffTrainer() {
 
   return (
     <div className="flex flex-col gap-5 max-w-2xl mx-auto">
-
-      {/* ── Header ── */}
-      <div className="flex items-end justify-end">
-        <button
-          onClick={backToIntro}
-          className="text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1"
-          title={isEn ? 'Module info' : 'Infos du module'}
-        >
-          <Info size={14} />
-        </button>
-      </div>
 
       {/* ════════════ EXERCISE ════════════ */}
       {phase === 'exercise' && (

@@ -107,6 +107,13 @@ export function PotOddsTrainer() {
     setPhase('exercise');
   };
 
+  // Listen for global back-to-intro event
+  useEffect(() => {
+    const onBack = () => { setShowIntro(true); setTrainerStarted(false); };
+    window.addEventListener('training:back', onBack);
+    return () => window.removeEventListener('training:back', onBack);
+  }, []);
+
   const ex = potOddsExercise;
   const ev = lastResult?.ev ?? 0;
   // Beginner gets the simple text; advanced AND expert get the detailed variant.
@@ -176,19 +183,7 @@ export function PotOddsTrainer() {
   return (
     <div className="flex flex-col gap-5 max-w-xl mx-auto">
       {/* Header — replaced by the lives HUD during an exam */}
-      {examActive ? (
-        <ExamHud onQuit={handleQuitExam} />
-      ) : (
-        <div className="flex items-end justify-end">
-          <button
-            onClick={() => { setShowIntro(true); setTrainerStarted(false); }}
-            className="text-gray-500 hover:text-gray-300 transition-colors p-1 shrink-0"
-            title={isEn ? 'Module info' : 'Infos du module'}
-          >
-            <Info size={14} />
-          </button>
-        </div>
-      )}
+      {examActive && <ExamHud onQuit={handleQuitExam} />}
 
       {/* Expert sprint countdown */}
       {phase === 'exercise' && (

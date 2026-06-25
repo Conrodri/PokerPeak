@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Info, Lightbulb, Trophy } from 'lucide-react';
+import { ChevronRight, Lightbulb, Trophy } from 'lucide-react';
 import { useTrainingStore } from '../../store/trainingStore';
 import { Button } from '../ui/Button';
 import { SessionStatsBar } from '../ui/SessionStatsBar';
@@ -111,6 +111,13 @@ export function EquityTrainer() {
     setPhase('exercise');
   };
 
+  // Listen for global back-to-intro event
+  useEffect(() => {
+    const onBack = () => { setShowIntro(true); setTrainerStarted(false); };
+    window.addEventListener('training:back', onBack);
+    return () => window.removeEventListener('training:back', onBack);
+  }, []);
+
   const currentExplanation = equityExercise
     ? (mode === 'beginner' ? equityExercise.explanation : equityExercise.explanationAdvanced)
     : '';
@@ -185,19 +192,7 @@ export function EquityTrainer() {
     <div className="flex flex-col gap-6 max-w-xl mx-auto">
 
       {/* Header */}
-      {examActive ? (
-        <ExamHud onQuit={handleQuitExam} />
-      ) : (
-        <div className="flex items-end justify-end">
-          <button
-            onClick={() => { setShowIntro(true); setTrainerStarted(false); }}
-            className="text-gray-500 hover:text-gray-300 transition-colors p-1 shrink-0"
-            title={isEn ? 'Module info' : 'Infos du module'}
-          >
-            <Info size={14} />
-          </button>
-        </div>
-      )}
+      {examActive && <ExamHud onQuit={handleQuitExam} />}
 
       {/* Exercise */}
       {phase === 'exercise' && (
