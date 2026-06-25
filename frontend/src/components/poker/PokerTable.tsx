@@ -301,8 +301,8 @@ export function PokerTable({
         <AnimatePresence mode="wait">
           <TokenChip
             key={`SB-${sbSeat}`}
-            x={SEAT_LAYOUT[sbSeat].cx}
-            y={SEAT_LAYOUT[sbSeat].cy}
+            x={sbSeat === 0 ? 36 : SEAT_LAYOUT[sbSeat].cx}
+            y={sbSeat === 0 ? 70 : SEAT_LAYOUT[sbSeat].cy}
             label="SB"
             bg="#2563eb"
             fg="#fff"
@@ -315,8 +315,8 @@ export function PokerTable({
         <AnimatePresence mode="wait">
           <TokenChip
             key={`BB-${bbSeat}`}
-            x={SEAT_LAYOUT[bbSeat].cx}
-            y={SEAT_LAYOUT[bbSeat].cy}
+            x={bbSeat === 0 ? 64 : SEAT_LAYOUT[bbSeat].cx}
+            y={bbSeat === 0 ? 70 : SEAT_LAYOUT[bbSeat].cy}
             label="BB"
             bg="#dc2626"
             fg="#fff"

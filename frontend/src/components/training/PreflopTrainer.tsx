@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronDown, ChevronUp, RotateCcw, Info, Zap, Target, Sliders, Lightbulb, Check, X, BookOpen } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronUp, RotateCcw, ArrowLeft, Zap, Target, Sliders, Lightbulb, Check, X, BookOpen } from 'lucide-react';
 import { SourcesFooter } from '../ui/SourcesFooter';
 import type { Source } from '../ui/SourcesFooter';
 
@@ -1026,18 +1026,15 @@ export function PreflopTrainer() {
 
       {/* ── Persistent header (lives HUD during an exam) ── */}
       {examActive ? <ExamHud onQuit={handleQuitExam} /> : (
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">{t.training.preflop_title}</h2>
-          <p className="text-gray-400 text-xs sm:text-sm">{t.training.preflop_subtitle}</p>
-        </div>
+      <div className="flex flex-col gap-0.5">
         <button
           onClick={() => { setShowIntro(true); setTrainerStarted(false); }}
-          className="text-gray-500 hover:text-gray-300 transition-colors p-1 mt-1 shrink-0"
-          title={isEn ? 'Module info' : 'Infos du module'}
+          className="text-gray-500 hover:text-gray-300 transition-colors text-xs flex items-center gap-1 self-start"
         >
-          <Info size={14} />
+          <ArrowLeft size={13} /> {isEn ? 'Back' : 'Retour'}
         </button>
+        <h2 className="text-xl sm:text-2xl font-bold text-white">{t.training.preflop_title}</h2>
+        <p className="text-gray-400 text-xs sm:text-sm">{t.training.preflop_subtitle}</p>
       </div>
       )}
 
