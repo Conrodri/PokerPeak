@@ -139,12 +139,12 @@ export async function getUserStats(req: Request, res: Response): Promise<void> {
     }
 
     // Compute achievements from all available data
-    const daysPlayed = Object.keys(byDay).length;
-    const bestSprint = Object.values(sprintRecords).reduce(
-      (m, v) => Math.max(m, v.advanced, v.expert), 0,
-    );
-    const bestDayExercises = Object.values(byDay).reduce((m, v) => Math.max(m, v.total), 0);
-    const bestDayAccuracy  = Object.values(byDay).reduce((m, v) => {
+    const daysPlayed         = Object.keys(byDay).length;
+    const bestSprintAdvanced = Object.values(sprintRecords).reduce((m, v) => Math.max(m, v.advanced), 0);
+    const bestSprintExpert   = Object.values(sprintRecords).reduce((m, v) => Math.max(m, v.expert),   0);
+    const bestDayExercises   = Object.values(byDay).reduce((m, v) => Math.max(m, v.total),   0);
+    const bestDayCorrect     = Object.values(byDay).reduce((m, v) => Math.max(m, v.correct), 0);
+    const bestDayAccuracy    = Object.values(byDay).reduce((m, v) => {
       if (v.total < 10) return m;
       return Math.max(m, Math.round((v.correct / v.total) * 100));
     }, 0);
@@ -154,7 +154,8 @@ export async function getUserStats(req: Request, res: Response): Promise<void> {
 
     const achievInput: AchievementInput = {
       totalExercises: totalEx, accuracy, daysPlayed,
-      bestSprint, bestDayExercises, bestDayAccuracy,
+      bestSprintAdvanced, bestSprintExpert,
+      bestDayExercises, bestDayCorrect, bestDayAccuracy,
     };
     const achievements = computeAchievements(achievInput);
 

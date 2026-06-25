@@ -12,15 +12,21 @@ const TIER_STYLES: Record<AchievementTier, { ring: string; bg: string; text: str
 };
 
 const CAT_LABELS: Record<AchievementCategory, { fr: string; en: string }> = {
-  exercises:  { fr: 'Exercices',        en: 'Exercises'       },
-  accuracy:   { fr: 'Précision',        en: 'Accuracy'        },
-  days:       { fr: 'Jours joués',      en: 'Days played'     },
-  sprint:     { fr: 'Sprint',           en: 'Sprint'          },
-  daily_ex:   { fr: 'Record du jour',   en: 'Daily record'    },
-  daily_acc:  { fr: 'Précision du jour',en: 'Daily accuracy'  },
+  exercises:       { fr: 'Exercices',              en: 'Exercises'          },
+  accuracy:        { fr: 'Précision globale',      en: 'Global accuracy'    },
+  days:            { fr: 'Jours joués',            en: 'Days played'        },
+  sprint_advanced: { fr: 'Sprint avancé ⚡',       en: 'Advanced sprint ⚡' },
+  sprint_expert:   { fr: 'Sprint expert 🔥',       en: 'Expert sprint 🔥'  },
+  daily_ex:        { fr: 'Exercices en 1 journée', en: 'Exercises in a day' },
+  daily_correct:   { fr: 'Réussis en 1 journée',  en: 'Correct in a day'   },
+  daily_acc:       { fr: 'Précision du jour',      en: 'Daily accuracy'     },
 };
 
-const CATEGORIES: AchievementCategory[] = ['exercises', 'accuracy', 'days', 'sprint', 'daily_ex', 'daily_acc'];
+const CATEGORIES: AchievementCategory[] = [
+  'exercises', 'accuracy', 'days',
+  'sprint_advanced', 'sprint_expert',
+  'daily_ex', 'daily_correct', 'daily_acc',
+];
 
 // ─── Single card ──────────────────────────────────────────────────────────────
 

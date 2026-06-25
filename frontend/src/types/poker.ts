@@ -173,7 +173,15 @@ export interface LeaderboardModuleStat {
 }
 
 export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum';
-export type AchievementCategory = 'exercises' | 'accuracy' | 'days' | 'sprint' | 'daily_ex' | 'daily_acc';
+export type AchievementCategory =
+  | 'exercises'
+  | 'accuracy'
+  | 'days'
+  | 'sprint_advanced'
+  | 'sprint_expert'
+  | 'daily_ex'
+  | 'daily_correct'
+  | 'daily_acc';
 
 export interface Achievement {
   id: string;
