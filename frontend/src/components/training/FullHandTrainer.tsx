@@ -667,7 +667,7 @@ export function FullHandTrainer() {
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
-            className="flex flex-col items-center gap-5"
+            className="flex flex-col items-center gap-2 sm:gap-3"
           >
             {/* Scenario context (above the decision) */}
             {'preflop' in decision && (

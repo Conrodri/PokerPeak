@@ -211,7 +211,7 @@ export function PotOddsTrainer() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-3 sm:gap-4"
           >
             {isLoading ? (
               <Spinner />

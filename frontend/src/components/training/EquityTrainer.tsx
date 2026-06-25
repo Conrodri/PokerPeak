@@ -214,7 +214,7 @@ export function EquityTrainer() {
             key={resetKey}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-5"
+            className="flex flex-col gap-3 sm:gap-4"
           >
             {isLoading ? (
               <Spinner />

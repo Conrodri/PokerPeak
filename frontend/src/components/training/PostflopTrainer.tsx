@@ -502,7 +502,7 @@ export function PostflopTrainer() {
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
-            className="flex flex-col items-center gap-4"
+            className="flex flex-col items-center gap-2 sm:gap-3"
           >
             {/* Street badge */}
             <div className={`px-4 py-1.5 rounded-full border text-sm font-bold ${streetColor}`}>
@@ -510,7 +510,7 @@ export function PostflopTrainer() {
             </div>
 
             {/* ── Poker table ── */}
-            <div className="w-full max-w-xs sm:max-w-xl mx-auto">
+            <div className="w-full max-w-[260px] sm:max-w-sm mx-auto">
               <PokerTable
                 heroPosition={ex.heroPosition as Position}
                 interactive={false}

@@ -1029,7 +1029,7 @@ export function PreflopTrainer() {
   }
 
   return (
-    <div className="flex flex-col gap-3 sm:gap-6 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto">
 
       {/* ── Persistent header (lives HUD during an exam) ── */}
       {examActive ? <ExamHud onQuit={handleQuitExam} /> : phase === 'select_position' ? (
@@ -1155,13 +1155,13 @@ export function PreflopTrainer() {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              className="flex flex-col items-center gap-5"
+              className="flex flex-col items-center gap-2 sm:gap-3"
             >
               {bbIsLoading || !bbExercise ? (
                 <Spinner />
               ) : (
                 <>
-                  <div className="w-full max-w-xs sm:max-w-xl mx-auto">
+                  <div className="w-full max-w-[260px] sm:max-w-sm mx-auto">
                     <PokerTable
                       heroPosition="BB"
                       interactive={false}
@@ -1176,8 +1176,8 @@ export function PreflopTrainer() {
                   </div>
 
                   {/* Info block: hand + description in one visual unit */}
-                  <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-5 py-4 flex flex-col items-center gap-2">
-                    <Hand cards={bbExercise.hand as CardStr[]} size="md" gap="gap-3" animate={false} />
+                  <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-4 py-2 flex flex-col items-center gap-1">
+                    <Hand cards={bbExercise.hand as CardStr[]} size="sm" gap="gap-3" animate={false} />
                     <div className="flex items-center gap-2 flex-wrap justify-center">
                       <span className="text-gray-400 text-sm">BB</span>
                       <PositionInfo position="BB" />
@@ -1255,7 +1255,7 @@ export function PreflopTrainer() {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              className="flex flex-col items-center gap-3 sm:gap-5"
+              className="flex flex-col items-center gap-2 sm:gap-3"
             >
               {isLoading ? (
                 <Spinner />
@@ -1268,7 +1268,7 @@ export function PreflopTrainer() {
                 </div>
               ) : (
                 <>
-                  <div className="w-full max-w-xs sm:max-w-xl mx-auto">
+                  <div className="w-full max-w-[260px] sm:max-w-sm mx-auto">
                     <PokerTable
                       heroPosition={preflopExercise.position}
                       interactive={false}
@@ -1282,8 +1282,8 @@ export function PreflopTrainer() {
                   </div>
 
                   {/* Info block: hand + description in one visual unit */}
-                  <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-5 py-4 flex flex-col items-center gap-2">
-                    <Hand cards={preflopExercise.hand as CardStr[]} size="md" gap="gap-3" animate={false} />
+                  <div className="w-full max-w-xs sm:max-w-sm rounded-2xl border border-gray-700/60 bg-gray-900/50 px-4 py-2 flex flex-col items-center gap-1">
+                    <Hand cards={preflopExercise.hand as CardStr[]} size="sm" gap="gap-3" animate={false} />
                     {preflopEnabled && mode === 'expert' && (
                       <span className="text-gold-400 text-xs font-semibold">{heroStack} bb</span>
                     )}

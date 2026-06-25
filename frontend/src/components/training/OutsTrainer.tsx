@@ -248,7 +248,7 @@ export function OutsTrainer() {
             key={`${ex?.heroCards?.[0]}-${ex?.board?.join('')}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col gap-5"
+            className="flex flex-col gap-3 sm:gap-4"
           >
             {isLoading ? (
               <Spinner />

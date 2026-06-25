@@ -881,7 +881,7 @@ export function BetSizingTrainer() {
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.97 }}
-            className="flex flex-col items-center gap-4"
+            className="flex flex-col items-center gap-2 sm:gap-3"
           >
             {/* Street badge — scenario context */}
             <div className="flex items-center gap-2 flex-wrap justify-center">
@@ -891,7 +891,7 @@ export function BetSizingTrainer() {
             </div>
 
             {/* Poker table */}
-            <div className="w-full max-w-xs sm:max-w-xl mx-auto">
+            <div className="w-full max-w-[260px] sm:max-w-sm mx-auto">
               <PokerTable
                 heroPosition={ex.heroPosition}
                 interactive={false}
