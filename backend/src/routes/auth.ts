@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { register, login, getMe, dismissTutorial, changePassword, verifyEmail, resendVerification, forgotPassword, resetPassword } from '../controllers/authController';
+import { register, login, getMe, dismissTutorial, changePassword, verifyEmail, resendVerification, forgotPassword, resetPassword, deleteAccount } from '../controllers/authController';
 import { googleLogin, googleCallback } from '../controllers/googleAuthController';
 import { requireAuth } from '../middleware/auth';
 
@@ -27,6 +27,7 @@ router.get('/verify-email', verifyEmail);
 router.post('/resend-verify', resendVerification);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password', authLimiter, resetPassword);
+router.delete('/account', requireAuth, deleteAccount);
 router.get('/google', googleLogin);
 router.get('/google/callback', googleCallback);
 

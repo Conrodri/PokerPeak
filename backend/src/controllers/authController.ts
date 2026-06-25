@@ -251,6 +251,44 @@ export async function resendVerification(req: Request, res: Response): Promise<v
   }
 }
 
+export async function deleteAccount(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = (req as any).user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse);
+      return;
+    }
+
+    const { password } = req.body as { password?: string };
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ success: false, error: 'Not found' } as ApiResponse);
+      return;
+    }
+
+    // Email/password accounts: verify password before deletion
+    if (user.password) {
+      if (!password) {
+        res.status(400).json({ success: false, error: 'Mot de passe requis.' } as ApiResponse);
+        return;
+      }
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        res.status(401).json({ success: false, error: 'Mot de passe incorrect.' } as ApiResponse);
+        return;
+      }
+    }
+    // Google-only accounts: no password — already authenticated via JWT, allow deletion
+
+    await prisma.user.delete({ where: { id: userId } });
+
+    res.json({ success: true, data: { message: 'Account deleted' } } as ApiResponse);
+  } catch {
+    res.status(500).json({ success: false, error: 'Failed to delete account' } as ApiResponse);
+  }
+}
+
 export async function forgotPassword(req: Request, res: Response): Promise<void> {
   try {
     const { email } = req.body as { email?: string };
