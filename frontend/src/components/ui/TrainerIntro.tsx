@@ -47,9 +47,7 @@ export function TrainerIntro({
   const setMode = useModeStore(s => s.setMode);
   const isExpert = !!useAuthStore(s => s.user?.isPremiumExpert);
   const navigate = useNavigate();
-  // The "what it is & how it works" panel starts open in every mode; the user
-  // can still collapse it manually (mode changes no longer force it shut).
-  const [showDetails, setShowDetails] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
