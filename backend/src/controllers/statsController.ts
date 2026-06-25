@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { ApiResponse } from '../types';
+import {
+  computeAchievements, getBestTitle, buildLeaderboardInput, AchievementInput,
+} from '../utils/achievements';
 
 export async function getMyStats(req: Request, res: Response): Promise<void> {
   try {
@@ -69,23 +72,34 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
     const acc = (correct: number, total: number) =>
       total > 0 ? Math.round((correct / total) * 100) : null;
 
-    const formatted = leaders.map((l, i) => ({
-      rank: i + 1,
-      username: l.user.username,
-      isPremiumExpert: l.user.isPremiumExpert,
-      xp: l.xp,
-      level: l.level,
-      totalExercises: l.totalExercises,
-      accuracy: l.totalExercises > 0 ? Math.round((l.totalCorrect / l.totalExercises) * 100) : 0,
-      modules: {
-        preflop:  { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal,  ...sb(l.userId, 'preflop')  },
-        potodds:  { accuracy: acc(l.potoddsCorrect,  l.potoddsTotal),  total: l.potoddsTotal,  ...sb(l.userId, 'potodds')  },
-        equity:   { accuracy: acc(l.equityCorrect,   l.equityTotal),   total: l.equityTotal,   ...sb(l.userId, 'equity')   },
-        outs:     { accuracy: acc(l.outsCorrect,     l.outsTotal),     total: l.outsTotal,     ...sb(l.userId, 'outs')     },
-        postflop: { accuracy: acc(l.postflopCorrect, l.postflopTotal), total: l.postflopTotal, ...sb(l.userId, 'postflop') },
-        fullhand: { accuracy: acc(l.fullhandCorrect, l.fullhandTotal), total: l.fullhandTotal, ...sb(l.userId, 'fullhand') },
-      },
-    }));
+    const formatted = leaders.map((l, i) => {
+      const userSprints = sprintMap[l.userId] ?? {};
+      const achievInput = buildLeaderboardInput(l.totalExercises, l.totalCorrect, userSprints);
+      const achievResults = computeAchievements(achievInput);
+      const bestTitleFr = getBestTitle(achievResults, 'fr');
+      const bestTitleEn = getBestTitle(achievResults, 'en');
+
+      return {
+        rank: i + 1,
+        username: l.user.username,
+        isPremiumExpert: l.user.isPremiumExpert,
+        xp: l.xp,
+        level: l.level,
+        totalExercises: l.totalExercises,
+        accuracy: l.totalExercises > 0 ? Math.round((l.totalCorrect / l.totalExercises) * 100) : 0,
+        title: bestTitleFr
+          ? { fr: bestTitleFr.title, en: bestTitleEn!.title, tier: bestTitleFr.tier, icon: bestTitleFr.icon }
+          : null,
+        modules: {
+          preflop:  { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal,  ...sb(l.userId, 'preflop')  },
+          potodds:  { accuracy: acc(l.potoddsCorrect,  l.potoddsTotal),  total: l.potoddsTotal,  ...sb(l.userId, 'potodds')  },
+          equity:   { accuracy: acc(l.equityCorrect,   l.equityTotal),   total: l.equityTotal,   ...sb(l.userId, 'equity')   },
+          outs:     { accuracy: acc(l.outsCorrect,     l.outsTotal),     total: l.outsTotal,     ...sb(l.userId, 'outs')     },
+          postflop: { accuracy: acc(l.postflopCorrect, l.postflopTotal), total: l.postflopTotal, ...sb(l.userId, 'postflop') },
+          fullhand: { accuracy: acc(l.fullhandCorrect, l.fullhandTotal), total: l.fullhandTotal, ...sb(l.userId, 'fullhand') },
+        },
+      };
+    });
 
     res.json({ success: true, data: formatted } as ApiResponse);
   } catch (error) {
@@ -124,7 +138,27 @@ export async function getUserStats(req: Request, res: Response): Promise<void> {
       if (ex.isCorrect) byDay[day].correct++;
     }
 
-    res.json({ success: true, data: { username, stats, sprintRecords, byDay } });
+    // Compute achievements from all available data
+    const daysPlayed = Object.keys(byDay).length;
+    const bestSprint = Object.values(sprintRecords).reduce(
+      (m, v) => Math.max(m, v.advanced, v.expert), 0,
+    );
+    const bestDayExercises = Object.values(byDay).reduce((m, v) => Math.max(m, v.total), 0);
+    const bestDayAccuracy  = Object.values(byDay).reduce((m, v) => {
+      if (v.total < 10) return m;
+      return Math.max(m, Math.round((v.correct / v.total) * 100));
+    }, 0);
+    const totalEx  = stats?.totalExercises ?? 0;
+    const totalCor = stats?.totalCorrect   ?? 0;
+    const accuracy = totalEx > 0 ? Math.round((totalCor / totalEx) * 100) : 0;
+
+    const achievInput: AchievementInput = {
+      totalExercises: totalEx, accuracy, daysPlayed,
+      bestSprint, bestDayExercises, bestDayAccuracy,
+    };
+    const achievements = computeAchievements(achievInput);
+
+    res.json({ success: true, data: { username, stats, sprintRecords, byDay, achievements } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to get user stats' });
   }

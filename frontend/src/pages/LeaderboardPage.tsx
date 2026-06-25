@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Zap, Flame, Target, ChevronDown, Crown, Lock } from 'lucide-react';
 import { statsApi } from '../services/api';
-import { LeaderboardEntry, LeaderboardModuleStat } from '../types/poker';
+import { LeaderboardEntry, LeaderboardModuleStat, LeaderboardTitle, AchievementTier } from '../types/poker';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/ui/Button';
 import { HoverTip } from '../components/ui/HoverTip';
@@ -39,6 +39,24 @@ function accBarColor(pct: number) {
   if (pct >= 75) return 'bg-green-500';
   if (pct >= 50) return 'bg-yellow-500';
   return 'bg-red-500';
+}
+
+// ─── Title badge ──────────────────────────────────────────────────────────────
+
+const TITLE_STYLES: Record<AchievementTier, string> = {
+  bronze:   'text-amber-500  bg-amber-900/30  border-amber-700/50',
+  silver:   'text-gray-300   bg-gray-700/30   border-gray-600/50',
+  gold:     'text-yellow-400 bg-yellow-900/30 border-yellow-700/50',
+  platinum: 'text-purple-300 bg-purple-900/30 border-purple-600/50',
+};
+
+function TitleBadge({ title, isEn }: { title: LeaderboardTitle; isEn: boolean }) {
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${TITLE_STYLES[title.tier]}`}>
+      <span>{title.icon}</span>
+      <span>{isEn ? title.en : title.fr}</span>
+    </span>
+  );
 }
 
 // ─── Module grid shown when a row is expanded ─────────────────────────────────
@@ -251,9 +269,12 @@ export function LeaderboardPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500">
-                      <span>{t.stats.level} {entry.level}</span>
-                      <span>{entry.totalExercises} ex.</span>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <span className="text-xs text-gray-500">{t.stats.level} {entry.level}</span>
+                      <span className="text-xs text-gray-500">{entry.totalExercises} ex.</span>
+                      {entry.title && (
+                        <TitleBadge title={entry.title} isEn={isEn} />
+                      )}
                     </div>
                   </div>
 

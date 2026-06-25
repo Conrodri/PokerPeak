@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, Target, Flame, Zap } from 'lucide-react';
+import { AchievementsGrid } from '../components/stats/AchievementsGrid';
+import { Achievement } from '../types/poker';
 import { DayDetailPanel } from '../components/stats/DayDetailPanel';
 import { useAuthStore } from '../store/authStore';
 import { statsApi, examApi } from '../services/api';
@@ -140,6 +142,7 @@ export function StatsPage() {
   const [history,      setHistory]      = useState<any>(null);
   const [examRecords,  setExamRecords]  = useState<Record<string, { advanced: number; expert: number }>>({});
   const [publicByDay,  setPublicByDay]  = useState<Record<string, { total: number; correct: number }> | null>(null);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading,      setLoading]      = useState(false);
   const [selectedDay,  setSelectedDay]  = useState<string | null>(null);
   const detailRef = useRef<HTMLDivElement>(null);
@@ -152,6 +155,7 @@ export function StatsPage() {
           setStats({ stats: data.stats });
           setExamRecords(data.sprintRecords ?? {});
           setPublicByDay(data.byDay ?? {});
+          setAchievements(data.achievements ?? []);
         })
         .catch(() => {})
         .finally(() => setLoading(false));
@@ -159,8 +163,16 @@ export function StatsPage() {
     }
     if (!user) return;
     setLoading(true);
-    Promise.all([statsApi.getMyStats(), statsApi.getHistory(730)])
-      .then(([s, h]) => { setStats(s); setHistory(h); })
+    Promise.all([
+      statsApi.getMyStats(),
+      statsApi.getHistory(730),
+      statsApi.getUserStats(user.username),
+    ])
+      .then(([s, h, ud]) => {
+        setStats(s);
+        setHistory(h);
+        setAchievements(ud.achievements ?? []);
+      })
       .finally(() => setLoading(false));
     examApi.records().then(setExamRecords).catch(() => {});
   }, [user, isPublicView, paramUsername]);
@@ -799,6 +811,11 @@ export function StatsPage() {
       )}
 
 
+
+      {/* ── Achievements ── */}
+      {achievements.length > 0 && (
+        <AchievementsGrid achievements={achievements} />
+      )}
 
       {/* ── No data CTA ── */}
       {(!playerStats || playerStats.totalExercises === 0) && (

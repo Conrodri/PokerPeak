@@ -172,6 +172,31 @@ export interface LeaderboardModuleStat {
   expert?: number;
 }
 
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+export type AchievementCategory = 'exercises' | 'accuracy' | 'days' | 'sprint' | 'daily_ex' | 'daily_acc';
+
+export interface Achievement {
+  id: string;
+  category: AchievementCategory;
+  tier: AchievementTier;
+  icon: string;
+  threshold: number;
+  title_fr: string;
+  title_en: string;
+  desc_fr: string;
+  desc_en: string;
+  unlocked: boolean;
+  progress: number;
+  maxProgress: number;
+}
+
+export interface LeaderboardTitle {
+  fr: string;
+  en: string;
+  tier: AchievementTier;
+  icon: string;
+}
+
 export interface LeaderboardEntry {
   rank: number;
   username: string;
@@ -180,6 +205,7 @@ export interface LeaderboardEntry {
   level: number;
   totalExercises: number;
   accuracy: number;
+  title?: LeaderboardTitle | null;
   modules?: {
     preflop:  LeaderboardModuleStat;
     potodds:  LeaderboardModuleStat;
