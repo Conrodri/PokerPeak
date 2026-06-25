@@ -234,17 +234,17 @@ export function PotOddsTrainer() {
                 )}
 
                 {/* Question */}
-                <div className="text-center bg-gray-900/60 rounded-xl py-4 border border-gray-700">
-                  <p className="text-lg text-white font-semibold">{t.training.profitable_q}</p>
-                  <p className="text-sm text-gray-400 mt-1">
+                <div className="text-center bg-gray-900/60 rounded-xl py-2.5 border border-gray-700">
+                  <p className="text-base text-white font-semibold">{t.training.profitable_q}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
                     {t.training.call_costs}<span className="text-white font-bold">{ex.betSize}bb</span>
                   </p>
                 </div>
 
                 {/* Action buttons */}
                 <div className="flex gap-4">
-                  <Button size="xl" variant="danger"  onClick={() => handleAnswer('fold')} fullWidth>Fold</Button>
-                  <Button size="xl" variant="primary" onClick={() => handleAnswer('call')} fullWidth>Call</Button>
+                  <Button size="lg" variant="danger"  onClick={() => handleAnswer('fold')} fullWidth>Fold</Button>
+                  <Button size="lg" variant="primary" onClick={() => handleAnswer('call')} fullWidth>Call</Button>
                 </div>
 
                 {/* Guidance below the decision — no scrolling needed to answer. */}
@@ -493,25 +493,25 @@ function CardDisplay({ heroCards, board, street, isEn, dimmed = false }: {
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: dimmed ? 0.7 : 1, y: 0 }}
-      className="rounded-2xl border p-4"
+      className="rounded-2xl border p-2.5"
       style={{ background: 'radial-gradient(ellipse at 50% 0%, #1a4a2e44, #0d231888)', borderColor: 'rgba(26,74,46,0.4)' }}
     >
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-2">
         {board && board.length > 0 && (
           <>
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-1">
               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{streetLabel}</p>
-              <div className="p-3 rounded-xl border" style={{ background: 'rgba(10,53,32,0.6)', borderColor: 'rgba(26,74,46,0.3)' }}>
-                <Hand cards={board} size="md" gap="gap-2" />
+              <div className="p-1.5 rounded-xl border" style={{ background: 'rgba(10,53,32,0.6)', borderColor: 'rgba(26,74,46,0.3)' }}>
+                <Hand cards={board} size="sm" gap="gap-1.5" />
               </div>
             </div>
             <div className="w-full border-t border-white/5" />
           </>
         )}
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-1">
           <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{handLabel}</p>
-          <div className="p-3 bg-gray-900/60 rounded-xl border border-gray-700/50">
-            <Hand cards={heroCards} size="md" gap="gap-2" />
+          <div className="p-1.5 bg-gray-900/60 rounded-xl border border-gray-700/50">
+            <Hand cards={heroCards} size="sm" gap="gap-1.5" />
           </div>
         </div>
       </div>
@@ -523,10 +523,10 @@ function CardDisplay({ heroCards, board, street, isEn, dimmed = false }: {
 
 function NumberCard({ label, value, color, icon }: { label: string; value: string; color: string; icon: string }) {
   return (
-    <div className="bg-gray-800/80 rounded-xl p-3 border border-gray-700 text-center">
-      <p className="text-lg mb-1">{icon}</p>
-      <p className={`text-xl font-bold font-mono ${color}`}>{value}</p>
-      <p className="text-xs text-gray-500 mt-1">{label}</p>
+    <div className="bg-gray-800/80 rounded-xl p-2 border border-gray-700 text-center">
+      <p className="text-sm mb-0.5">{icon}</p>
+      <p className={`text-base font-bold font-mono ${color}`}>{value}</p>
+      <p className="text-xs text-gray-500">{label}</p>
     </div>
   );
 }
