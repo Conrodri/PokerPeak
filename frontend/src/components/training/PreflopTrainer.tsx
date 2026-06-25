@@ -1032,12 +1032,12 @@ export function PreflopTrainer() {
     <div className="flex flex-col gap-3 sm:gap-6 max-w-2xl mx-auto">
 
       {/* ── Persistent header (lives HUD during an exam) ── */}
-      {examActive ? <ExamHud onQuit={handleQuitExam} /> : (
+      {examActive ? <ExamHud onQuit={handleQuitExam} /> : phase === 'select_position' ? (
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">{t.training.preflop_title}</h2>
         <p className="text-gray-400 text-xs sm:text-sm">{t.training.preflop_subtitle}</p>
       </div>
-      )}
+      ) : null}
 
       {/* ── PHASE: Position selection ── */}
       {phase === 'select_position' && (
