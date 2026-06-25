@@ -247,33 +247,33 @@ export function OutsTrainer() {
               <>
                 {/* Cards */}
                 <div
-                  className="rounded-2xl border p-4 flex flex-col items-center gap-4"
+                  className="rounded-2xl border p-3 flex flex-col items-center gap-2"
                   style={{ background: 'radial-gradient(ellipse at 50% 0%, #1a4a2e44, #0d231888)', borderColor: 'rgba(26,74,46,0.4)' }}
                 >
-                  <div className="flex flex-col items-center gap-2">
+                  <div className="flex flex-col items-center gap-1">
                     <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{streetLabel}</p>
-                    <div className="p-3 rounded-xl border" style={{ background: 'rgba(10,53,32,0.6)', borderColor: 'rgba(26,74,46,0.3)' }}>
+                    <div className="p-2 rounded-xl border" style={{ background: 'rgba(10,53,32,0.6)', borderColor: 'rgba(26,74,46,0.3)' }}>
                       <Hand cards={ex.board as CardStr[]} size="sm" gap="gap-1.5" />
                     </div>
                   </div>
                   <div className="w-full border-t border-white/5" />
-                  <div className="flex flex-col items-center gap-2">
+                  <div className="flex flex-col items-center gap-1">
                     <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
                       {isEn ? 'Your hand' : 'Votre main'}
                     </p>
-                    <div className="p-3 bg-gray-900/60 rounded-xl border border-gray-700/50">
-                      <Hand cards={ex.heroCards as CardStr[]} size="lg" gap="gap-2" />
+                    <div className="p-2 bg-gray-900/60 rounded-xl border border-gray-700/50">
+                      <Hand cards={ex.heroCards as CardStr[]} size="sm" gap="gap-1.5" />
                     </div>
                   </div>
                 </div>
 
                 {/* Question */}
-                <p className="text-center text-white font-semibold text-lg">
+                <p className="text-center text-white font-semibold text-base">
                   {isExpert
                     ? (isEn ? "What is your equity on the next card?" : "Quelle est ton équité sur la prochaine carte ?")
                     : t.training.outs_question}
                 </p>
-                <p className="text-center text-xs text-gray-400 -mt-3 max-w-md mx-auto leading-snug">
+                <p className="text-center text-xs text-gray-400 -mt-2 max-w-md mx-auto leading-snug">
                   {isExpert
                     ? (isEn
                         ? `Count your outs, then apply the rule of ${ex.street === "flop" ? "4 (×4, two cards to come)" : "2 (×2, one card to come)"} to estimate equity.`
@@ -291,9 +291,9 @@ export function OutsTrainer() {
                       onClick={() => handleAnswer(opt)}
                       whileHover={{ scale: 1.03, borderColor: "#34d399" }}
                       whileTap={{ scale: 0.97 }}
-                      className="bg-gray-800/80 border-2 border-gray-600 rounded-2xl py-5 flex flex-col items-center gap-1 cursor-pointer transition-all group"
+                      className="bg-gray-800/80 border-2 border-gray-600 rounded-2xl py-3 flex flex-col items-center gap-1 cursor-pointer transition-all group"
                     >
-                      <span className="text-3xl font-black font-mono text-white">
+                      <span className="text-2xl font-black font-mono text-white">
                         {isExpert ? `${opt}%` : opt}
                       </span>
                       <span className="text-felt-400 text-xs font-semibold group-hover:text-felt-300">
