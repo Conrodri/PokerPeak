@@ -677,16 +677,18 @@ export function StatsPage() {
                 {(m.advancedBest > 0 || m.expertBest > 0) && (
                   <div className="mt-0.5 ml-1 flex items-center gap-3 flex-wrap">
                     {m.advancedBest > 0 && (
-                      <span className="text-[10px] text-gray-500">
-                        🟡 {isEn ? 'Adv.' : 'Avancé'}&nbsp;
-                        <span className="text-yellow-400 font-bold">{m.advancedBest}</span>
+                      <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                        <Zap size={9} className="text-gold-400 shrink-0" />
+                        {isEn ? 'Adv.' : 'Avancé'}&nbsp;
+                        <span className="text-gold-400 font-bold">{m.advancedBest}</span>
                         &nbsp;{isEn ? 'correct' : 'réussis'}
                       </span>
                     )}
                     {m.expertBest > 0 && (
-                      <span className="text-[10px] text-gray-500">
-                        🔥 {isEn ? 'Expert' : 'Expert'}&nbsp;
-                        <span className="text-orange-400 font-bold">{m.expertBest}</span>
+                      <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                        <Flame size={9} className="text-purple-400 shrink-0" />
+                        {isEn ? 'Expert' : 'Expert'}&nbsp;
+                        <span className="text-purple-400 font-bold">{m.expertBest}</span>
                         &nbsp;{isEn ? 'correct' : 'réussis'}
                       </span>
                     )}

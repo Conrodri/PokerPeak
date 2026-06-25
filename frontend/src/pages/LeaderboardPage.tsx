@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Zap, Target, ChevronDown, Timer, Crown, Lock } from 'lucide-react';
+import { Trophy, Zap, Flame, Target, ChevronDown, Crown, Lock } from 'lucide-react';
 import { statsApi } from '../services/api';
 import { LeaderboardEntry, LeaderboardModuleStat } from '../types/poker';
 import { useAuthStore } from '../store/authStore';
@@ -91,20 +91,20 @@ function ModuleGrid({ modules, isEn }: {
                     <HoverTip
                       title={isEn ? 'Advanced sprint' : 'Sprint avancé'}
                       text={isEn ? `Best: ${stat.advanced} correct` : `Meilleur : ${stat.advanced} réussis`}
-                      className="flex items-center gap-0.5 text-[10px] text-yellow-400 font-semibold border-none"
+                      className="flex items-center gap-0.5 text-[10px] text-gold-400 font-semibold border-none"
                     >
-                      <Timer size={9} className="text-yellow-400" />
-                      🟡{stat.advanced}
+                      <Zap size={9} className="text-gold-400" />
+                      {stat.advanced}
                     </HoverTip>
                   )}
                   {(stat.expert ?? 0) > 0 && (
                     <HoverTip
                       title={isEn ? 'Expert sprint' : 'Sprint expert'}
                       text={isEn ? `Best: ${stat.expert} correct` : `Meilleur : ${stat.expert} réussis`}
-                      className="flex items-center gap-0.5 text-[10px] text-orange-400 font-semibold border-none"
+                      className="flex items-center gap-0.5 text-[10px] text-purple-400 font-semibold border-none"
                     >
-                      <Timer size={9} className="text-orange-400" />
-                      🔥{stat.expert}
+                      <Flame size={9} className="text-purple-400" />
+                      {stat.expert}
                     </HoverTip>
                   )}
                 </div>
