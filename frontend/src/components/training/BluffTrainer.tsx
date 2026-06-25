@@ -8,6 +8,7 @@ import { useLangStore } from '../../store/langStore';
 import { useAuthStore } from '../../store/authStore';
 import { useQuotaStore } from '../../store/quotaStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
+import { useExamRunner } from '../../hooks/useExamRunner';
 import { Button } from '../ui/Button';
 import { SessionStatsBar } from '../ui/SessionStatsBar';
 import { VerdictBanner } from '../ui/VerdictBanner';
@@ -18,6 +19,8 @@ import { SpoilableHint } from '../ui/SpoilableHint';
 import { BeginnerGuide } from '../ui/BeginnerGuide';
 import { RichLine } from '../ui/RichText';
 import { Spinner } from '../ui/Spinner';
+import { SprintTimer } from '../ui/SprintTimer';
+import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { PokerTable, SeatInfo } from '../poker/PokerTable';
 import { Hand } from '../poker/Card';
 import { quotaApi } from '../../services/api';
@@ -91,11 +94,12 @@ function actionButtonVariant(action: BluffAction, selected: BluffAction | null, 
 
 // ─── Intro ────────────────────────────────────────────────────────────────────
 
-function BluffIntro({ onStart, locked, lockedVariant, freeInfo }: {
+function BluffIntro({ onStart, locked, lockedVariant, freeInfo, examSlot }: {
   onStart: () => void;
   locked?: boolean;
   lockedVariant?: 'login' | 'quota';
   freeInfo?: { remaining: number; limit: number };
+  examSlot?: React.ReactNode;
 }) {
   const isEn  = useLangStore(s => s.lang) === 'en';
   const mode  = useModeStore(s => s.mode);
@@ -142,6 +146,7 @@ function BluffIntro({ onStart, locked, lockedVariant, freeInfo }: {
       locked={locked}
       lockedVariant={lockedVariant}
       freeInfo={freeInfo}
+      examSlot={examSlot}
     />
   );
 }
@@ -251,6 +256,9 @@ export function BluffTrainer() {
   // Lock mode switching while a question is on screen
   useExerciseLock(!showIntro && phase === 'exercise' && !!bluffExercise);
 
+  // Exam mode (advanced/expert)
+  const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('bluff');
+
   const nextExercise = async () => {
     if (!isPremium) {
       try {
@@ -271,10 +279,26 @@ export function BluffTrainer() {
   };
 
   const handleStart = () => {
+    quitRun();
     setShowIntro(false);
     setTrainerStarted(true);
     nextExercise();
     setStartTime(Date.now());
+  };
+
+  const handleStartExam = async () => {
+    startRun();
+    setShowIntro(false);
+    setTrainerStarted(true);
+    setSelected(null);
+    setPhase('exercise');
+    fetchBluffExercise();
+    setStartTime(Date.now());
+  };
+
+  const handleQuitExam = () => {
+    quitRun();
+    backToIntro();
   };
 
   const handleAnswer = async (action: BluffAction) => {
@@ -287,6 +311,13 @@ export function BluffTrainer() {
     setPhase('result');
     setIsExercising(false);
     await recordResult(isCorrect, xp, 'bluff', timeTaken);
+    if (examActive) recordAnswer(isCorrect, handleNext);
+  };
+
+  const handleTimeout = () => {
+    if (!bluffExercise || phase !== 'exercise') return;
+    const wrong = ALL_ACTIONS.find(a => a !== bluffExercise.correctAction) ?? 'check-fold';
+    handleAnswer(wrong);
   };
 
   const handleNext = () => {
@@ -317,8 +348,17 @@ export function BluffTrainer() {
       freeInfo={!isPremium && loggedIn && freeRemaining > 0
         ? { remaining: freeRemaining, limit: quota.limit }
         : undefined}
+      examSlot={mode !== 'beginner' ? <ExamLauncher module="bluff" onStart={handleStartExam} /> : undefined}
     />
   );
+
+  if (examFinished) {
+    return (
+      <div className="flex flex-col gap-5 max-w-2xl mx-auto pt-4">
+        <ExamResult module="bluff" onRetry={handleStartExam} onQuit={handleQuitExam} />
+      </div>
+    );
+  }
 
   if (quotaBlocked) {
     return (
@@ -351,6 +391,16 @@ export function BluffTrainer() {
 
   return (
     <div className="flex flex-col gap-5 max-w-2xl mx-auto">
+
+      {examActive && <ExamHud onQuit={handleQuitExam} />}
+
+      {phase === 'exercise' && (
+        <SprintTimer
+          active={examActive && mode === 'expert' && !!bluffExercise && !isLoading}
+          resetKey={resetKey}
+          onTimeout={handleTimeout}
+        />
+      )}
 
       {/* ════════════ EXERCISE ════════════ */}
       {phase === 'exercise' && (
