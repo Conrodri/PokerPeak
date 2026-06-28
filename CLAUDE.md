@@ -63,106 +63,179 @@ npm run typecheck          # Vérifier les types sans émettre
 
 ### **Backend : moteur poker + API REST**
 
-**Services poker** (`backend/src/services/poker/`)  
+**Services poker** (`backend/src/services/poker/`)
 - `cards.ts` — Représentation des cartes et mains
 - `handEvaluator.ts` — Évaluation des combinaisons (quinte, couleur, etc.)
 - `equityAnalyzer.ts` — Calcul des équités (simulation ou lookup pré-flop)
+- `equity.ts` — Helpers equity (wraps equityAnalyzer pour les exercices)
 - `preflopEquity.generated.ts` — Tables pré-flop précalculées (169 mains)
-- `ranges.ts` — Représentation et manipulation des ranges (bits 169)
+- `preflopEquity.ts` — Chargement et interpolation des tables générées
+- `ranges.ts` — Représentation et manipulation des ranges (bitmask 169) pour tous les formats (6-max, 8-max, 3-max, HU) × (CG, MTT)
 - `potOdds.ts` — Calcul des cotes et de l'EV
 - `outs.ts` — Identification des outs (cartes utiles)
 - `bbDefense.ts` — Ranges spécifiques (défense BB)
 - `bluffService.ts` — Fréquences de bluff non-exploitables
 - `preflopCanonical.ts` — Notation canonique des mains (Ax, KK, etc.)
 
-**Contrôleurs & routes**  
-- `authController.ts` + `routes/auth.ts` — Register, login, Google OAuth, reset password
-- `trainingController.ts` + `routes/training.ts` — Génération d'exercices pré-flop, équité, pot odds, outs
+**Contrôleurs & routes**
+- `authController.ts` + `googleAuthController.ts` + `routes/auth.ts` — Register, login, Google OAuth, reset password, vérification email
+- `trainingController.ts` + `routes/training.ts` — Génération d'exercices (pré-flop tous formats, équité, pot odds, outs, bluff, bet sizing, full hand)
 - `postflopController.ts` + `routes/postflop.ts` — Exercices post-flop (premium)
-- `statsController.ts` + `routes/stats.ts` — Classement, historique, progression utilisateur
-- `rangesController.ts` + `routes/ranges.ts` — Ranges simples personnalisées (169 mains)
+- `statsController.ts` + `routes/stats.ts` — Classement, historique, progression, sprints par module
+- `rangesController.ts` + `routes/ranges.ts` — Ranges simples personnalisées (169 mains) + presets
 - `expertRangesController.ts` + `routes/expertRanges.ts` — Ranges multi-actions (expert tier)
 - `profilesController.ts` + `routes/profiles.ts` — Profils de ranges sauvegardés
 - `subscriptionController.ts` + `routes/subscription.ts` — Gestion des tiers premium
-- `examController.ts` + `routes/exam.ts` — Mode examen (looped exercises, best score)
+- `examController.ts` + `routes/exam.ts` — Mode sprint/examen (looped exercises, best score, 14 modules)
+- `routes/feedback.ts` — Envoi de feedback utilisateur (rate-limited)
 
-**Services & middleware**  
-- `trainingService.ts` — Logique de génération d'exercices (paires, position, difficulté)
+**Services & middleware**
+- `trainingService.ts` — Logique de génération d'exercices (paires, position, difficulté, tableFormat, gameType)
 - `quota.ts` — Gestion des quotas gratuits (5 exos/jour par module)
-- `emailService.ts` — Envoi d'emails (Resend)
+- `emailService.ts` — Envoi d'emails (Resend) : vérification email, reset password
 - `auth.ts` (middleware) — Vérification JWT, refresh tokens, tiers premium/expert
 - `secrets.ts` — Gestion des variables d'environnement
 
-**Base de données** (`backend/prisma/schema.prisma`)  
+**Base de données** (`backend/prisma/schema.prisma`)
 Modèles clés :
 - `User` — Utilisateurs, tiers premium/expert, email verification, password reset
-- `TrainingSession` — Historique des exercices (module, réponse, correcte, temps)
-- `PlayerStats` — XP, rang, achievements, sprints
-- `ExamRecord` — Record (best score) par (user, module, mode)
-- `ExamRun` — Historique des runs exam
-- `CustomRange`, `RangeProfile`, `ExpertRange` — Ranges utilisateur
+- `TrainingSession` — Sessions d'exercices (module, mode, temps)
+- `SessionExercise` — Exercice individuel (type, correct, XP, temps)
+- `PlayerStats` — XP, rang, achievements JSON, sprints, accuracy par module
+- `ExamRecord` — Record (best score) par (user, module, mode) — couvre les 14 modules sprint
+- `ExamRun` — Historique des runs sprint avec score et timestamp
+- `CustomRange` — Range personnalisée par position (169 mains bitmask)
+- `RangePreset` — Presets prédéfinis de ranges (GTO, tight, loose, etc.)
+- `RangeProfile` — Profil nommé regroupant plusieurs CustomRanges
+- `RangeStackRange` — Range par taille de stack (pour MTT)
+- `ExpertRange` — Range multi-actions (Fold/Call/Raise/All-in %)
 - `FreeUsage` — Quota gratuit (resets quotidien à minuit UTC+2)
-- `DailyChallenge` — Challenges personnalisés pour utilisateurs premium
+- `DailyChallenge` + `Challenge` — Challenges personnalisés pour utilisateurs premium
 
 ---
 
 ### **Frontend : composants React + state Zustand**
 
-**Pages principales** (`frontend/src/pages/`)  
-- `HomePage.tsx` — Accueil, intro modules
-- `TrainingPage.tsx` — Entraînement (dispatch vers module choisi)
-- `StatsPage.tsx` — Progression, historique, achievements
-- `LeaderboardPage.tsx` — Classement global
+**Pages** (`frontend/src/pages/`)
+- `HomePage.tsx` — Accueil, présentation des modules, CTA
+- `TrainingPage.tsx` — Hub d'entraînement (sélection module + format + game type)
+- `StatsPage.tsx` — Progression, achievements, historique par jour, sprints par variant pré-flop
+- `LeaderboardPage.tsx` — Classement global avec grille accuracy + sprints pré-flop par format
 - `PremiumPage.tsx` — Pitch premium, gestion abonnement
 - `ProfilePage.tsx` — Profil utilisateur, paramètres
-- `TablePage.tsx` — Vue full-hand simulée (premium feature)
+- `TablePage.tsx` — Vue table de poker complète (premium feature)
 - `LearningPathPage.tsx` — Chemins d'apprentissage guidés
+- `GlossaryPage.tsx` — Glossaire des termes poker (avec `glossary.ts`)
+- `LoginPage.tsx` — Connexion email/password + Google OAuth
+- `ForgotPasswordPage.tsx` / `ResetPasswordPage.tsx` — Reset de mot de passe
+- `VerifyEmailPage.tsx` — Vérification d'email post-inscription
+- `AuthCallbackPage.tsx` — Callback OAuth Google
+- `CGUPage.tsx` — Conditions générales d'utilisation
+- `PrivacyPage.tsx` — Politique de confidentialité
 
-**Composants d'entraînement** (`frontend/src/components/training/`)  
+**Composants d'entraînement** (`frontend/src/components/training/`)
 Un composant par module :
-- `PreflopTrainer.tsx` — Fold/raise pré-flop avec range visuelle
-- `EquityTrainer.tsx` — Quelle main domine ?
+- `PreflopTrainer.tsx` — Fold/raise pré-flop avec range visuelle, 4 formats (6-max/8-max/3-max/HU) × 2 game types (CG/MTT), 8 clés de sprint
+- `EquityTrainer.tsx` — Quelle main domine ? (Débutant/Avancé/Expert)
 - `OutsTrainer.tsx` — Compte les outs, règle de 2&4
 - `PotOddsTrainer.tsx` — Call/fold selon EV
-- `PostflopTrainer.tsx` — Texture, continuation bet
-- `BetSizingTrainer.tsx` — Sélection de sizing
-- `BluffTrainer.tsx` — Fréquences de bluff
-- `FullHandTrainer.tsx` — Main complète (pré à river)
-- `ExamMode.tsx` — Mode examen (looped, streak mode)
+- `PostflopTrainer.tsx` — Texture de board, continuation bet (premium)
+- `BetSizingTrainer.tsx` — Sélection de sizing optimal
+- `BluffTrainer.tsx` — Fréquences de bluff et sélection de mains
+- `FullHandTrainer.tsx` — Main complète pré-flop à river (premium)
+- `ExamMode.tsx` — Composants sprint : `<ExamLauncher>`, `<ExamHud>`, `<ExamResult>`
+- `CustomRangePanel.tsx` — Panneau de range personnalisée pendant l'entraînement
+- `PokerRulesPage.tsx` — Page de règles/modules intégrée (affiché comme page)
 
-**Composants poker** (`frontend/src/components/poker/`)  
-- `Card.tsx`, `Hand.tsx` — Affichage des cartes
-- `RangeMatrix.tsx` — Matrice 13×13 interactive (sélection de mains)
-- `RangeEditor.tsx` — Éditeur simple (169 mains)
+**Composants poker** (`frontend/src/components/poker/`)
+- `Card.tsx` — Affichage d'une carte
+- `RangeMatrix.tsx` — Matrice 13×13 interactive (sélection/visualisation de mains)
+- `RangeEditor.tsx` — Éditeur simple de range (169 mains, drag-to-select)
 - `ExpertRangeEditor.tsx` — Éditeur multi-actions (Fold/Call/Raise/All-in %)
-- `PokerTable.tsx` — Table de jeu stylisée
-- `RangePresetsPanel.tsx`, `RangeProfilesPanel.tsx`, `MyRangesPanel.tsx` — Panneaux de ranges
+- `PokerTable.tsx` — Table de jeu stylisée (positions dynamiques selon format)
+- `PositionSelector.tsx` — Sélecteur de position (adapté au format actif)
+- `RangePresetsPanel.tsx` — Presets de ranges GTO/custom
+- `RangeProfilesPanel.tsx` — Profils sauvegardés
+- `MyRangesPanel.tsx` — Ranges personnalisées de l'utilisateur (tous formats)
 
-**UI réutilisable** (`frontend/src/components/ui/`)  
+**Composants stats** (`frontend/src/components/stats/`)
+- `AchievementsGrid.tsx` — Grille des badges débloqués / en cours
+- `DayDetailPanel.tsx` — Détail d'une journée dans le calendrier de progression
+
+**Composants onboarding** (`frontend/src/components/onboarding/`)
+- `OnboardingModal.tsx` — Modal de bienvenue et sélection de profil
+- `GuidedHand.tsx` — Main guidée interactive pour débutants
+
+**Composants tutorial** (`frontend/src/components/tutorial/`)
+- `Tutorial.tsx` — Tutorial interactif step-by-step
+- `HandTutorialModal.tsx` — Modal d'explication d'une main spécifique
+
+**UI réutilisable** (`frontend/src/components/ui/`)
 - `ModeToggle.tsx` — Sélecteur Débutant / Avancé / Expert
-- `SpoilableHint.tsx` — Indices révélables (réinitialise streaks en avancé)
-- `VerdictBanner.tsx` — Verdict correct/incorrect avec explication
-- `ExplanationPanel.tsx` — Explication détaillée (GTO ranges, équité, etc.)
-- `PremiumGate.tsx`, `QuotaLockPanel.tsx` — Paywalls
-- `TrainerIntro.tsx` — Intro du module (objectif, conseils)
+- `ModeBadge.tsx` — Badge coloré indiquant le mode actif
+- `SpoilableHint.tsx` — Indice révélable (réinitialise le streak en avancé)
+- `VerdictBanner.tsx` — Verdict correct/incorrect/partiel avec explication
+- `ExplanationPanel.tsx` — Explication détaillée (GTO ranges, équité, EV, etc.)
+- `PremiumGate.tsx` / `QuotaLockPanel.tsx` — Paywalls
+- `TrainerIntro.tsx` — Intro du module (objectif, conseils, bouton sprint)
+- `SprintTimer.tsx` — Compte à rebours du sprint (10 s avancé / 5 s expert)
+- `SessionStatsBar.tsx` — Barre de stats en cours de session (streak, correct, XP)
+- `ProgressBar.tsx` — Barre de progression générique
+- `StatChip.tsx` — Chip de statistique réutilisable
+- `BeginnerGuide.tsx` — Guide rapide pour nouveaux utilisateurs
+- `HoverTip.tsx` — Tooltip au survol
+- `PokerTerm.tsx` — Terme poker cliquable → définition dans le glossaire
+- `RichText.tsx` — Rendu de texte enrichi avec termes poker
+- `SourcesFooter.tsx` — Footer des sources académiques/GTO
+- `Button.tsx` — Bouton générique (variants: primary, secondary, ghost, gold)
+- `Spinner.tsx` — Indicateur de chargement
+- `ErrorBoundary.tsx` — Capture d'erreurs React
+- `CookieBanner.tsx` — Bandeau RGPD cookies
+- `FeedbackButton.tsx` — Bouton flottant d'envoi de feedback
+- `LanguageToggle.tsx` — Bascule FR / EN
 
-**État global** (`frontend/src/store/`)  
-Zustand stores :
+**Hooks** (`frontend/src/hooks/`)
+- `useExamRunner.ts` — Logique d'exécution d'un sprint (start, check, forfeit, record)
+- `useExerciseLock.ts` — Verrouillage de l'exercice après réponse (évite double-submit)
+- `useIsMobile.ts` — Détecte si l'écran est mobile (breakpoint 768px)
+
+**État global** (`frontend/src/store/`)
+Zustand stores (persistés en localStorage sauf `examStore`) :
 - `authStore` — User connecté, token JWT, tiers premium/expert
-- `trainingStore` — Module en cours, exercice, réponses, streak
-- `uiStore` — Mode (Débutant/Avancé/Expert), langue, thème
-- `quotaStore` — Quota gratuit reste (5/jour par module)
+- `trainingStore` — Module en cours, exercice, format (6max/8max/3max/HU), game type (CG/MTT), réponses, streak
+- `examStore` — État en cours de sprint (correct, errors, isNewRecord, history, records par module)
+- `modeStore` — Mode actif : `'beginner' | 'advanced' | 'expert'`
+- `langStore` — Langue active : `'fr' | 'en'`
+- `themeStore` — Thème : `'dark' | 'light'`
+- `quotaStore` — Quota gratuit restant (5/jour par module)
+- `customRangeStore` — Ranges personnalisées de l'utilisateur (cache local)
+- `zoomStore` — Niveau de zoom de la matrice de range
 
-**Services API** (`frontend/src/services/`)  
-Client Axios centralisé pour appels :
-- `POST /api/auth/*` — Login, register, OAuth
-- `GET /api/training/:module/exercise` — Générer un exercice
-- `POST /api/training/:module/check` — Vérifier la réponse
-- `GET /api/stats/*` — Récupérer stats/classement
-- `GET/POST /api/ranges`, `/api/expert-ranges` — Ranges perso
+**Services API** (`frontend/src/services/api.ts`)
+Client Axios centralisé. Appels couverts :
+- Auth : register, login, OAuth, logout, forgot/reset password, vérification email
+- Training : générer exercice, vérifier réponse, récupérer range GTO
+- Stats : leaderboard (avec sprints par variant), stats perso, historique
+- Exam/Sprint : records, start, check
+- Ranges : custom ranges, presets, profils, expert ranges
+- Quota : état du quota journalier
+- Feedback : envoi de feedback utilisateur
 
-**i18n** (`frontend/src/i18n/`)  
-Traductions FR / EN pour tous les modules et messages.
+**i18n** (`frontend/src/i18n/`)
+- `fr.ts` / `en.ts` — Traductions statiques typées (tous les modules et messages)
+- `index.ts` — Hook `useTranslation()` + sélecteur de langue
+
+**Utils** (`frontend/src/utils/`)
+- `pokerUtils.ts` — Helpers poker génériques (notation, combinaisons, etc.)
+- `rangeImportValidator.ts` — Validation et import de ranges (format texte → bitmask)
+- `coachHints.ts` — Hints contextuels du coach (selon position, main, mode)
+- `handHints.ts` — Conseils spécifiques aux mains (AK, pocket pairs, etc.)
+
+**Data** (`frontend/src/data/`)
+- `glossary.ts` — Dictionnaire de termes poker (FR/EN, avec définitions)
+
+**Analytics** (`frontend/src/lib/analytics.ts`)
+- Tracking events (page views, exercices, sprints) — désactivé si pas de consentement cookie
 
 ---
 
@@ -174,6 +247,16 @@ Traductions FR / EN pour tous les modules et messages.
 - `npm run dev` exécute ce script **automatiquement** au lancement
 - **Ne jamais** lancer `prisma db push` brut en local sans le flag `--schema=prisma/dev.prisma`
 - En prod (Render), `prisma db push` cible la vraie DB Postgres (Neon)
+
+### **Formats et game types pré-flop**
+- `TableFormat = '6max' | '8max' | '3max' | 'hu'` — positions et ranges différentes
+- `GameType = 'cashgame' | 'mtt'` — antes MTT changent les ranges d'ouverture
+- Clés de sprint pré-flop (8 combinaisons) :
+  - `preflop` (6-max CG), `preflop-mtt` (6-max MTT)
+  - `preflop8` (8-max CG), `preflop8-mtt` (8-max MTT)
+  - `preflop-3max` (3-max CG), `preflop-mtt-3max` (3-max MTT)
+  - `preflop-hu` (HU CG), `preflop-mtt-hu` (HU MTT)
+- Positions par format : 6-max (UTG/HJ/CO/BTN/SB/BB), 8-max (+ UTG1/LJ), 3-max (BTN/SB/BB), HU (BTN/BB)
 
 ### **Quota gratuit et sessions**
 - 5 exercices/jour par module par utilisateur connecté (gratuit ou trial premium)
@@ -192,7 +275,7 @@ Traductions FR / EN pour tous les modules et messages.
 - Conversion : `ranges.ts` fournit `encodeBitmask()`, `decodeBitmask()`, `getCanonical()`
 
 ### **Tiers d'accès**
-- **Gratuit** — modules gratuits illimités, quota 5/jour/module premium, pas d'expert
+- **Gratuit** — modules de base illimités, quota 5/jour/module premium, pas d'expert
 - **Premium** 👑 — accès illimité, éditeur ranges simple, badge classement, pas d'expert
 - **Premium Expert** 🔥 — tout Premium + mode Expert + éditeur ranges multi-actions
 - Accordés en DB manuellement (pas de facturation en ligne actuellement)
@@ -200,19 +283,26 @@ Traductions FR / EN pour tous les modules et messages.
 
 ### **Modes d'entraînement**
 > **Vocation : application à but éducatif.** L'objectif premier est l'apprentissage progressif du poker. Les 3 modes structurent une montée en difficulté graduelle.
-- **Débutant** 🎓 — vocation pédagogique maximale : plus d'explications, indices visibles, exercices plus faciles, compte rendu complet.
-- **Avancé** ⚡ — indices cachés (bouton « Révéler », révéler = réinitialise le streak), exercices plus complexes. Contient les **sprints** d'exercices (**10 s** de délai par exo).
-- **Expert** 🔥 — exercices plus difficiles que l'Avancé : soit en **ajoutant des étapes** à l'exercice, soit en rendant les **réponses proposées plus complexes**. Aucun indice, mode examen looped (3 erreurs = fin). Contient aussi les **sprints** (**5 s** de délai par exo).
+- **Débutant** 🎓 — pédagogie maximale : explications complètes, indices visibles, exercices plus faciles, compte rendu détaillé.
+- **Avancé** ⚡ — indices cachés (bouton « Révéler », révéler = réinitialise le streak), exercices plus complexes. Contient les **sprints** (**10 s** de délai par exo).
+- **Expert** 🔥 — exercices plus difficiles (étapes supplémentaires ou réponses plus complexes). Aucun indice, mode sprint looped (3 erreurs = fin). Sprints à **5 s** de délai par exo.
 
-### **Mode examen**
-- Looped exercises, ajoute une correct, erreur remet streak à 0
-- Après 3 erreurs, exam termine, score enregistré dans `ExamRun`
-- `ExamRecord` stocke le record (best score atteint) par (user, module, mode)
+### **Mode sprint (ExamMode)**
+- Enchaîne les exercices en boucle jusqu'à 3 erreurs → score = bonnes réponses
+- `ExamRecord` stocke le record (best score) par `(userId, module, mode)`
+- `ExamRun` conserve l'historique de chaque run (score, date)
+- 14 modules sprint au total : 8 préflop variants + `potodds`, `equity`, `outs`, `postflop`, `fullhand`, `betsizing`
+- `ExamLauncher` → bouton de lancement dans le header de chaque trainer
+- `ExamHud` → vies + score live pendant le run
+- `ExamResult` → carte récap avec score, record, historique des runs, mains ratées
+- Un run abandonné (forfeit) n'est pas sauvegardé
 
-### **Achievements et progression**
-- `utils/achievements.ts` définit les achievements (badges) et les conditions
-- `PlayerStats.achievements` JSON array de titre d'achievements débloqués
-- XP = progression (1pt/correct en débutant, 2pts/correct en avancé, 3pts/correct en expert)
+### **Achievements et titres débloquables**
+- `backend/src/utils/achievements.ts` (et miroir frontend) définit badges et conditions
+- Catégories : `exercises`, `accuracy`, `days`, `sprint_advanced`, `sprint_expert`, `daily_ex`, `daily_correct`, `daily_acc`
+- Tiers : `bronze` → `silver` → `gold` → `platinum`
+- Titres débloquables (affichés dans le leaderboard) : attribués au meilleur achievement débloqué
+- XP gagné : 1 pt/correct en débutant, 2 pts en avancé, 3 pts en expert
 
 ### **🔴 Principes non négociables (perf, responsive, qualité)**
 - **🚨 PRIORITÉ 1 — Responsive mobile obligatoire** — l'application **doit** être parfaitement utilisable sur téléphone. Tout nouveau composant ou page est conçu *mobile-first*, **testé sur petits écrans avant tout** (zones tactiles ≥ 44px, lisibilité, aucun débordement horizontal, textes lisibles sans zoom). Si un composant ne passe pas le test mobile, il **ne part pas en production**.
@@ -249,46 +339,55 @@ Traductions FR / EN pour tous les modules et messages.
 
 ### Auth
 ```
-POST   /api/auth/register           { username, email, password }
-POST   /api/auth/login              { email, password }
-GET    /api/auth/me                 (JWT auth) → User
-GET    /api/auth/google             → redirection OAuth
-GET    /api/auth/google/callback    → JWT token, redir frontend
+POST   /api/auth/register              { username, email, password }
+POST   /api/auth/login                 { email, password }
+GET    /api/auth/me                    (JWT auth) → User
 POST   /api/auth/logout
-POST   /api/auth/forgot-password    { email }
-POST   /api/auth/reset-password     { token, newPassword }
+POST   /api/auth/forgot-password       { email }
+POST   /api/auth/reset-password        { token, newPassword }
+GET    /api/auth/verify-email/:token   → confirmation email
+GET    /api/auth/google                → redirection OAuth
+GET    /api/auth/google/callback       → JWT token, redir frontend
 ```
 
 ### Training
 ```
-GET    /api/training/:module/exercise?position=BTN   (position optionnel)
-POST   /api/training/:module/check   { answer, time }  → { correct, explanation, xp }
-GET    /api/training/:module/range/:position        (ranges GTO pré-flop)
+GET    /api/training/:module/exercise?position=BTN&tableFormat=6max&gameType=cashgame
+POST   /api/training/:module/check     { answer, time }  → { correct, explanation, xp }
+GET    /api/training/:module/range/:position              (ranges GTO pré-flop)
 GET    /api/health
 ```
 
 ### Stats & Progression
 ```
-GET    /api/stats/leaderboard       (top 100)
-GET    /api/stats/me                (JWT auth)
-GET    /api/stats/history           (JWT auth, paginated)
-GET    /api/quota                   (JWT auth, reste quota)
+GET    /api/stats/leaderboard          (top 50, inclut sprints par variant préflop)
+GET    /api/stats/me                   (JWT auth)
+GET    /api/stats/:username            (profil public)
+GET    /api/stats/history              (JWT auth, paginated)
+GET    /api/quota                      (JWT auth, reste quota)
 ```
 
 ### Ranges
 ```
-GET    /api/ranges                  (JWT auth)
-POST   /api/ranges                  { position, mains, }
-GET    /api/profiles                (JWT auth, saved profiles)
-POST   /api/profiles                { name, ranges }
-GET    /api/expert-ranges           (JWT auth, premium expert)
-POST   /api/expert-ranges           { position, mix }
+GET    /api/ranges                     (JWT auth)
+POST   /api/ranges                     { position, mains, tableFormat }
+GET    /api/profiles                   (JWT auth, saved profiles)
+POST   /api/profiles                   { name, ranges }
+GET    /api/expert-ranges              (JWT auth, premium expert)
+POST   /api/expert-ranges              { position, mix }
 ```
 
-### Exam
+### Exam / Sprint
 ```
-POST   /api/exam/start              { module, mode } → exercise
-POST   /api/exam/check              { answer } → { correct, streak, score, ended }
+GET    /api/exam/records               (JWT auth) → { [module]: { advanced, expert } }
+POST   /api/exam/start                 { module, mode } → exercise
+POST   /api/exam/check                 { answer } → { correct, streak, score, ended }
+GET    /api/exam/history/:module       (JWT auth, runs récents)
+```
+
+### Feedback
+```
+POST   /api/feedback                   { message, page? } (rate-limited)
 ```
 
 ---
@@ -296,20 +395,25 @@ POST   /api/exam/check              { answer } → { correct, streak, score, end
 ## 🎨 Conventions et patterns
 
 ### **Nommage des positions**
-- `BTN`, `CO`, `HJ`, `LJ`, `UTG` (Button, Cutoff, Hijack, Lojack, Under-the-gun)
-- Utilisé dans les paramètres d'exercices pré-flop
+- **6-max** : `UTG`, `HJ`, `CO`, `BTN`, `SB`, `BB`
+- **8-max** : + `UTG1`, `LJ` (ordre : UTG → UTG1 → LJ → HJ → CO → BTN → SB → BB)
+- **3-max** : `BTN`, `SB`, `BB`
+- **HU** : `BTN` (= SB), `BB`
 
 ### **Notation des mains**
 - `AK` (As-Roi), `AA` (paire d'As), `T5s` (Dix-Cinq assortis), `T5o` (dépareillés)
 - Canonique : `AA`, `KK`, ..., `22`, `AK`, `AQ`, etc. (169 mains uniques)
 
+### **Clés de module sprint**
+Format : `preflop[-mtt][-3max|-8|-hu]` — exemples : `preflop`, `preflop8-mtt`, `preflop-mtt-hu`
+
 ### **Traductions**
-- Toutes les strings UI en `frontend/src/i18n/fr.json` et `en.json`
-- Utiliser `useTranslation()` hook pour interpoler en composants
+- Toutes les strings UI en `frontend/src/i18n/fr.ts` et `en.ts` (typées)
+- Utiliser `useTranslation()` hook et `useLangStore` pour interpoler en composants
 
 ### **Erreurs**
 - Backend retourne `{ error: "message", code: "ERROR_CODE" }` en JSON
-- Frontend affiche via `ExplanationPanel` ou toast (si implémenté)
+- Frontend affiche via `ExplanationPanel` ou `VerdictBanner`
 - Toujours valider input avec Zod côté serveur
 
 ---
@@ -330,7 +434,7 @@ git rev-parse --abbrev-ref HEAD
 git checkout -b feature/my-feature
 
 # Commit simple
-git add .
+git add <fichiers>
 git commit -m "feat: description courte"
 
 # Push
@@ -360,3 +464,7 @@ git push -u origin feature/my-feature
 ### Google OAuth "Invalid redirect URI"
 - S'assurer que `FRONTEND_URL` (sur Render) pointe vers l'URL Vercel
 - Le callback OAuth devrait rediriger vers `${FRONTEND_URL}/auth/callback`
+
+### Sprint record non sauvegardé
+- Un run forfeit (abandonné) ne sauvegarde pas le score — comportement voulu
+- Vérifier que `examController.ts` inclut bien la clé de module dans `MODULES`
