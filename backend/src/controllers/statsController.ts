@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { ApiResponse } from '../types';
 import {
-  computeAchievements, getBestTitle, buildLeaderboardInput, AchievementInput,
+  computeAchievements, getBestTitle, buildLeaderboardInput, AchievementInput, ACHIEVEMENTS,
 } from '../utils/achievements';
 
 export async function getMyStats(req: Request, res: Response): Promise<void> {
@@ -76,8 +76,18 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
       const userSprints = sprintMap[l.userId] ?? {};
       const achievInput = buildLeaderboardInput(l.totalExercises, l.totalCorrect, userSprints);
       const achievResults = computeAchievements(achievInput);
-      const bestTitleFr = getBestTitle(achievResults, 'fr');
-      const bestTitleEn = getBestTitle(achievResults, 'en');
+
+      // Respect user's chosen title if set and still unlocked; else fall back to auto-best
+      let title: { fr: string; en: string; tier: string; icon: string } | null = null;
+      if ((l as any).selectedTitleId) {
+        const chosen = achievResults.find(a => a.id === (l as any).selectedTitleId && a.unlocked);
+        if (chosen) title = { fr: chosen.title_fr, en: chosen.title_en, tier: chosen.tier, icon: chosen.icon };
+      }
+      if (!title) {
+        const bestFr = getBestTitle(achievResults, 'fr');
+        const bestEn = getBestTitle(achievResults, 'en');
+        if (bestFr) title = { fr: bestFr.title, en: bestEn!.title, tier: bestFr.tier, icon: bestFr.icon };
+      }
 
       return {
         rank: i + 1,
@@ -87,9 +97,7 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
         level: l.level,
         totalExercises: l.totalExercises,
         accuracy: l.totalExercises > 0 ? Math.round((l.totalCorrect / l.totalExercises) * 100) : 0,
-        title: bestTitleFr
-          ? { fr: bestTitleFr.title, en: bestTitleEn!.title, tier: bestTitleFr.tier, icon: bestTitleFr.icon }
-          : null,
+        title,
         modules: {
           preflop:             { accuracy: acc(l.preflopCorrect,  l.preflopTotal),  total: l.preflopTotal,  ...sb(l.userId, 'preflop')  },
           // Variants share preflop accuracy; only their sprint records differ.
@@ -167,9 +175,34 @@ export async function getUserStats(req: Request, res: Response): Promise<void> {
     };
     const achievements = computeAchievements(achievInput);
 
-    res.json({ success: true, data: { username, stats, sprintRecords, byDay, achievements } });
+    res.json({ success: true, data: { username, stats, sprintRecords, byDay, achievements, selectedTitleId: stats?.selectedTitleId ?? null } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to get user stats' });
+  }
+}
+
+export async function updateTitle(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = (req as any).user?.userId;
+    if (!userId) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
+
+    const { titleId } = req.body as { titleId: string | null };
+
+    // Validate: must be a known achievement ID or null
+    if (titleId !== null && !ACHIEVEMENTS.some(a => a.id === titleId)) {
+      res.status(400).json({ success: false, error: 'Invalid title ID' });
+      return;
+    }
+
+    await prisma.playerStats.upsert({
+      where:  { userId },
+      update: { selectedTitleId: titleId ?? null },
+      create: { userId, selectedTitleId: titleId ?? null },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to update title' });
   }
 }
 

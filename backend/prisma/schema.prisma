@@ -260,6 +260,8 @@ model PlayerStats {
   sbTotal    Int @default(0)
   sbCorrect  Int @default(0)
 
+  selectedTitleId String?  // achievement ID chosen by user; null = auto-best
+
   updatedAt DateTime @updatedAt
 
   @@map("player_stats")

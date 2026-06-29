@@ -99,27 +99,27 @@ function DayCell({ dayLabel, dayNum, total, acc, isToday, isSelected, onClick }:
       onClick={onClick}
       whileHover={hasData ? { scale: 1.06 } : {}}
       whileTap={hasData   ? { scale: 0.96 } : {}}
-      className={`flex flex-col items-center gap-1 rounded-xl border py-2 px-1 transition-all w-full
+      className={`flex flex-col items-center gap-0.5 rounded-lg border py-1.5 px-1 transition-all w-full
         ${bgClass}
         ${isToday    ? 'ring-2 ring-gold-500/60 ring-offset-1 ring-offset-gray-950' : ''}
         ${isSelected ? 'ring-2 ring-white/40 ring-offset-1 ring-offset-gray-950 brightness-125' : ''}
         ${hasData    ? 'cursor-pointer hover:brightness-125' : 'cursor-default'}
       `}
     >
-      <span className={`text-[10px] font-semibold uppercase ${isToday ? 'text-gold-400' : 'text-gray-500'}`}>
+      <span className={`text-[9px] font-semibold uppercase ${isToday ? 'text-gold-400' : 'text-gray-500'}`}>
         {dayLabel}
       </span>
-      <span className={`text-xs font-black ${isToday ? 'text-gold-300' : 'text-gray-400'}`}>
+      <span className={`text-[11px] font-black ${isToday ? 'text-gold-300' : 'text-gray-400'}`}>
         {dayNum}
       </span>
-      <div className="border-t border-white/5 w-full my-0.5" />
+      <div className="border-t border-white/5 w-full" />
       {hasData ? (
         <>
-          <span className="text-[11px] font-bold text-white">{total}</span>
-          <span className={`text-[10px] font-semibold ${accColor}`}>{acc}%</span>
+          <span className="text-[10px] font-bold text-white">{total}</span>
+          <span className={`text-[9px] font-semibold ${accColor}`}>{acc}%</span>
         </>
       ) : (
-        <span className="text-gray-700 text-sm mt-0.5">—</span>
+        <span className="text-gray-700 text-xs">—</span>
       )}
     </motion.button>
   );
@@ -376,17 +376,17 @@ export function StatsPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-white">
+    <div className="flex flex-col gap-4 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold text-white">
         {isPublicView ? (paramUsername ?? t.stats.title) : t.stats.title}
       </h1>
 
       {/* ── Level & XP ── */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-gray-900 to-felt-900/50 rounded-2xl p-6 border border-gray-700"
+        className="bg-gradient-to-r from-gray-900 to-felt-900/50 rounded-2xl p-4 border border-gray-700"
       >
-        <div className="flex items-center gap-6 mb-4">
-          <div className="text-5xl font-black text-gold-400">{t.stats.level}{level}</div>
+        <div className="flex items-center gap-4 mb-3">
+          <div className="text-4xl font-black text-gold-400">{t.stats.level}{level}</div>
           <div className="flex-1">
             <div className="flex justify-between mb-1">
               <span className="text-white font-semibold">{isPublicView ? paramUsername : user?.username}</span>
@@ -397,7 +397,7 @@ export function StatsPage() {
             <ProgressBar value={progressPct} color="gold" size="lg" />
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <StatBox label={t.stats.exercises}   value={playerStats?.totalExercises || 0} />
           <StatBox label={t.stats.accuracy}
             value={`${playerStats?.totalCorrect || 0}/${playerStats?.totalExercises || 0}`}
@@ -408,9 +408,9 @@ export function StatsPage() {
 
       {/* ── Annual calendar heatmap ── */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-        className="bg-gray-900/60 rounded-2xl p-5 border border-gray-800"
+        className="bg-gray-900/60 rounded-2xl p-4 border border-gray-800"
       >
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h2 className="text-base font-bold text-white">
             {isEn ? `Activity ${calendarYear}` : `Activité ${calendarYear}`}
           </h2>
@@ -508,9 +508,9 @@ export function StatsPage() {
         style={{ background: 'linear-gradient(135deg, #1a1408 0%, #0f1a0e 100%)' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/5">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <span className="text-lg">📅</span>
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/5">
+          <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
+            <span>📅</span>
             {isEn ? "Today" : "Aujourd'hui"}
           </h2>
           <span className="text-xs text-gray-400 font-medium">
@@ -520,25 +520,25 @@ export function StatsPage() {
           </span>
         </div>
 
-        <div className="p-5 flex flex-col gap-5">
+        <div className="p-4 flex flex-col gap-3">
 
           {/* 4-chip row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white/5 rounded-xl p-3 border border-white/8 flex flex-col gap-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="bg-white/5 rounded-xl p-2.5 border border-white/8 flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Zap size={11} className="text-blue-400" />
                 {isEn ? 'Exercises' : 'Exercices'}
               </div>
-              <p className="text-2xl font-black text-white leading-none">{todayData.total}</p>
+              <p className="text-xl font-black text-white leading-none">{todayData.total}</p>
               <p className="text-xs text-gray-500">/ {DAILY_GOAL} {isEn ? 'goal' : 'objectif'}</p>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-3 border border-white/8 flex flex-col gap-1">
+            <div className="bg-white/5 rounded-xl p-2.5 border border-white/8 flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Target size={11} className="text-purple-400" />
                 {isEn ? 'Accuracy' : 'Précision'}
               </div>
-              <p className={`text-2xl font-black leading-none ${
+              <p className={`text-xl font-black leading-none ${
                 todayAcc === null ? 'text-gray-600' : todayAcc >= 75 ? 'text-green-400'
                 : todayAcc >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
                 {todayAcc !== null ? `${todayAcc}%` : '—'}
@@ -549,7 +549,7 @@ export function StatsPage() {
               </p>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-3 border border-white/8 flex flex-col gap-1">
+            <div className="bg-white/5 rounded-xl p-2.5 border border-white/8 flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 {accDelta === null ? <Minus size={11} className="text-gray-500" />
                   : accDelta > 0  ? <TrendingUp size={11} className="text-green-400" />
@@ -557,7 +557,7 @@ export function StatsPage() {
                   :                 <Minus size={11} className="text-gray-400" />}
                 {isEn ? 'vs Yesterday' : 'vs Hier'}
               </div>
-              <p className={`text-2xl font-black leading-none ${
+              <p className={`text-xl font-black leading-none ${
                 accDelta === null ? 'text-gray-600' : accDelta > 0 ? 'text-green-400'
                 : accDelta < 0 ? 'text-red-400' : 'text-gray-300'}`}>
                 {accDelta === null ? '—' : accDelta > 0 ? `+${accDelta}%` : accDelta < 0 ? `${accDelta}%` : '='}
@@ -569,12 +569,12 @@ export function StatsPage() {
               </p>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-3 border border-white/8 flex flex-col gap-1">
+            <div className="bg-white/5 rounded-xl p-2.5 border border-white/8 flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Flame size={11} className="text-orange-400" />
                 {isEn ? 'Streak' : 'Série'}
               </div>
-              <p className="text-2xl font-black text-orange-400 leading-none">
+              <p className="text-xl font-black text-orange-400 leading-none">
                 {localStreak > 0 ? `${localStreak}j` : '0'}
               </p>
               <p className="text-xs text-gray-500">
@@ -587,7 +587,7 @@ export function StatsPage() {
 
           {/* Daily goal progress */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1.5">
               <p className="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
                 <Target size={11} className="text-gold-400" />
                 {isEn ? 'Daily goal' : 'Objectif quotidien'}
@@ -609,11 +609,11 @@ export function StatsPage() {
 
           {/* 7-day strip */}
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                 {isEn ? 'Last 7 days' : '7 derniers jours'}
                 <span className="ml-2 normal-case font-normal text-gray-600">
-                  {isEn ? '— click a day for details' : '— cliquez sur un jour pour les détails'}
+                  {isEn ? '— click for details' : '— clic pour détails'}
                 </span>
               </p>
               {week7Acc !== null && (
@@ -625,7 +625,7 @@ export function StatsPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-7 gap-1.5">
+            <div className="grid grid-cols-7 gap-1">
               {last7Days.map(day => (
                 <DayCell
                   key={day.dateStr}
@@ -684,10 +684,10 @@ export function StatsPage() {
       {/* ── Module accuracy ── */}
       {playerStats && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="bg-gray-900/60 rounded-2xl p-6 border border-gray-800"
+          className="bg-gray-900/60 rounded-2xl p-4 border border-gray-800"
         >
-          <h2 className="text-base font-bold text-white mb-4">{t.stats.by_module}</h2>
-          <div className="space-y-4">
+          <h2 className="text-sm font-bold text-white mb-3">{t.stats.by_module}</h2>
+          <div className="space-y-3">
             {moduleData.map(m => (
               <div key={m.key}>
                 {/* Module row */}
@@ -703,46 +703,56 @@ export function StatsPage() {
                 {/* Sprint records — preflop: breakdown by format/gameType; others: single best */}
                 {m.key === 'preflop' ? (
                   preflopSprintVariants.length > 0 && (
-                    <div className="mt-1.5 ml-1 pl-2.5 border-l-2 border-gray-700/50 space-y-0.5">
-                      {preflopSprintVariants.map(v => (
-                        <div key={v.key} className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] font-semibold text-gray-600 w-16 shrink-0">
-                            {isEn ? v.en : v.fr}
-                          </span>
-                          {v.advanced > 0 && (
-                            <span className="flex items-center gap-1 text-[10px] text-gray-500">
-                              <Zap size={9} className="text-gold-400 shrink-0" />
-                              <span className="text-gold-400 font-bold">{v.advanced}</span>
-                              &nbsp;{isEn ? 'adv.' : 'avancé'}
-                            </span>
-                          )}
-                          {v.expert > 0 && (
-                            <span className="flex items-center gap-1 text-[10px] text-gray-500">
-                              <Flame size={9} className="text-purple-400 shrink-0" />
-                              <span className="text-purple-400 font-bold">{v.expert}</span>
-                              &nbsp;{isEn ? 'exp.' : 'expert'}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                    <div className="mt-2 ml-1 rounded-lg border border-gray-800 overflow-hidden">
+                      <table className="w-full text-[10px]">
+                        <thead>
+                          <tr className="bg-gray-800/60 border-b border-gray-700/50">
+                            <th className="text-left px-2 py-1 text-gray-500 font-semibold">Format</th>
+                            <th className="px-2 py-1 text-yellow-400 font-bold">
+                              <span className="flex items-center justify-center gap-0.5">
+                                <Zap size={8} />{isEn ? 'Adv.' : 'Avancé'}
+                              </span>
+                            </th>
+                            <th className="px-2 py-1 text-purple-400 font-bold">
+                              <span className="flex items-center justify-center gap-0.5">
+                                <Flame size={8} />{isEn ? 'Expert' : 'Expert'}
+                              </span>
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {preflopSprintVariants.map((v, i) => (
+                            <tr key={v.key} className={i % 2 === 0 ? 'bg-gray-900/30' : 'bg-gray-800/20'}>
+                              <td className="px-2 py-1 text-gray-400 font-medium">{isEn ? v.en : v.fr}</td>
+                              <td className="px-2 py-1 text-center">
+                                {v.advanced > 0
+                                  ? <span className="font-black text-yellow-400">{v.advanced}</span>
+                                  : <span className="text-gray-600">—</span>}
+                              </td>
+                              <td className="px-2 py-1 text-center">
+                                {v.expert > 0
+                                  ? <span className="font-black text-purple-400">{v.expert}</span>
+                                  : <span className="text-gray-600">—</span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )
                 ) : (m.advancedBest > 0 || m.expertBest > 0) && (
-                  <div className="mt-0.5 ml-1 flex items-center gap-3 flex-wrap">
+                  <div className="mt-0.5 ml-1 flex items-center gap-2">
+                    <span className="text-[10px] text-gray-600">Sprint :</span>
                     {m.advancedBest > 0 && (
-                      <span className="flex items-center gap-1 text-[10px] text-gray-500">
-                        <Zap size={9} className="text-gold-400 shrink-0" />
-                        {isEn ? 'Adv.' : 'Avancé'}&nbsp;
-                        <span className="text-gold-400 font-bold">{m.advancedBest}</span>
-                        &nbsp;{isEn ? 'correct' : 'réussis'}
+                      <span className="flex items-center gap-0.5 text-[10px]">
+                        <Zap size={9} className="text-yellow-400 shrink-0" />
+                        <span className="font-black text-yellow-400">{m.advancedBest}</span>
                       </span>
                     )}
                     {m.expertBest > 0 && (
-                      <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                      <span className="flex items-center gap-0.5 text-[10px]">
                         <Flame size={9} className="text-purple-400 shrink-0" />
-                        {isEn ? 'Expert' : 'Expert'}&nbsp;
-                        <span className="text-purple-400 font-bold">{m.expertBest}</span>
-                        &nbsp;{isEn ? 'correct' : 'réussis'}
+                        <span className="font-black text-purple-400">{m.expertBest}</span>
                       </span>
                     )}
                   </div>
@@ -891,10 +901,10 @@ function StatBox({ label, value, sub, color = 'text-white', suffix }: {
   label: string; value: number | string; sub?: string; color?: string; suffix?: string;
 }) {
   return (
-    <div className="text-center bg-gray-800/60 rounded-xl p-3">
-      <p className={`text-lg font-bold leading-none ${color}`}>{value}{suffix}</p>
+    <div className="text-center bg-gray-800/60 rounded-xl p-2.5">
+      <p className={`text-base font-bold leading-none ${color}`}>{value}{suffix}</p>
       {sub && <p className="text-sm font-semibold text-gray-300 mt-0.5">{sub}</p>}
-      <p className="text-xs text-gray-500 mt-1">{label}</p>
+      <p className="text-xs text-gray-500 mt-0.5">{label}</p>
     </div>
   );
 }

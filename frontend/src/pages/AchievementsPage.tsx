@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Trophy, Zap, Flame, Target, Calendar, Clock } from 'lucide-react';
+import { Trophy, Zap, Flame, Target, Calendar, Clock, Check } from 'lucide-react';
 import { AchievementsGrid } from '../components/stats/AchievementsGrid';
 import { Achievement, AchievementTier } from '../types/poker';
 import { useAuthStore } from '../store/authStore';
@@ -37,13 +37,34 @@ const TIER_STYLES: Record<AchievementTier, { ring: string; bg: string; text: str
   platinum: { ring: 'border-purple-600/60', bg: 'bg-purple-900/20', text: 'text-purple-400', label: 'Platine' },
 };
 
-// ─── Title hero card ──────────────────────────────────────────────────────────
+// ─── Title section (hero + selectable list) ───────────────────────────────────
 
-function TitleHero({ title }: {
-  title: { fr: string; en: string; tier: AchievementTier; icon: string } | null;
+function TitleSection({ achievements, selectedTitleId, onSelect, isEn }: {
+  achievements: Achievement[];
+  selectedTitleId: string | null;
+  onSelect: (id: string | null) => void;
+  isEn: boolean;
 }) {
-  const isEn = useLangStore(s => s.lang) === 'en';
-  if (!title) return (
+  const unlocked = achievements.filter(a => a.unlocked);
+
+  // Derive displayed title: selected if valid, else auto-best
+  const TIER_W: Record<string, number> = { platinum: 40, gold: 30, silver: 20, bronze: 10 };
+  const CAT_W: Record<string, number>  = {
+    accuracy: 6, sprint_expert: 5, daily_acc: 4,
+    sprint_advanced: 3, daily_correct: 2, daily_ex: 1, days: 0, exercises: 0,
+  };
+  const activeTitle = (() => {
+    if (selectedTitleId) {
+      const chosen = unlocked.find(a => a.id === selectedTitleId);
+      if (chosen) return chosen;
+    }
+    if (!unlocked.length) return null;
+    return unlocked.reduce((a, b) =>
+      (TIER_W[b.tier] + CAT_W[b.category]) > (TIER_W[a.tier] + CAT_W[a.category]) ? b : a
+    );
+  })();
+
+  if (!unlocked.length) return (
     <div className="flex flex-col items-center gap-2 py-6 text-center">
       <span className="text-4xl opacity-30">🏅</span>
       <p className="text-sm text-gray-500">
@@ -52,28 +73,74 @@ function TitleHero({ title }: {
     </div>
   );
 
-  const s = TIER_STYLES[title.tier];
+  // Hero — active title
+  const hs = activeTitle ? TIER_STYLES[activeTitle.tier] : null;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.94 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`flex flex-col items-center gap-3 rounded-2xl border ${s.ring} ${s.bg} px-6 py-5 text-center`}
-    >
-      <span className="text-5xl leading-none">{title.icon}</span>
-      <div className="flex flex-col gap-1">
-        <span className={`text-2xl font-black ${s.text}`}>
-          {isEn ? title.en : title.fr}
-        </span>
-        <span className={`text-xs font-bold uppercase tracking-widest ${s.text} opacity-70`}>
-          {s.label}
-        </span>
+    <div className="flex flex-col gap-4">
+      {/* Active title hero */}
+      {activeTitle && hs && (
+        <motion.div
+          key={activeTitle.id}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`flex items-center gap-4 rounded-2xl border ${hs.ring} ${hs.bg} px-5 py-4`}
+        >
+          <span className="text-4xl leading-none shrink-0">{activeTitle.icon}</span>
+          <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+            <span className={`text-xl font-black ${hs.text} leading-tight`}>
+              {isEn ? activeTitle.title_en : activeTitle.title_fr}
+            </span>
+            <span className={`text-xs font-bold uppercase tracking-widest ${hs.text} opacity-60`}>
+              {hs.label}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 shrink-0 text-right hidden sm:block">
+            {isEn ? 'Shown on leaderboard' : 'Affiché dans le classement'}
+          </p>
+        </motion.div>
+      )}
+
+      {/* Selectable title list */}
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+          {isEn ? `Choose a title (${unlocked.length} unlocked)` : `Choisir un titre (${unlocked.length} débloqués)`}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {unlocked
+            .slice()
+            .sort((a, b) => (TIER_W[b.tier] + CAT_W[b.category]) - (TIER_W[a.tier] + CAT_W[a.category]))
+            .map(a => {
+              const s = TIER_STYLES[a.tier];
+              const isActive = a.id === (selectedTitleId ?? activeTitle?.id);
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => onSelect(a.id === selectedTitleId ? null : a.id)}
+                  className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition-all
+                    ${isActive
+                      ? `${s.ring} ${s.bg} ring-1 ring-inset ${s.ring}`
+                      : 'border-gray-700/50 bg-gray-800/30 hover:bg-gray-800/60 hover:border-gray-600'
+                    }`}
+                >
+                  <span className="text-xl leading-none shrink-0">{a.icon}</span>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className={`text-xs font-bold truncate ${isActive ? s.text : 'text-gray-300'}`}>
+                      {isEn ? a.title_en : a.title_fr}
+                    </span>
+                    <span className={`text-[10px] uppercase tracking-wide font-semibold ${s.text} opacity-60`}>
+                      {s.label}
+                    </span>
+                  </div>
+                  {isActive && (
+                    <Check size={13} className={`shrink-0 ${s.text}`} />
+                  )}
+                </button>
+              );
+            })}
+        </div>
       </div>
-      <p className="text-xs text-gray-400">
-        {isEn
-          ? 'Your current title — shown on the leaderboard'
-          : 'Ton titre actuel — affiché dans le classement'}
-      </p>
-    </motion.div>
+    </div>
   );
 }
 
@@ -98,48 +165,61 @@ function SprintRecords({ records, isEn }: {
       </p>
       <Link to="/training">
         <Button variant="secondary" size="sm" className="mt-1">
-          {isEn ? 'Go to training' : 'Aller à l\'entraînement'}
+          {isEn ? 'Go to training' : "Aller à l'entraînement"}
         </Button>
       </Link>
     </div>
   );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-      {active.map(m => {
-        const r = records[m.key] ?? { advanced: 0, expert: 0 };
-        return (
-          <div
-            key={m.key}
-            className="flex items-center gap-3 bg-gray-800/50 rounded-xl border border-gray-700/50 px-3 py-2.5"
-          >
-            <span className="text-lg leading-none shrink-0">{m.icon}</span>
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-xs font-semibold text-gray-300 truncate">
-                {isEn ? m.labelEn : m.labelFr}
+    <div className="rounded-xl border border-gray-700/50 overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gray-800/70 border-b border-gray-700/50">
+            <th className="text-left px-3 py-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
+              {isEn ? 'Module' : 'Module'}
+            </th>
+            <th className="text-center px-3 py-2 text-xs font-bold text-yellow-400 uppercase tracking-wide">
+              <span className="flex items-center justify-center gap-1">
+                <Zap size={11} />{isEn ? 'Advanced' : 'Avancé'}
               </span>
-              <div className="flex items-center gap-3 mt-0.5">
-                {r.advanced > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-yellow-400 font-bold">
-                    <Zap size={11} className="shrink-0" />{r.advanced}
+            </th>
+            <th className="text-center px-3 py-2 text-xs font-bold text-purple-400 uppercase tracking-wide">
+              <span className="flex items-center justify-center gap-1">
+                <Flame size={11} />{isEn ? 'Expert' : 'Expert'}
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {active.map((m, i) => {
+            const r = records[m.key] ?? { advanced: 0, expert: 0 };
+            return (
+              <tr
+                key={m.key}
+                className={i % 2 === 0 ? 'bg-gray-900/30' : 'bg-gray-800/20'}
+              >
+                <td className="px-3 py-2 text-gray-300 font-medium">
+                  <span className="flex items-center gap-2">
+                    <span className="text-base leading-none">{m.icon}</span>
+                    <span className="text-xs">{isEn ? m.labelEn : m.labelFr}</span>
                   </span>
-                )}
-                {r.expert > 0 && (
-                  <span className="flex items-center gap-1 text-xs text-purple-400 font-bold">
-                    <Flame size={11} className="shrink-0" />{r.expert}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <span className="text-xs text-gray-600">{isEn ? 'best' : 'record'}</span>
-              <p className="text-sm font-black text-white leading-tight">
-                {Math.max(r.advanced, r.expert)}
-              </p>
-            </div>
-          </div>
-        );
-      })}
+                </td>
+                <td className="px-3 py-2 text-center">
+                  {r.advanced > 0
+                    ? <span className="font-black text-yellow-400">{r.advanced}</span>
+                    : <span className="text-gray-600">—</span>}
+                </td>
+                <td className="px-3 py-2 text-center">
+                  {r.expert > 0
+                    ? <span className="font-black text-purple-400">{r.expert}</span>
+                    : <span className="text-gray-600">—</span>}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -193,9 +273,11 @@ export function AchievementsPage() {
   const isEn = useLangStore(s => s.lang) === 'en';
   const user = useAuthStore(s => s.user);
 
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [records, setRecords]           = useState<Record<string, { advanced: number; expert: number }>>({});
-  const [loading, setLoading]           = useState(true);
+  const [achievements,   setAchievements]   = useState<Achievement[]>([]);
+  const [records,        setRecords]        = useState<Record<string, { advanced: number; expert: number }>>({});
+  const [selectedTitle,  setSelectedTitle]  = useState<string | null>(null);
+  const [loading,        setLoading]        = useState(true);
+  const [saving,         setSaving]         = useState(false);
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -206,31 +288,24 @@ export function AchievementsPage() {
       .then(([ud, rec]) => {
         setAchievements(ud.achievements ?? []);
         setRecords(rec ?? {});
+        setSelectedTitle(ud.selectedTitleId ?? null);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [user]);
 
-  // Derive best title from unlocked achievements (same logic as backend getBestTitle)
-  const bestTitle = (() => {
-    if (!achievements.length) return null;
-    const TIER_W: Record<string, number> = { platinum: 40, gold: 30, silver: 20, bronze: 10 };
-    const CAT_W: Record<string, number>  = {
-      accuracy: 6, sprint_expert: 5, daily_acc: 4,
-      sprint_advanced: 3, daily_correct: 2, daily_ex: 1, days: 0, exercises: 0,
-    };
-    const unlocked = achievements.filter(a => a.unlocked);
-    if (!unlocked.length) return null;
-    const best = unlocked.reduce((a, b) =>
-      (TIER_W[b.tier] + CAT_W[b.category]) > (TIER_W[a.tier] + CAT_W[a.category]) ? b : a
-    );
-    return {
-      fr:   best.title_fr,
-      en:   best.title_en,
-      tier: best.tier,
-      icon: best.icon,
-    };
-  })();
+  const handleSelectTitle = useCallback(async (id: string | null) => {
+    const prev = selectedTitle;
+    setSelectedTitle(id);          // optimistic
+    setSaving(true);
+    try {
+      await statsApi.setTitle(id);
+    } catch {
+      setSelectedTitle(prev);      // revert on error
+    } finally {
+      setSaving(false);
+    }
+  }, [selectedTitle]);
 
   const unlockedCount = achievements.filter(a => a.unlocked).length;
   const totalCount    = achievements.length;
@@ -255,34 +330,43 @@ export function AchievementsPage() {
     <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-8">
 
       {/* ── Header ── */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-black text-white flex items-center gap-2">
-          <Trophy size={20} className="text-gold-400" />
-          {isEn ? 'Achievements' : 'Succès & Récompenses'}
-        </h1>
-        {totalCount > 0 && (
-          <p className="text-sm text-gray-400">
-            {unlockedCount}/{totalCount} {isEn ? 'unlocked' : 'débloqués'}
-            {unlockedCount > 0 && (
-              <span className="ml-2 text-gold-400 font-semibold">
-                · {Math.round((unlockedCount / totalCount) * 100)} %
-              </span>
-            )}
-          </p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-col gap-0.5">
+          <h1 className="text-xl font-black text-white flex items-center gap-2">
+            <Trophy size={20} className="text-gold-400" />
+            {isEn ? 'Achievements' : 'Succès & Récompenses'}
+          </h1>
+          {totalCount > 0 && (
+            <p className="text-sm text-gray-400">
+              {unlockedCount}/{totalCount} {isEn ? 'unlocked' : 'débloqués'}
+              {unlockedCount > 0 && (
+                <span className="ml-2 text-gold-400 font-semibold">
+                  · {Math.round((unlockedCount / totalCount) * 100)} %
+                </span>
+              )}
+            </p>
+          )}
+        </div>
+        {saving && (
+          <span className="text-xs text-gray-500 flex items-center gap-1">
+            <span className="w-3 h-3 border border-gray-500 border-t-gray-300 rounded-full animate-spin" />
+            {isEn ? 'Saving…' : 'Sauvegarde…'}
+          </span>
         )}
       </div>
 
-      {/* ── Titre actif ── */}
-      <Section icon={<Trophy size={15} />} title={isEn ? 'Current title' : 'Titre actuel'}>
-        <TitleHero title={bestTitle} />
+      {/* ── Titre + sélection ── */}
+      <Section icon={<Trophy size={15} />} title={isEn ? 'Title' : 'Titre'}>
+        <TitleSection
+          achievements={achievements}
+          selectedTitleId={selectedTitle}
+          onSelect={handleSelectTitle}
+          isEn={isEn}
+        />
       </Section>
 
       {/* ── Sprints ── */}
       <Section icon={<Target size={15} />} title={isEn ? 'Sprint records' : 'Records de sprints'}>
-        <div className="flex items-center gap-4 mb-1 text-xs text-gray-500">
-          <span className="flex items-center gap-1"><Zap size={11} className="text-yellow-400" />{isEn ? 'Advanced' : 'Avancé'}</span>
-          <span className="flex items-center gap-1"><Flame size={11} className="text-purple-400" />{isEn ? 'Expert' : 'Expert'}</span>
-        </div>
         <SprintRecords records={records} isEn={isEn} />
       </Section>
 

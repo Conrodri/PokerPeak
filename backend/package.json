@@ -15,6 +15,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:studio": "prisma studio --schema=prisma/dev.prisma",
     "db:seed": "ts-node prisma/seed.ts",
+    "db:seed:dev": "ts-node --require dotenv/config prisma/seed-dev-stats.ts",
     "pregenerate": "node dist/scripts/pregenerate.js"
   },
   "dependencies": {

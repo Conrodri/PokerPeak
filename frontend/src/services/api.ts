@@ -297,6 +297,8 @@ export const statsApi = {
     api.get('/stats/history', { params: { days } }).then(r => r.data.data),
   getUserStats: (username: string) =>
     api.get(`/stats/user/${encodeURIComponent(username)}`).then(r => r.data.data),
+  setTitle: (titleId: string | null) =>
+    api.put('/stats/title', { titleId }).then(r => r.data),
 };
 
 /** Fire-and-forget ping to wake up the Render backend (free tier spins down after inactivity). */

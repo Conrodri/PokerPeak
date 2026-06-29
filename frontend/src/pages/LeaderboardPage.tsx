@@ -96,13 +96,13 @@ function ModuleGrid({ modules, isEn }: {
       className="overflow-hidden"
     >
       {/* ── Accuracy cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-3 pb-1 border-t border-gray-800/70 mt-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-2 pb-1 border-t border-gray-800/70 mt-2">
         {MODULES.map(mod => {
           const stat: LeaderboardModuleStat = modules[mod.key];
           const label = isEn ? mod.labelEn : mod.labelFr;
           const pct   = stat.accuracy;
           return (
-            <div key={mod.key} className="flex flex-col gap-1 bg-gray-900/60 rounded-xl px-3 py-2">
+            <div key={mod.key} className="flex flex-col gap-0.5 bg-gray-900/60 rounded-lg px-2 py-1.5">
               <div className="flex items-center justify-between gap-1">
                 <span className="text-xs text-gray-400 flex items-center gap-1">
                   <span>{mod.icon}</span>
@@ -157,29 +157,48 @@ function ModuleGrid({ modules, isEn }: {
 
       {/* ── Pre-flop sprint variants sub-section ── */}
       {preflopVariantsWithData.length > 0 && (
-        <div className="mt-3 pt-2.5 border-t border-gray-800/50">
-          <p className="text-[10px] font-semibold text-gray-500 mb-2 flex items-center gap-1">
+        <div className="mt-2 pt-2 border-t border-gray-800/50">
+          <p className="text-[10px] font-semibold text-gray-500 mb-1.5 flex items-center gap-1">
             🎯 {isEn ? 'Pre-flop sprints by format' : 'Sprints pré-flop par format'}
           </p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {preflopVariantsWithData.map(v => {
-              const s = modules[v.key];
-              return (
-                <div key={v.key} className="flex items-center gap-1.5 text-[10px]">
-                  <span className="text-gray-500 font-semibold">{isEn ? v.labelEn : v.labelFr}</span>
-                  {(s?.advanced ?? 0) > 0 && (
-                    <span className="flex items-center gap-0.5 text-gold-400 font-bold">
-                      <Zap size={8} />{s!.advanced}
+          <div className="rounded-lg border border-gray-800 overflow-hidden">
+            <table className="w-full text-[10px]">
+              <thead>
+                <tr className="bg-gray-800/60 border-b border-gray-700/50">
+                  <th className="text-left px-2 py-1 text-gray-500 font-semibold">Format</th>
+                  <th className="px-2 py-1 text-yellow-400 font-bold">
+                    <span className="flex items-center justify-center gap-0.5">
+                      <Zap size={8} />{isEn ? 'Adv.' : 'Avancé'}
                     </span>
-                  )}
-                  {(s?.expert ?? 0) > 0 && (
-                    <span className="flex items-center gap-0.5 text-purple-400 font-bold">
-                      <Flame size={8} />{s!.expert}
+                  </th>
+                  <th className="px-2 py-1 text-purple-400 font-bold">
+                    <span className="flex items-center justify-center gap-0.5">
+                      <Flame size={8} />{isEn ? 'Expert' : 'Expert'}
                     </span>
-                  )}
-                </div>
-              );
-            })}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {preflopVariantsWithData.map((v, i) => {
+                  const s = modules[v.key];
+                  return (
+                    <tr key={v.key} className={i % 2 === 0 ? 'bg-gray-900/30' : 'bg-gray-800/20'}>
+                      <td className="px-2 py-1 text-gray-400 font-medium">{isEn ? v.labelEn : v.labelFr}</td>
+                      <td className="px-2 py-1 text-center">
+                        {(s?.advanced ?? 0) > 0
+                          ? <span className="font-black text-yellow-400">{s!.advanced}</span>
+                          : <span className="text-gray-600">—</span>}
+                      </td>
+                      <td className="px-2 py-1 text-center">
+                        {(s?.expert ?? 0) > 0
+                          ? <span className="font-black text-purple-400">{s!.expert}</span>
+                          : <span className="text-gray-600">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -243,13 +262,13 @@ export function LeaderboardPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-4 max-w-2xl mx-auto">
 
       {/* Header */}
       <div className="text-center">
-        <Trophy size={40} className="text-gold-400 mx-auto mb-3" />
-        <h1 className="text-3xl font-bold text-white mb-2">{t.leaderboard.title}</h1>
-        <p className="text-gray-400">{t.leaderboard.subtitle}</p>
+        <Trophy size={32} className="text-gold-400 mx-auto mb-2" />
+        <h1 className="text-2xl font-bold text-white mb-1">{t.leaderboard.title}</h1>
+        <p className="text-gray-400 text-sm">{t.leaderboard.subtitle}</p>
       </div>
 
       {/* Non-premium upsell banner */}
@@ -277,7 +296,7 @@ export function LeaderboardPage() {
           <p className="text-sm mt-2">{t.leaderboard.empty_sub}</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {leaders.map((entry, i) => {
             const isTop3   = i < 3;
             const isMe     = user?.username === entry.username;
@@ -295,35 +314,35 @@ export function LeaderboardPage() {
                 } ${isMe ? 'ring-2 ring-felt-500' : ''}`}
               >
                 {/* ── Main row ── */}
-                <div className="flex items-center gap-4 p-4">
+                <div className="flex items-center gap-3 p-3">
 
                   {/* Rank */}
-                  <div className={`w-10 text-center font-black text-xl shrink-0 ${isTop3 ? rankColors[i] : 'text-gray-500'}`}>
+                  <div className={`w-8 text-center font-black text-lg shrink-0 ${isTop3 ? rankColors[i] : 'text-gray-500'}`}>
                     {isTop3 ? rankEmoji[i] : `#${entry.rank}`}
                   </div>
 
                   {/* Name + level */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <Link
                         to={`/stats/${entry.username}`}
-                        className={`font-bold truncate hover:underline transition-colors ${isMe ? 'text-felt-300 hover:text-felt-200' : 'text-white hover:text-gray-200'}`}
+                        className={`font-bold truncate hover:underline transition-colors text-sm ${isMe ? 'text-felt-300 hover:text-felt-200' : 'text-white hover:text-gray-200'}`}
                       >
                         {entry.username}
                       </Link>
                       <Crown
-                        size={12}
+                        size={11}
                         className={`shrink-0 ${entry.isPremiumExpert ? 'text-purple-400' : 'text-gold-400'}`}
                       />
                       {isMe && (
-                        <span className="text-xs bg-felt-800 text-felt-300 px-1.5 py-0.5 rounded shrink-0">
+                        <span className="text-[10px] bg-felt-800 text-felt-300 px-1 py-0.5 rounded shrink-0">
                           {t.leaderboard.you}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <span className="text-xs text-gray-500">{t.stats.level} {entry.level}</span>
-                      <span className="text-xs text-gray-500">{entry.totalExercises} ex.</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] text-gray-500">{t.stats.level} {entry.level}</span>
+                      <span className="text-[10px] text-gray-500">{entry.totalExercises} ex.</span>
                       {entry.title && (
                         <TitleBadge title={entry.title} isEn={isEn} />
                       )}
@@ -331,12 +350,12 @@ export function LeaderboardPage() {
                   </div>
 
                   {/* Stats */}
-                  <div className="flex items-center gap-4 shrink-0">
+                  <div className="flex items-center gap-3 shrink-0">
                     {/* Global accuracy */}
                     <div className="text-right">
                       <div className="flex items-center gap-1 justify-end">
-                        <Target size={12} className="text-green-400" />
-                        <span className={`text-sm font-bold ${accColor(entry.accuracy)}`}>
+                        <Target size={11} className="text-green-400" />
+                        <span className={`text-xs font-bold ${accColor(entry.accuracy)}`}>
                           {entry.accuracy}%
                         </span>
                       </div>
@@ -346,8 +365,8 @@ export function LeaderboardPage() {
                     {/* XP */}
                     <div className="text-right">
                       <div className="flex items-center gap-1 justify-end">
-                        <Zap size={12} className="text-blue-400" />
-                        <span className="text-sm font-bold text-blue-400">{entry.xp}</span>
+                        <Zap size={11} className="text-blue-400" />
+                        <span className="text-xs font-bold text-blue-400">{entry.xp}</span>
                       </div>
                       <p className="text-[10px] text-gray-600">XP</p>
                     </div>
@@ -356,11 +375,11 @@ export function LeaderboardPage() {
                     {hasMods && (
                       <button
                         onClick={() => toggleExpand(entry.username)}
-                        className="text-gray-500 hover:text-gray-300 transition-colors p-1 -mr-1"
+                        className="text-gray-500 hover:text-gray-300 transition-colors p-0.5 -mr-0.5"
                         title={isEn ? 'Module breakdown' : 'Détail par module'}
                       >
                         <ChevronDown
-                          size={15}
+                          size={14}
                           className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                         />
                       </button>
@@ -371,7 +390,7 @@ export function LeaderboardPage() {
                 {/* ── Module detail (collapsible) ── */}
                 <AnimatePresence initial={false}>
                   {isOpen && hasMods && (
-                    <div className="px-4 pb-3">
+                    <div className="px-3 pb-2">
                       <ModuleGrid modules={entry.modules!} isEn={isEn} />
                     </div>
                   )}
@@ -383,7 +402,7 @@ export function LeaderboardPage() {
       )}
 
       {/* Footer note */}
-      <div className="text-center text-xs text-gray-600 py-4 flex flex-col gap-1">
+      <div className="text-center text-xs text-gray-600 py-2 flex flex-col gap-1">
         <p className="flex items-center justify-center gap-1.5">
           <ChevronDown size={11} />
           {isEn
