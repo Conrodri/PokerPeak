@@ -109,14 +109,30 @@ function BluffIntro({ onStart, locked, lockedVariant, freeInfo, examSlot }: {
     ? 'Learn when to bluff, when to fold, and how to size your bets as a bluff.'
     : "Apprenez quand bluffer, quand abandonner, et comment doser la taille de votre bluff.";
 
-  const whatContent = isEn ? (
-    <p className="text-sm text-gray-400 leading-relaxed">
-      A <strong className="text-white">bluff</strong> is betting or raising with a hand that isn't strong enough to win at showdown, intending to make the opponent fold a better hand. Good bluffing requires understanding board texture, villain's range, position, and hand equity.
-    </p>
-  ) : (
-    <p className="text-sm text-gray-400 leading-relaxed">
-      Un <strong className="text-white">bluff</strong> consiste à miser ou relancer avec une main insuffisante pour gagner au showdown, dans le but de faire se coucher une meilleure main adverse. Bien bluffer nécessite de comprendre la texture du board, la range de vilain, la position et l'équité de votre main.
-    </p>
+  const whatContent = (
+    <>
+      <p className="text-[11px] text-gray-400 leading-snug mb-2">
+        {isEn
+          ? 'Betting with a weak hand to make your opponent fold a better one. 4 factors determine if a bluff is profitable:'
+          : 'Miser avec une main faible pour faire fold une meilleure main adverse. 4 facteurs déterminent si un bluff est rentable :'}
+      </p>
+      <div className="grid grid-cols-2 gap-1.5">
+        {[
+          { icon: <TrendingUp size={11} />, iconBg: 'bg-green-900/40 text-green-400', label: isEn ? 'Position' : 'Position', desc: isEn ? 'IP = more fold equity' : 'IP = plus de fold equity' },
+          { icon: <Zap size={11} />, iconBg: 'bg-blue-900/40 text-blue-400', label: isEn ? 'Board texture' : 'Texture', desc: isEn ? 'Scary boards → more folds' : 'Boards menaçants → plus de folds' },
+          { icon: <Lightbulb size={11} />, iconBg: 'bg-yellow-900/40 text-yellow-400', label: isEn ? "Villain's range" : 'Range vilain', desc: isEn ? 'Weak range = good target' : 'Range faible = bonne cible' },
+          { icon: <ChevronRight size={11} />, iconBg: 'bg-purple-900/40 text-purple-400', label: isEn ? 'Hand equity' : 'Équité de main', desc: isEn ? 'Semi-bluffs > pure air' : 'Semi-bluffs > bluff pur' },
+        ].map(f => (
+          <div key={f.label} className="flex items-start gap-1.5 bg-gray-800/40 rounded-lg px-2 py-1.5 border border-gray-700/50">
+            <span className={`grid place-items-center w-5 h-5 rounded-md ${f.iconBg} shrink-0 mt-0.5`}>{f.icon}</span>
+            <div>
+              <div className="text-white font-bold text-[11px] leading-none">{f.label}</div>
+              <div className="text-gray-500 text-[10px] leading-tight mt-0.5">{f.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 
   const steps = isEn

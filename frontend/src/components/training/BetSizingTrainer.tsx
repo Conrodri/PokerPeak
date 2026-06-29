@@ -785,16 +785,16 @@ export function BetSizingTrainer() {
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               {[
-                { icon: '📦', label: isEn ? 'Small (25-33%)' : 'Petite (25-33%)',    desc: isEn ? 'Range bets, thin value' : 'Range bets, valeur fine' },
-                { icon: '⚖️', label: isEn ? 'Medium (50-60%)' : 'Médiane (50-60%)', desc: isEn ? 'Balance, dynamic boards' : 'Équilibre, boards dynamiques' },
-                { icon: '🔥', label: isEn ? 'Large (75-100%)' : 'Grande (75-100%)',  desc: isEn ? 'Protection, polarized' : 'Protection, polarisation' },
-                { icon: '🚀', label: isEn ? 'Overbet (130%+)' : 'Surenchère (130%+)', desc: isEn ? 'Nuts, bluffs' : 'Nuts, bluffs' },
+                { pct: 29, color: 'bg-blue-500', border: 'border-blue-900/50', bg: 'bg-blue-950/20', label: isEn ? 'Small — 25–33%' : 'Petite — 25–33%', desc: isEn ? 'Range bets, thin value' : 'Range bets, valeur fine' },
+                { pct: 55, color: 'bg-green-500', border: 'border-green-900/50', bg: 'bg-green-950/20', label: isEn ? 'Medium — 50–60%' : 'Médiane — 50–60%', desc: isEn ? 'Balanced, dynamic boards' : 'Équilibre, boards dynamiques' },
+                { pct: 87, color: 'bg-orange-500', border: 'border-orange-900/50', bg: 'bg-orange-950/20', label: isEn ? 'Large — 75–100%' : 'Grande — 75–100%', desc: isEn ? 'Protection, polarized' : 'Protection, polarisation' },
+                { pct: 100, color: 'bg-red-500', border: 'border-red-900/50', bg: 'bg-red-950/20', label: isEn ? 'Overbet — 130%+' : 'Surenchère — 130%+', desc: isEn ? 'Nuts, bluffs' : 'Nuts, bluffs' },
               ].map(s => (
-                <div key={s.label} className="bg-gray-800/50 rounded-lg px-2 py-1 border border-gray-700 flex items-center gap-1.5">
-                  <span className="text-sm shrink-0">{s.icon}</span>
-                  <div className="min-w-0">
-                    <div className="text-white font-bold text-[11px] leading-tight">{s.label}</div>
-                    <div className="text-gray-500 text-[10px] leading-tight truncate">{s.desc}</div>
+                <div key={s.label} className={`rounded-lg border px-2 py-1.5 ${s.border} ${s.bg}`}>
+                  <div className="text-white font-bold text-[11px] leading-tight mb-0.5">{s.label}</div>
+                  <div className="text-gray-500 text-[10px] leading-tight mb-1">{s.desc}</div>
+                  <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                    <div className={`h-full ${s.color} rounded-full`} style={{ width: `${s.pct}%` }} />
                   </div>
                 </div>
               ))}

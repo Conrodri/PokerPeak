@@ -379,16 +379,16 @@ export function PostflopTrainer() {
                   ? "After the preflop action (raises, calls), the dealer places community cards on the table. You must decide how to play your hand based on the visible board and your 2 hole cards."
                   : "Après l'action préflop (relances, appels), le dealer place des cartes communes sur la table. Vous devez décider comment jouer votre main selon le board visible et vos 2 cartes en main."} />
               </p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { emoji: '🔵', label: isEn ? 'Flop' : 'Flop',  desc: isEn ? '3 community cards — first board evaluation' : '3 cartes communes — première évaluation du board' },
-                  { emoji: '🟡', label: isEn ? 'Turn' : 'Turn',  desc: isEn ? '4th card — bigger pot, bigger decisions' : '4ème carte — plus gros pot, décisions plus lourdes' },
-                  { emoji: '🔴', label: isEn ? 'River' : 'River', desc: isEn ? '5th and final card — last chance to bet' : '5ème et dernière carte — dernière chance de miser' },
+                  { icon: <Info size={11} />, iconBg: 'bg-blue-900/40 text-blue-400', border: 'border-blue-900/50', bg: 'bg-blue-950/20', label: 'Flop', desc: isEn ? '3 cards · first read' : '3 cartes · 1ère lecture' },
+                  { icon: <Zap size={11} />, iconBg: 'bg-yellow-900/40 text-yellow-400', border: 'border-yellow-900/50', bg: 'bg-yellow-950/20', label: 'Turn', desc: isEn ? '4th card · bigger pot' : '4ème carte · pot plus gros' },
+                  { icon: <Target size={11} />, iconBg: 'bg-red-900/40 text-red-400', border: 'border-red-900/50', bg: 'bg-red-950/20', label: 'River', desc: isEn ? 'Last card · final call' : 'Dernière carte · décision finale' },
                 ].map(s => (
-                  <div key={s.label} className="bg-gray-800/50 rounded-lg px-2 py-1.5 border border-gray-700 text-center">
-                    <div className="text-base mb-0.5">{s.emoji}</div>
-                    <div className="text-white font-bold text-xs">{s.label}</div>
-                    <div className="text-gray-500 text-[10px] mt-0.5 leading-tight">{s.desc}</div>
+                  <div key={s.label} className={`rounded-lg border px-1.5 py-1.5 text-center ${s.border} ${s.bg}`}>
+                    <span className={`inline-flex items-center justify-center w-5 h-5 rounded-md ${s.iconBg} mb-1`}>{s.icon}</span>
+                    <div className="text-white font-bold text-[11px]">{s.label}</div>
+                    <div className="text-gray-500 text-[9px] mt-0.5 leading-tight">{s.desc}</div>
                   </div>
                 ))}
               </div>

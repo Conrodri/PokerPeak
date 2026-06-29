@@ -140,16 +140,26 @@ export function EquityTrainer() {
                   ? 'When villain bets, calling is only profitable if your chance of winning (equity) exceeds the mathematical threshold imposed by the pot odds.'
                   : 'Quand vilain mise, appeler n\'est rentable que si votre chance de gagner (équité) dépasse le seuil mathématique imposé par les cotes du pot.'}
               </p>
-              <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 font-mono text-sm text-center mb-2">
-                <p className="text-gray-400 text-xs mb-1">{isEn ? 'Formula' : 'Formule'}</p>
-                <p className="text-white font-bold">
+              <div className="rounded-xl border border-gray-700 bg-gray-800/50 px-3 py-2 mb-1.5">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <span className="grid place-items-center w-4 h-4 rounded bg-blue-900/40 text-blue-300 text-[10px]">
+                    <Lightbulb size={10} />
+                  </span>
+                  <span className="text-gray-400 text-[10px] font-semibold">{isEn ? 'Formula' : 'Formule'}</span>
+                </div>
+                <p className="font-mono text-xs text-white font-bold text-center">
                   {isEn ? 'Equity = Call ÷ (Pot + Bet + Call)' : 'Équité = Appel ÷ (Pot + Mise + Appel)'}
                 </p>
               </div>
-              <div className="bg-gray-800/30 rounded-lg px-3 py-2 text-xs text-gray-400">
-                {isEn
-                  ? '→ Example: Pot 15 BB, bet 5 BB → 5 ÷ (15 + 5 + 5) = 5/25 = 20%'
-                  : '→ Exemple : Pot 15 BB, mise 5 BB → 5 ÷ (15 + 5 + 5) = 5/25 = 20%'}
+              <div className="rounded-lg bg-gray-800/30 border border-gray-700/50 px-2.5 py-1.5 flex items-center gap-2">
+                <span className="text-gray-600 text-[10px] font-bold shrink-0">{isEn ? 'e.g.' : 'ex.'}</span>
+                <span className="text-[10px] text-gray-400">
+                  {isEn
+                    ? 'Pot 15 BB + bet 5 BB → 5 ÷ 25 = '
+                    : 'Pot 15 BB + mise 5 BB → 5 ÷ 25 = '}
+                  <span className="text-blue-300 font-bold">20%</span>
+                  {isEn ? ' required' : ' requises'}
+                </span>
               </div>
             </>
           }

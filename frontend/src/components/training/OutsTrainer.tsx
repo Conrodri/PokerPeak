@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Target, Lightbulb } from 'lucide-react';
+import { ChevronRight, Target, Lightbulb, Layers } from 'lucide-react';
 import { SourcesFooter } from '../ui/SourcesFooter';
 import type { Source } from '../ui/SourcesFooter';
 
@@ -172,17 +172,25 @@ export function OutsTrainer() {
                   ? "A card remaining in the deck that improves your hand. For example, with a flush draw (4 cards of the same suit), there are 9 remaining cards of that suit = 9 outs."
                   : "Une carte restante dans le deck qui améliore votre main. Exemple : avec un tirage couleur (4 cartes de la même couleur), il reste 9 cartes de cette couleur = 9 outs."} />
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { emoji: '🔵', label: isEn ? 'Flop → ×4' : 'Flop → ×4', desc: isEn ? '2 cards to come — multiply outs by 4' : '2 cartes à venir — outs × 4' },
-                  { emoji: '🟡', label: isEn ? 'Turn → ×2' : 'Turn → ×2', desc: isEn ? '1 card to come — multiply outs by 2' : '1 carte à venir — outs × 2' },
-                ].map(s => (
-                  <div key={s.label} className="bg-gray-800/50 rounded-lg px-2 py-1.5 border border-gray-700 text-center">
-                    <div className="text-base mb-0.5">{s.emoji}</div>
-                    <div className="text-white font-bold text-xs">{s.label}</div>
-                    <div className="text-gray-500 text-[10px] mt-0.5 leading-tight"><RichLine text={s.desc} /></div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <div className="rounded-lg border border-blue-900/50 bg-blue-950/20 px-2.5 py-2 flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1">
+                    <Layers size={12} className="text-blue-400" />
+                    <span className="text-blue-300 font-bold text-xs">Flop</span>
                   </div>
-                ))}
+                  <div className="text-white font-black text-2xl leading-none">×4</div>
+                  <div className="text-gray-400 text-[10px] text-center leading-tight">{isEn ? '2 cards to come' : '2 cartes à venir'}</div>
+                  <div className="text-blue-400 text-[10px] font-semibold">{isEn ? 'outs × 4 ≈ equity %' : 'outs × 4 ≈ équité %'}</div>
+                </div>
+                <div className="rounded-lg border border-amber-900/50 bg-amber-950/20 px-2.5 py-2 flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-1">
+                    <Target size={12} className="text-amber-400" />
+                    <span className="text-amber-300 font-bold text-xs">Turn</span>
+                  </div>
+                  <div className="text-white font-black text-2xl leading-none">×2</div>
+                  <div className="text-gray-400 text-[10px] text-center leading-tight">{isEn ? '1 card to come' : '1 carte à venir'}</div>
+                  <div className="text-amber-400 text-[10px] font-semibold">{isEn ? 'outs × 2 ≈ equity %' : 'outs × 2 ≈ équité %'}</div>
+                </div>
               </div>
             </>
           }

@@ -132,7 +132,7 @@ export function PotOddsTrainer() {
           whatTitle={isEn ? "What are pot odds?" : "Qu'est-ce que les pot odds ?"}
           whatContent={
             <>
-              <p className="text-gray-400 text-sm leading-relaxed mb-4">
+              <p className="text-[11px] text-gray-400 leading-snug mb-2">
                 <RichLine text={isEn
                   ? "The ratio between the cost of a call and the total pot size. If your equity exceeds this threshold, calling is profitable in the long run."
                   : "Le ratio entre le coût de l'appel et la taille totale du pot. Si votre équité dépasse ce seuil, l'appel est rentable à long terme."} />

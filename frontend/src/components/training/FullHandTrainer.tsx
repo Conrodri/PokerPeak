@@ -506,17 +506,17 @@ export function FullHandTrainer() {
                   ? 'Follow a complete hand across 2 to 4 streets. At each stage, choose the best action and see how each decision impacts the hand result.'
                   : 'Suivez une main complète sur 2 à 4 rues. À chaque étape, choisissez la meilleure action et voyez comment chaque décision impacte le résultat de la main.'} />
               </p>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-1.5">
                 {[
-                  { emoji: '♠️', label: isEn ? 'Preflop' : 'Préflop', desc: isEn ? 'Open or fold?' : 'Ouvrir ou fold ?' },
-                  { emoji: '🔵', label: 'Flop',  desc: isEn ? '3 community cards' : '3 cartes communes' },
-                  { emoji: '🟡', label: 'Turn',  desc: isEn ? '4th card' : '4ème carte' },
-                  { emoji: '🔴', label: 'River', desc: isEn ? 'Last card' : 'Dernière carte' },
+                  { num: '1', badge: 'bg-blue-900/60 text-blue-300', border: 'border-blue-900/50', bg: 'bg-blue-950/20', label: isEn ? 'Preflop' : 'Préflop', desc: isEn ? 'Open or fold' : 'Ouvrir ou fold' },
+                  { num: '2', badge: 'bg-green-900/60 text-green-300', border: 'border-green-900/50', bg: 'bg-green-950/20', label: 'Flop', desc: isEn ? '3 community cards' : '3 cartes communes' },
+                  { num: '3', badge: 'bg-yellow-900/60 text-yellow-300', border: 'border-yellow-900/50', bg: 'bg-yellow-950/20', label: 'Turn', desc: isEn ? '4th card' : '4ème carte' },
+                  { num: '4', badge: 'bg-orange-900/60 text-orange-300', border: 'border-orange-900/50', bg: 'bg-orange-950/20', label: 'River', desc: isEn ? 'Last card' : 'Dernière carte' },
                 ].map(s => (
-                  <div key={s.label} className="bg-gray-800/50 rounded-lg px-2 py-1.5 border border-gray-700 text-center">
-                    <div className="text-base mb-0.5">{s.emoji}</div>
-                    <div className="text-white font-bold text-xs">{s.label}</div>
-                    <div className="text-gray-500 text-[10px] mt-0.5 leading-tight">{s.desc}</div>
+                  <div key={s.label} className={`rounded-lg border px-1.5 py-1.5 text-center ${s.border} ${s.bg}`}>
+                    <div className={`inline-flex items-center justify-center w-5 h-5 rounded-full font-black text-[11px] mb-1 ${s.badge}`}>{s.num}</div>
+                    <div className="text-white font-bold text-[11px]">{s.label}</div>
+                    <div className="text-gray-500 text-[9px] mt-0.5 leading-tight">{s.desc}</div>
                   </div>
                 ))}
               </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronDown, ChevronUp, RotateCcw, Zap, Target, Sliders, Lightbulb, Check, X, BookOpen } from 'lucide-react';
+import { ChevronRight, ChevronDown, ChevronUp, RotateCcw, Zap, Target, Sliders, Lightbulb, Check, X, BookOpen, Shield, TrendingUp } from 'lucide-react';
 import { SourcesFooter } from '../ui/SourcesFooter';
 import type { Source } from '../ui/SourcesFooter';
 
@@ -1060,17 +1060,49 @@ export function PreflopTrainer() {
                   ? "Before any community cards are dealt, each player must decide whether to open (raise), fold, or defend based on their 2 hole cards and their position at the table."
                   : "Avant que les cartes communes soient posées, chaque joueur doit décider d'ouvrir, se coucher ou défendre selon ses 2 cartes en main et sa position à la table."} />
               </p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-1.5">
                 {[
-                  { emoji: '⬅️', label: 'UTG / HJ', desc: isEn ? 'Early — tight' : 'Early — serré' },
-                  { emoji: '➡️', label: 'CO / BTN', desc: isEn ? 'Late — wide' : 'Late — large' },
-                  { emoji: '🔄', label: 'SB', desc: isEn ? 'vs BB heads-up' : 'vs BB tête-à-tête' },
-                  { emoji: '🛡️', label: 'BB', desc: isEn ? 'Defend vs raise' : 'Défendre vs relance' },
-                ].map(s => (
-                  <div key={s.label} className="bg-gray-800/50 rounded-lg px-2 py-1.5 border border-gray-700 text-center">
-                    <div className="text-base mb-0.5">{s.emoji}</div>
-                    <div className="text-white font-bold text-xs">{s.label}</div>
-                    <div className="text-gray-500 text-[10px] mt-0.5 leading-tight">{s.desc}</div>
+                  {
+                    icon: <Target size={11} />, iconBg: 'bg-red-900/40 text-red-400',
+                    border: 'border-red-900/50', bg: 'bg-red-950/20',
+                    label: 'UTG · HJ', sub: isEn ? 'Early pos.' : 'Early',
+                    desc: isEn ? 'Tight — 15–20% of hands' : 'Serré — 15–20% des mains',
+                    pct: 20, bar: 'bg-red-500',
+                  },
+                  {
+                    icon: <Zap size={11} />, iconBg: 'bg-green-900/40 text-green-400',
+                    border: 'border-green-900/50', bg: 'bg-green-950/20',
+                    label: 'CO · BTN', sub: isEn ? 'Late pos.' : 'Late',
+                    desc: isEn ? 'Wide — 30–50% of hands' : 'Large — 30–50% des mains',
+                    pct: 45, bar: 'bg-green-500',
+                  },
+                  {
+                    icon: <TrendingUp size={11} />, iconBg: 'bg-yellow-900/40 text-yellow-400',
+                    border: 'border-yellow-900/50', bg: 'bg-yellow-950/20',
+                    label: 'SB', sub: isEn ? 'Steal or fold' : 'Steal ou fold',
+                    desc: isEn ? '25–35% of hands' : '25–35% des mains',
+                    pct: 30, bar: 'bg-yellow-500',
+                  },
+                  {
+                    icon: <Shield size={11} />, iconBg: 'bg-blue-900/40 text-blue-400',
+                    border: 'border-blue-900/50', bg: 'bg-blue-950/20',
+                    label: 'BB', sub: isEn ? 'Defend wide' : 'Défense large',
+                    desc: isEn ? '40–55% of hands' : '40–55% des mains',
+                    pct: 50, bar: 'bg-blue-500',
+                  },
+                ].map(p => (
+                  <div key={p.label} className={`rounded-lg border px-2 py-1.5 ${p.border} ${p.bg}`}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className={`grid place-items-center w-5 h-5 rounded-md ${p.iconBg} shrink-0`}>{p.icon}</span>
+                      <div>
+                        <div className="text-white font-bold text-[11px] leading-none">{p.label}</div>
+                        <div className="text-gray-500 text-[9px] leading-none mt-0.5">{p.sub}</div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-gray-400 mb-1 leading-tight">{p.desc}</div>
+                    <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+                      <div className={`h-full ${p.bar} rounded-full opacity-80`} style={{ width: `${p.pct}%` }} />
+                    </div>
                   </div>
                 ))}
               </div>
