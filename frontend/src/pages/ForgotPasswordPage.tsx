@@ -30,11 +30,11 @@ export function ForgotPasswordPage() {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gray-900/80 border border-gray-700 rounded-2xl p-8 max-w-md w-full space-y-5"
+        className="bg-gray-900/80 border border-gray-700 rounded-xl px-5 py-5 max-w-md w-full space-y-4"
       >
         {sent ? (
           <div className="text-center space-y-4">
-            <CheckCircle size={40} className="mx-auto text-green-400" />
+            <CheckCircle size={28} className="mx-auto text-green-400" />
             <h1 className="text-xl font-bold text-white">Vérifie ta boîte mail</h1>
             <p className="text-gray-400 text-sm">
               Si un compte est associé à <span className="text-white font-medium">{email}</span>,

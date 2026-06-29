@@ -39,17 +39,17 @@ export function VerifyEmailPage() {
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="bg-gray-900/80 border border-gray-700 rounded-2xl p-8 max-w-md w-full text-center space-y-4">
+      <div className="bg-gray-900/80 border border-gray-700 rounded-xl px-5 py-5 max-w-md w-full text-center space-y-3">
         {status === 'loading' && (
           <>
-            <Loader2 size={40} className="mx-auto text-blue-400 animate-spin" />
+            <Loader2 size={28} className="mx-auto text-blue-400 animate-spin" />
             <p className="text-gray-300">Vérification en cours…</p>
           </>
         )}
 
         {status === 'success' && (
           <>
-            <CheckCircle size={40} className="mx-auto text-green-400" />
+            <CheckCircle size={28} className="mx-auto text-green-400" />
             <h1 className="text-xl font-bold text-white">E-mail confirmé !</h1>
             <p className="text-gray-400">Ton compte est activé. Tu peux commencer à t'entraîner.</p>
             <Link
@@ -63,7 +63,7 @@ export function VerifyEmailPage() {
 
         {status === 'error' && (
           <>
-            <XCircle size={40} className="mx-auto text-red-400" />
+            <XCircle size={28} className="mx-auto text-red-400" />
             <h1 className="text-xl font-bold text-white">Lien invalide</h1>
             <p className="text-gray-400">{errorMsg}</p>
             <Link

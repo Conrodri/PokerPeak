@@ -66,13 +66,13 @@ export function LoginPage() {
   // Show the "check your email" screen after register or after EMAIL_NOT_VERIFIED login error
   if (verificationPending) {
     return (
-      <div className="max-w-md mx-auto pt-10">
+      <div className="max-w-md mx-auto pt-4">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gray-900/60 border border-gray-800 rounded-2xl p-8 text-center space-y-4"
+          className="bg-gray-900/60 border border-gray-800 rounded-xl px-5 py-5 text-center space-y-3"
         >
-          <MailCheck size={48} className="mx-auto text-blue-400" />
+          <MailCheck size={32} className="mx-auto text-blue-400" />
           <h1 className="text-xl font-bold text-white">Vérifie ta boîte mail</h1>
           <p className="text-gray-400 text-sm">
             Un lien de confirmation a été envoyé à{' '}
@@ -103,7 +103,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto pt-10">
+    <div className="max-w-md mx-auto pt-4">
       <AnimatePresence>
         {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
       </AnimatePresence>
@@ -111,48 +111,48 @@ export function LoginPage() {
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gray-900/60 border border-gray-800 rounded-2xl p-8"
+        className="bg-gray-900/60 border border-gray-800 rounded-xl px-5 py-5"
       >
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🃏</div>
-          <h1 className="text-2xl font-bold text-white mb-1">
+        <div className="text-center mb-4">
+          <div className="text-3xl mb-1">🃏</div>
+          <h1 className="text-xl font-bold text-white mb-1">
             {mode === 'login' ? t.login.title_in : t.login.title_up}
           </h1>
           <p className="text-gray-400 text-sm">{t.login.subtitle}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {mode === 'register' && (
             <div>
-              <label className="block text-sm text-gray-400 mb-1">{t.login.username}</label>
+              <label className="block text-xs text-gray-400 mb-1">{t.login.username}</label>
               <input
                 type="text"
                 value={form.username}
                 onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-felt-500"
+                className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-felt-500"
                 placeholder={t.login.username_ph}
                 required
               />
             </div>
           )}
           <div>
-            <label className="block text-sm text-gray-400 mb-1">{t.login.email}</label>
+            <label className="block text-xs text-gray-400 mb-1">{t.login.email}</label>
             <input
               type="email"
               value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-felt-500"
+              className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-felt-500"
               placeholder="email@exemple.com"
               required
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">{t.login.password}</label>
+            <label className="block text-xs text-gray-400 mb-1">{t.login.password}</label>
             <input
               type="password"
               value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-felt-500"
+              className="w-full bg-gray-800 border border-gray-700 text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-felt-500"
               placeholder="••••••••"
               required minLength={mode === 'register' ? 8 : 6}
             />
@@ -172,13 +172,13 @@ export function LoginPage() {
             </div>
           )}
 
-          <Button type="submit" size="lg" variant="gold" fullWidth loading={isLoading}>
+          <Button type="submit" size="sm" variant="gold" fullWidth loading={isLoading}>
             {mode === 'login' ? t.login.submit_in : t.login.submit_up}
           </Button>
         </form>
 
         {/* OAuth separator */}
-        <div className="flex items-center gap-3 my-5">
+        <div className="flex items-center gap-3 my-3">
           <div className="flex-1 h-px bg-gray-700" />
           <span className="text-xs text-gray-500">{isEn ? 'or' : 'ou'}</span>
           <div className="flex-1 h-px bg-gray-700" />
@@ -188,13 +188,13 @@ export function LoginPage() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 rounded-xl px-4 py-3 font-medium text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors shadow-sm"
+          className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 rounded-xl px-4 py-2 font-medium text-sm hover:bg-gray-100 active:bg-gray-200 transition-colors shadow-sm"
         >
           <GoogleIcon />
           {isEn ? 'Continue with Google' : 'Continuer avec Google'}
         </button>
 
-        <div className="mt-5 text-center text-sm text-gray-400">
+        <div className="mt-3 text-center text-xs text-gray-400">
           {mode === 'login' ? (
             <>{t.login.no_account}{' '}
               <button onClick={() => setMode('register')} className="text-gold-400 hover:text-gold-300">{t.login.register_link}</button>
@@ -206,7 +206,7 @@ export function LoginPage() {
           )}
         </div>
 
-        <div className="mt-4 text-center">
+        <div className="mt-2 text-center">
           <Link to="/training" className="text-xs text-gray-600 hover:text-gray-400">{t.login.skip}</Link>
         </div>
       </motion.div>

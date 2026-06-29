@@ -128,7 +128,7 @@ export function TrainingPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-2.5">
       {/* Module tabs — always wrap: one row when there's room, extra rows when the
           window is narrow (no unreliable horizontal scroll at any width). */}
       <div className="flex flex-wrap justify-center gap-1.5 border-b border-gray-800 pb-2">
@@ -158,9 +158,9 @@ export function TrainingPage() {
           ? window.dispatchEvent(new CustomEvent('training:back'))
           : navigate(-1)
         }
-        className="flex items-center gap-2 w-fit px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 hover:text-white bg-gray-800/60 hover:bg-gray-700/70 border border-gray-700/50 hover:border-gray-500/60 transition-all duration-150 group -mt-2"
+        className="flex items-center gap-1.5 w-fit px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-300 hover:text-white bg-gray-800/60 hover:bg-gray-700/70 border border-gray-700/50 hover:border-gray-500/60 transition-all duration-150 group -mt-1"
       >
-        <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+        <ChevronLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
         <span>{isEn ? 'Back' : 'Retour'}</span>
       </button>
 

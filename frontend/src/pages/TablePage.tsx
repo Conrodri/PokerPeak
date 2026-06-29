@@ -55,13 +55,13 @@ export function TablePage() {
   };
 
   return (
-    <div className="flex flex-col gap-8 max-w-3xl mx-auto">
+    <div className="flex flex-col gap-2.5 max-w-xl mx-auto">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-base font-bold text-white mb-1">
           {isEn ? 'Interactive Poker Table' : 'Table de Poker Interactive'}
         </h1>
-        <p className="text-gray-400 text-sm">
+        <p className="text-gray-400 text-xs">
           {isEn
             ? 'Click any seat to understand each position\'s role, range, and strategy.'
             : 'Cliquez une place pour comprendre le rôle, la range et la stratégie de chaque position.'}
@@ -70,7 +70,7 @@ export function TablePage() {
 
       {/* Table — large */}
       <div
-        className="rounded-2xl p-6 border border-gray-800"
+        className="rounded-xl p-3 border border-gray-800"
         style={{ background: 'radial-gradient(ellipse at 50% 0%, #1a2e1a, #0d1a0d)' }}
       >
         <PokerTable
@@ -86,17 +86,17 @@ export function TablePage() {
         key={activePos}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl p-5 border"
+        className="rounded-xl px-3 py-2.5 border"
         style={{
           background: `${color}0f`,
           borderColor: `${color}30`,
         }}
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-3 h-3 rounded-full" style={{ background: color }} />
-          <h2 className="text-2xl font-bold text-white">{activePos}</h2>
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
+          <h2 className="text-sm font-bold text-white">{activePos}</h2>
           <span
-            className="text-sm font-bold px-3 py-0.5 rounded-full"
+            className="text-xs font-bold px-2 py-0.5 rounded-full"
             style={{ background: `${color}22`, color, border: `1px solid ${color}44` }}
           >
             {isEn ? 'Range' : 'Range'} {rangePct[activePos]}
@@ -117,22 +117,22 @@ export function TablePage() {
             </span>
           )}
         </div>
-        <p className="text-gray-300 text-sm leading-relaxed">{isEn ? tip.en : tip.fr}</p>
+        <p className="text-gray-300 text-xs leading-snug">{isEn ? tip.en : tip.fr}</p>
       </motion.div>
 
       {/* Position grid legend */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2">
         {CLOCKWISE.map(pos => (
           <button
             key={pos}
             onClick={() => setActivePos(pos)}
-            className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${
+            className={`flex items-center gap-2 p-2 rounded-lg border text-left transition-all ${
               activePos === pos ? 'border-white/20 bg-gray-800/80' : 'border-gray-800 bg-gray-900/30 hover:border-gray-700 hover:bg-gray-900/60'
             }`}
           >
-            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: POSITION_COLORS[pos] }} />
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: POSITION_COLORS[pos] }} />
             <div>
-              <p className="text-white text-sm font-bold leading-none">{pos}</p>
+              <p className="text-white text-xs font-bold leading-none">{pos}</p>
               <p className="text-gray-500 text-xs mt-0.5">{rangePct[pos]}</p>
             </div>
             {activePos === pos && (
@@ -143,11 +143,11 @@ export function TablePage() {
       </div>
 
       {/* CTA */}
-      <div className="text-center pb-4">
+      <div className="text-center pb-1">
         <Link to={activePos === 'BB' ? `/training?module=bbdefense` : `/training?module=preflop`}>
-          <Button size="lg" variant="gold">
+          <Button size="sm" variant="gold">
             {isEn ? `Train from ${activePos}` : `S'entraîner depuis ${activePos}`}
-            <ArrowRight size={16} className="inline ml-1" />
+            <ArrowRight size={13} className="inline ml-1" />
           </Button>
         </Link>
         {activePos === 'BB' && (
