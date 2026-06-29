@@ -77,10 +77,12 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
       const achievInput = buildLeaderboardInput(l.totalExercises, l.totalCorrect, userSprints);
       const achievResults = computeAchievements(achievInput);
 
-      // Respect user's chosen title if set and still unlocked; else fall back to auto-best
+      // Respect user's chosen title if set — look up static definition (selectedTitleId was
+      // validated against ACHIEVEMENTS on save; leaderboard input lacks byDay data so we can't
+      // re-check .unlocked without false negatives for day/daily categories)
       let title: { fr: string; en: string; tier: string; icon: string } | null = null;
       if ((l as any).selectedTitleId) {
-        const chosen = achievResults.find(a => a.id === (l as any).selectedTitleId && a.unlocked);
+        const chosen = ACHIEVEMENTS.find(a => a.id === (l as any).selectedTitleId);
         if (chosen) title = { fr: chosen.title_fr, en: chosen.title_en, tier: chosen.tier, icon: chosen.icon };
       }
       if (!title) {
