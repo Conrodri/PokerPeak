@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { ApiResponse } from '../types';
 import {
-  computeAchievements, getBestTitle, buildLeaderboardInput, AchievementInput, ACHIEVEMENTS,
+  computeAchievements, getBestTitle, getBestAchievement, buildLeaderboardInput, AchievementInput, ACHIEVEMENTS,
 } from '../utils/achievements';
 
 export async function getMyStats(req: Request, res: Response): Promise<void> {
@@ -80,15 +80,14 @@ export async function getLeaderboard(req: Request, res: Response): Promise<void>
       // Respect user's chosen title if set — look up static definition (selectedTitleId was
       // validated against ACHIEVEMENTS on save; leaderboard input lacks byDay data so we can't
       // re-check .unlocked without false negatives for day/daily categories)
-      let title: { fr: string; en: string; tier: string; icon: string } | null = null;
+      let title: { fr: string; en: string; tier: string; icon: string; desc_fr: string; desc_en: string } | null = null;
       if ((l as any).selectedTitleId) {
         const chosen = ACHIEVEMENTS.find(a => a.id === (l as any).selectedTitleId);
-        if (chosen) title = { fr: chosen.title_fr, en: chosen.title_en, tier: chosen.tier, icon: chosen.icon };
+        if (chosen) title = { fr: chosen.title_fr, en: chosen.title_en, tier: chosen.tier, icon: chosen.icon, desc_fr: chosen.desc_fr, desc_en: chosen.desc_en };
       }
       if (!title) {
-        const bestFr = getBestTitle(achievResults, 'fr');
-        const bestEn = getBestTitle(achievResults, 'en');
-        if (bestFr) title = { fr: bestFr.title, en: bestEn!.title, tier: bestFr.tier, icon: bestFr.icon };
+        const best = getBestAchievement(achievResults);
+        if (best) title = { fr: best.title_fr, en: best.title_en, tier: best.tier, icon: best.icon, desc_fr: best.desc_fr, desc_en: best.desc_en };
       }
 
       return {

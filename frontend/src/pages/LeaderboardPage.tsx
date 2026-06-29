@@ -68,11 +68,15 @@ const TITLE_STYLES: Record<AchievementTier, string> = {
 };
 
 function TitleBadge({ title, isEn }: { title: LeaderboardTitle; isEn: boolean }) {
+  const label = isEn ? title.en : title.fr;
+  const desc  = isEn ? title.desc_en : title.desc_fr;
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${TITLE_STYLES[title.tier]}`}>
-      <span>{title.icon}</span>
-      <span>{isEn ? title.en : title.fr}</span>
-    </span>
+    <HoverTip title={label} text={desc} noBorder className="inline-flex cursor-pointer">
+      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${TITLE_STYLES[title.tier]}`}>
+        <span>{title.icon}</span>
+        <span>{label}</span>
+      </span>
+    </HoverTip>
   );
 }
 

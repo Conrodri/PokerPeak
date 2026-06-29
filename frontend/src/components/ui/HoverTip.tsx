@@ -10,6 +10,8 @@ interface HoverTipProps {
   children: React.ReactNode;
   /** Extra classes for the trigger wrapper. */
   className?: string;
+  /** Suppress the dashed underline decoration (useful when wrapping styled badges). */
+  noBorder?: boolean;
 }
 
 interface TipPos {
@@ -30,7 +32,7 @@ const MAX_W  = 240;
  * never clips), but with neutral styling so it can wrap legend chips, labels,
  * etc. without forcing the golden glossary look.
  */
-export function HoverTip({ title, text, children, className = '' }: HoverTipProps) {
+export function HoverTip({ title, text, children, className = '', noBorder = false }: HoverTipProps) {
   const [open, setOpen] = useState(false);
   const [pos,  setPos]  = useState<TipPos | null>(null);
   const ref             = useRef<HTMLSpanElement>(null);
@@ -81,7 +83,7 @@ export function HoverTip({ title, text, children, className = '' }: HoverTipProp
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onClick={() => setOpen(v => !v)}
-      className={`cursor-help border-b border-dashed border-gray-500/50 ${className}`}
+      className={`cursor-help ${noBorder ? '' : 'border-b border-dashed border-gray-500/50'} ${className}`}
     >
       {children}
 

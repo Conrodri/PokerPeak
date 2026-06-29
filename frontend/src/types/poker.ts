@@ -212,6 +212,8 @@ export interface LeaderboardTitle {
   en: string;
   tier: AchievementTier;
   icon: string;
+  desc_fr: string;
+  desc_en: string;
 }
 
 export interface LeaderboardEntry {

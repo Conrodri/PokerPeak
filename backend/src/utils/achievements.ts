@@ -388,6 +388,18 @@ export function computeAchievements(input: AchievementInput): AchievementResult[
   });
 }
 
+// ─── Pick the single best achievement (full object) ──────────────────────────
+
+export function getBestAchievement(
+  achievements: AchievementResult[],
+): AchievementResult | null {
+  const unlocked = achievements.filter(a => a.unlocked);
+  if (!unlocked.length) return null;
+  return unlocked.reduce((acc, cur) =>
+    (TIER_WEIGHT[cur.tier] + CAT_WEIGHT[cur.category]) > (TIER_WEIGHT[acc.tier] + CAT_WEIGHT[acc.category]) ? cur : acc
+  );
+}
+
 // ─── Pick the single best title for display ───────────────────────────────────
 
 export function getBestTitle(
