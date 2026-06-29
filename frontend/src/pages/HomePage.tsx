@@ -169,14 +169,14 @@ export function HomePage() {
   ];
 
   const FEATURES = [
-    { icon: <Star size={20} />, text: t.home.feature1 },
-    { icon: <Calculator size={20} />, text: t.home.feature2 },
-    { icon: <BarChart2 size={20} />, text: t.home.feature3 },
-    { icon: <Layers size={20} />, text: t.home.feature4 },
+    { icon: <Star size={14} />, text: t.home.feature1 },
+    { icon: <Calculator size={14} />, text: t.home.feature2 },
+    { icon: <BarChart2 size={14} />, text: t.home.feature3 },
+    { icon: <Layers size={14} />, text: t.home.feature4 },
   ];
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-2.5 max-w-xl mx-auto">
       {/* Hero */}
       <motion.section
         initial={{ opacity: 0, y: 30 }}
@@ -187,25 +187,25 @@ export function HomePage() {
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
-          className="text-6xl mb-2"
+          className="text-3xl mb-1"
         >
           🃏
         </motion.div>
-        <h1 className="text-4xl font-bold mb-2 font-serif">
+        <h1 className="text-xl font-bold mb-1 font-serif">
           <span className="text-gold-400">Poker</span>
           <span className="text-white">Peak</span>
         </h1>
-        <p className="text-base text-gray-300 max-w-2xl mx-auto mb-4 leading-relaxed">
+        <p className="text-xs text-gray-400 mb-2">
           {t.home.subtitle}
         </p>
-        <div className="flex gap-3 justify-center flex-wrap">
+        <div className="flex gap-2 justify-center flex-wrap">
           <Link to="/training?module=preflop">
-            <Button size="lg" variant="gold">
-              {t.home.start_btn} <ArrowRight size={20} className="inline ml-1" />
+            <Button size="sm" variant="gold">
+              {t.home.start_btn} <ArrowRight size={14} className="inline ml-1" />
             </Button>
           </Link>
           <Link to="/stats">
-            <Button size="lg" variant="ghost">
+            <Button size="sm" variant="ghost">
               {t.home.stats_btn}
             </Button>
           </Link>
@@ -214,8 +214,8 @@ export function HomePage() {
 
       {/* Free modules */}
       <section>
-        <h2 className="text-2xl font-bold text-white mb-3 text-center">{t.home.modules_title}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <h2 className="text-sm font-bold text-white mb-2 text-center">{t.home.modules_title}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {FREE_MODULES.map((module, i) => (
             <motion.div
               key={module.id}
@@ -224,7 +224,7 @@ export function HomePage() {
               transition={{ delay: 0.1 + i * 0.08 }}
             >
               <Link to={module.href} className="block group h-full">
-                <div className={`bg-gradient-to-br ${module.color} border rounded-2xl p-4 h-full transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-2xl flex flex-col`}>
+                <div className={`bg-gradient-to-br ${module.color} border rounded-xl p-2.5 h-full transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-xl flex flex-col`}>
                   <ModuleCard
                     icon={module.icon}
                     title={module.title}
@@ -243,18 +243,18 @@ export function HomePage() {
 
       {/* Premium modules */}
       <section>
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-2 mb-2">
           <div className="flex-1 h-px bg-gold-700/30" />
-          <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold-900/30 border border-gold-700/50">
-            <span className="text-lg leading-none">👑</span>
-            <span className="text-gold-300 font-bold text-sm">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gold-900/30 border border-gold-700/50">
+            <span className="text-sm leading-none">👑</span>
+            <span className="text-gold-300 font-bold text-xs">
               {isEn ? 'Premium modules' : 'Modules Premium'}
             </span>
           </div>
           <div className="flex-1 h-px bg-gold-700/30" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {PREMIUM_MODULES.map((module, i) => (
             <motion.div
               key={module.id}
@@ -263,7 +263,7 @@ export function HomePage() {
               transition={{ delay: 0.35 + i * 0.08 }}
             >
               {module.comingSoon ? (
-                <div className="bg-gradient-to-br from-gold-900/10 to-gray-900/80 border border-gold-700/30 rounded-2xl p-4 h-full opacity-60 cursor-default flex flex-col">
+                <div className="bg-gradient-to-br from-gold-900/10 to-gray-900/80 border border-gold-700/30 rounded-xl p-2.5 h-full opacity-60 cursor-default flex flex-col">
                   <div className="flex items-center justify-end gap-1 mb-2 flex-wrap">
                     <span className="flex items-center gap-1 bg-gold-900/70 border border-gold-700/60 text-gold-300 text-[11px] font-bold px-2 py-0.5 rounded-full">
                       👑 {t.home.badge_premium}
@@ -289,7 +289,7 @@ export function HomePage() {
                 </div>
               ) : (
                 <Link to={module.href} className="block group h-full">
-                  <div className="bg-gradient-to-br from-gold-900/20 to-gray-900/80 border border-gold-700/50 rounded-2xl p-4 h-full transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-2xl group-hover:border-gold-600 flex flex-col">
+                  <div className="bg-gradient-to-br from-gold-900/20 to-gray-900/80 border border-gold-700/50 rounded-xl p-2.5 h-full transition-all duration-200 group-hover:scale-[1.02] group-hover:shadow-xl group-hover:border-gold-600 flex flex-col">
                     <div className="flex items-center justify-end mb-2">
                       <span className="flex items-center gap-1 bg-gold-900/70 border border-gold-700/60 text-gold-300 text-[11px] font-bold px-2 py-0.5 rounded-full">
                         👑 {t.home.badge_premium}
@@ -312,25 +312,25 @@ export function HomePage() {
           ))}
         </div>
 
-        <p className="text-center text-xs text-gray-600 mt-4">
+        <p className="text-center text-xs text-gray-600 mt-1">
           {t.home.premium_label}
         </p>
       </section>
 
       {/* Features */}
-      <section className="bg-gray-900/40 rounded-2xl p-5 border border-gray-800">
-        <h2 className="text-lg font-bold text-white mb-4">{t.home.features_title}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="bg-gray-900/50 rounded-xl px-3 py-2.5 border border-gray-800">
+        <h2 className="text-sm font-bold text-white mb-2">{t.home.features_title}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
           {FEATURES.map((f, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 + i * 0.1 }}
-              className="flex items-start gap-3 text-gray-300"
+              className="flex items-start gap-2 text-gray-300"
             >
               <span className="text-gold-400 shrink-0 mt-0.5">{f.icon}</span>
-              <span className="text-sm">{f.text}</span>
+              <span className="text-xs">{f.text}</span>
             </motion.div>
           ))}
         </div>
@@ -361,14 +361,14 @@ function ModuleCard({
   return (
     <>
       {/* Header */}
-      <div className="flex items-start gap-3 mb-3">
-        <span className="text-3xl leading-none">{icon}</span>
+      <div className="flex items-start gap-2 mb-2">
+        <span className="text-xl leading-none">{icon}</span>
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            <h3 className="text-lg font-bold text-white leading-tight">{title}</h3>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${badgeColor}`}>{badge}</span>
+          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+            <h3 className="text-sm font-bold text-white leading-tight">{title}</h3>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${badgeColor}`}>{badge}</span>
           </div>
-          <p className={`text-xs ${subtitleColor}`}>{subtitle}</p>
+          <p className={`text-[11px] ${subtitleColor}`}>{subtitle}</p>
         </div>
       </div>
 
@@ -377,12 +377,12 @@ function ModuleCard({
         {tiers.length > 0
           ? tiers.map((tier, i) => <TierRow key={i} tier={tier} />)
           : description
-            ? <p className="text-sm text-gray-400 leading-snug">{description}</p>
+            ? <p className="text-xs text-gray-400 leading-snug">{description}</p>
             : null}
       </div>
 
       {/* CTA */}
-      <div className={`flex items-center gap-1 mt-3 text-sm font-medium ${arrowColor}`}>
+      <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${arrowColor}`}>
         <span>{startArrow}</span>
       </div>
     </>
