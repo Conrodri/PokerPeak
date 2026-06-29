@@ -33,14 +33,14 @@ export function GlossaryPage() {
     : null;
 
   return (
-    <div className="flex flex-col gap-5 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-2.5 max-w-xl mx-auto">
 
       {/* Header */}
       <div className="text-center mb-1">
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-xl font-bold text-white">
           📖 {isEn ? 'Poker Glossary' : 'Lexique Poker'}
         </h1>
-        <p className="text-gray-400 mt-1 text-sm">
+        <p className="text-gray-400 mt-1 text-xs">
           {isEn
             ? 'All key terms to understand and master the game'
             : 'Tous les termes clés pour comprendre et maîtriser le jeu'}
@@ -77,14 +77,14 @@ export function GlossaryPage() {
         CATEGORIES.map(cat => {
           const entries = GLOSSARY.filter(e => e.category === cat.id);
           return (
-            <div key={cat.id} className="bg-gray-900/60 rounded-2xl p-5 border border-gray-700">
-              <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <div key={cat.id} className="bg-gray-900/50 rounded-xl px-3 py-2.5 border border-gray-800">
+              <h2 className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
                 {cat.emoji} {isEn ? cat.en : cat.fr}
-                <span className="text-xs font-normal text-gray-500 ml-1">
+                <span className="text-[10px] font-normal text-gray-500 ml-1">
                   ({entries.length})
                 </span>
               </h2>
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-1.5">
                 {entries.map(entry => (
                   <EntryCard key={entry.id} entry={entry} isEn={isEn} />
                 ))}
@@ -105,15 +105,15 @@ function EntryCard({ entry, isEn }: { entry: GlossaryEntry; isEn: boolean }) {
   return (
     <button
       onClick={() => setOpen(v => !v)}
-      className="w-full text-left bg-gray-800/50 hover:bg-gray-800/80 rounded-xl border border-gray-700/50 hover:border-gray-600 transition-all overflow-hidden"
+      className="w-full text-left bg-gray-800/50 hover:bg-gray-800/80 rounded-lg border border-gray-700/50 hover:border-gray-600 transition-all overflow-hidden"
     >
-      <div className="flex items-center justify-between px-3.5 py-2.5 gap-3">
-        <p className="text-gold-400 font-bold text-sm">{isEn ? entry.en : entry.fr}</p>
-        <span className="text-gray-600 text-xs shrink-0">{open ? '▲' : '▼'}</span>
+      <div className="flex items-center justify-between px-2.5 py-1.5 gap-2">
+        <p className="text-gold-400 font-bold text-xs">{isEn ? entry.en : entry.fr}</p>
+        <span className="text-gray-600 text-[10px] shrink-0">{open ? '▲' : '▼'}</span>
       </div>
       {open && (
-        <div className="px-3.5 pb-3 border-t border-gray-700/50">
-          <p className="text-gray-300 text-xs leading-relaxed pt-2.5">
+        <div className="px-2.5 pb-2 border-t border-gray-700/50">
+          <p className="text-gray-300 text-[11px] leading-relaxed pt-2">
             {isEn ? entry.definitionEn : entry.definitionFr}
           </p>
         </div>

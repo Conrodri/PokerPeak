@@ -361,7 +361,7 @@ export function StatsPage() {
   if (!user && !isPublicView) return (
     <div className="flex flex-col items-center gap-6 py-20 text-center">
       <div className="text-6xl">📊</div>
-      <h2 className="text-2xl font-bold text-white">{t.stats.login_prompt}</h2>
+      <h2 className="text-base font-bold text-white">{t.stats.login_prompt}</h2>
       <p className="text-gray-400">{t.stats.login_sub}</p>
       <Link to="/login"><Button size="lg" variant="gold">{t.stats.login_btn}</Button></Link>
     </div>
@@ -376,17 +376,17 @@ export function StatsPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-white">
+    <div className="flex flex-col gap-3 max-w-xl mx-auto">
+      <h1 className="text-base font-bold text-white">
         {isPublicView ? (paramUsername ?? t.stats.title) : t.stats.title}
       </h1>
 
       {/* ── Level & XP ── */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-gray-900 to-felt-900/50 rounded-2xl p-4 border border-gray-700"
+        className="bg-gradient-to-r from-gray-900 to-felt-900/50 rounded-xl px-3 py-2.5 border border-gray-700"
       >
-        <div className="flex items-center gap-4 mb-3">
-          <div className="text-4xl font-black text-gold-400">{t.stats.level}{level}</div>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="text-2xl font-black text-gold-400">{t.stats.level}{level}</div>
           <div className="flex-1">
             <div className="flex justify-between mb-1">
               <span className="text-white font-semibold">{isPublicView ? paramUsername : user?.username}</span>
@@ -408,10 +408,10 @@ export function StatsPage() {
 
       {/* ── Annual calendar heatmap ── */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-        className="bg-gray-900/60 rounded-2xl p-4 border border-gray-800"
+        className="bg-gray-900/50 rounded-xl px-3 py-2.5 border border-gray-800"
       >
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h2 className="text-base font-bold text-white">
+          <h2 className="text-xs font-bold text-white">
             {isEn ? `Activity ${calendarYear}` : `Activité ${calendarYear}`}
           </h2>
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
@@ -504,11 +504,11 @@ export function StatsPage() {
       {/* ── Daily stats ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="rounded-2xl border border-gold-700/30 overflow-hidden"
+        className="rounded-xl border border-gold-700/30 overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #1a1408 0%, #0f1a0e 100%)' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/5">
+        <div className="flex items-center justify-between px-3 pt-3 pb-2 border-b border-white/5">
           <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
             <span>📅</span>
             {isEn ? "Today" : "Aujourd'hui"}
@@ -520,25 +520,25 @@ export function StatsPage() {
           </span>
         </div>
 
-        <div className="p-4 flex flex-col gap-3">
+        <div className="p-3 flex flex-col gap-2.5">
 
           {/* 4-chip row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className="bg-white/5 rounded-xl p-2.5 border border-white/8 flex flex-col gap-0.5">
+            <div className="bg-white/5 rounded-lg p-2 border border-white/8 flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Zap size={11} className="text-blue-400" />
                 {isEn ? 'Exercises' : 'Exercices'}
               </div>
-              <p className="text-xl font-black text-white leading-none">{todayData.total}</p>
+              <p className="text-lg font-black text-white leading-none">{todayData.total}</p>
               <p className="text-xs text-gray-500">/ {DAILY_GOAL} {isEn ? 'goal' : 'objectif'}</p>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-2.5 border border-white/8 flex flex-col gap-0.5">
+            <div className="bg-white/5 rounded-lg p-2 border border-white/8 flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Target size={11} className="text-purple-400" />
                 {isEn ? 'Accuracy' : 'Précision'}
               </div>
-              <p className={`text-xl font-black leading-none ${
+              <p className={`text-base font-black leading-none ${
                 todayAcc === null ? 'text-gray-600' : todayAcc >= 75 ? 'text-green-400'
                 : todayAcc >= 55 ? 'text-yellow-400' : 'text-red-400'}`}>
                 {todayAcc !== null ? `${todayAcc}%` : '—'}
@@ -549,7 +549,7 @@ export function StatsPage() {
               </p>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-2.5 border border-white/8 flex flex-col gap-0.5">
+            <div className="bg-white/5 rounded-lg p-2 border border-white/8 flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 {accDelta === null ? <Minus size={11} className="text-gray-500" />
                   : accDelta > 0  ? <TrendingUp size={11} className="text-green-400" />
@@ -557,7 +557,7 @@ export function StatsPage() {
                   :                 <Minus size={11} className="text-gray-400" />}
                 {isEn ? 'vs Yesterday' : 'vs Hier'}
               </div>
-              <p className={`text-xl font-black leading-none ${
+              <p className={`text-base font-black leading-none ${
                 accDelta === null ? 'text-gray-600' : accDelta > 0 ? 'text-green-400'
                 : accDelta < 0 ? 'text-red-400' : 'text-gray-300'}`}>
                 {accDelta === null ? '—' : accDelta > 0 ? `+${accDelta}%` : accDelta < 0 ? `${accDelta}%` : '='}
@@ -569,12 +569,12 @@ export function StatsPage() {
               </p>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-2.5 border border-white/8 flex flex-col gap-0.5">
+            <div className="bg-white/5 rounded-lg p-2 border border-white/8 flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5 text-xs text-gray-400">
                 <Flame size={11} className="text-orange-400" />
                 {isEn ? 'Streak' : 'Série'}
               </div>
-              <p className="text-xl font-black text-orange-400 leading-none">
+              <p className="text-lg font-black text-orange-400 leading-none">
                 {localStreak > 0 ? `${localStreak}j` : '0'}
               </p>
               <p className="text-xs text-gray-500">
@@ -684,9 +684,9 @@ export function StatsPage() {
       {/* ── Module accuracy ── */}
       {playerStats && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="bg-gray-900/60 rounded-2xl p-4 border border-gray-800"
+          className="bg-gray-900/50 rounded-xl px-3 py-2.5 border border-gray-800"
         >
-          <h2 className="text-sm font-bold text-white mb-3">{t.stats.by_module}</h2>
+          <h2 className="text-sm font-bold text-white mb-2">{t.stats.by_module}</h2>
           <div className="space-y-3">
             {moduleData.map(m => (
               <div key={m.key}>
@@ -867,12 +867,12 @@ export function StatsPage() {
       {achievements.length > 0 && (
         <Link
           to="/achievements"
-          className="flex items-center justify-between gap-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:bg-gray-800 hover:border-gray-600 px-4 py-3 transition-colors group"
+          className="flex items-center justify-between gap-3 rounded-xl border border-gray-700 bg-gray-800/50 hover:bg-gray-800 hover:border-gray-600 px-3 py-2 transition-colors group"
         >
           <div className="flex items-center gap-3">
-            <span className="text-xl">🏅</span>
+            <span className="text-base">🏅</span>
             <div className="flex flex-col">
-              <span className="text-sm font-bold text-white">
+              <span className="text-xs font-bold text-white">
                 {isEn ? 'Achievements & Rewards' : 'Succès & Récompenses'}
               </span>
               <span className="text-xs text-gray-400">

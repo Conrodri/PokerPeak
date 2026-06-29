@@ -248,12 +248,12 @@ export function PremiumPage() {
       </div>
 
       {/* ── FAQ ── */}
-      <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-5">
-        <h2 className="text-white font-bold mb-4 flex items-center gap-2">
-          <Target size={16} className="text-gold-400" />
+      <div className="bg-gray-900/50 border border-gray-800 rounded-xl px-3 py-2.5">
+        <h2 className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
+          <Target size={14} className="text-gold-400" />
           {isEn ? 'Questions' : 'Questions fréquentes'}
         </h2>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {[
             {
               q: isEn ? 'What\'s the difference between Premium and Expert?' : 'Quelle différence entre Premium et Expert ?',
@@ -274,9 +274,9 @@ export function PremiumPage() {
                 : 'Oui — mensuel, sans engagement. Tu gardes l\'accès jusqu\'à la fin de la période payée.',
             },
           ].map((item, i) => (
-            <div key={i} className={i > 0 ? 'border-t border-gray-800 pt-4' : ''}>
-              <p className="text-sm font-semibold text-white mb-1">{item.q}</p>
-              <p className="text-sm text-gray-400">{item.a}</p>
+            <div key={i} className={i > 0 ? 'border-t border-gray-800 pt-3' : ''}>
+              <p className="text-xs font-semibold text-white mb-1">{item.q}</p>
+              <p className="text-xs text-gray-400">{item.a}</p>
             </div>
           ))}
         </div>

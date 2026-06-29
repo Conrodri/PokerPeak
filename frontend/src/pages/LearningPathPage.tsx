@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Crown, GraduationCap, Lightbulb } from 'lucide-react';
 import { useLangStore } from '../store/langStore';
@@ -102,13 +102,13 @@ export function LearningPathPage() {
   const isEn = useLangStore(s => s.lang) === 'en';
 
   return (
-    <div className="flex flex-col gap-5 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-2.5 max-w-xl mx-auto">
       {/* Title */}
-      <div className="text-center mb-2">
-        <h1 className="text-2xl font-bold text-white">
+      <div className="text-center mb-1">
+        <h1 className="text-xl font-bold text-white">
           🧭 {isEn ? 'How to learn' : 'Comment apprendre'}
         </h1>
-        <p className="text-gray-400 mt-1 text-sm">
+        <p className="text-gray-400 mt-1 text-xs">
           {isEn
             ? 'A recommended order to understand poker step by step.'
             : 'Un ordre d’apprentissage recommandé pour comprendre le poker, étape par étape.'}
@@ -116,9 +116,9 @@ export function LearningPathPage() {
       </div>
 
       {/* Intro tip */}
-      <div className="flex items-start gap-2.5 rounded-xl border border-blue-800/50 bg-blue-900/20 px-4 py-3">
-        <Lightbulb size={16} className="text-blue-300 mt-0.5 shrink-0" />
-        <p className="text-sm text-blue-100/90 leading-relaxed">
+      <div className="flex items-start gap-2 rounded-xl border border-blue-800/50 bg-blue-900/20 px-3 py-2">
+        <Lightbulb size={14} className="text-blue-300 mt-0.5 shrink-0" />
+        <p className="text-xs text-blue-100/90 leading-snug">
           {isEn
             ? 'Each skill builds on the previous one. Follow the order, take the time to be comfortable with one module before moving to the next.'
             : 'Chaque compétence s’appuie sur la précédente. Suis l’ordre et prends le temps d’être à l’aise sur un module avant de passer au suivant.'}
@@ -144,7 +144,7 @@ export function LearningPathPage() {
                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold-500 to-gold-700 text-gray-900 font-black text-sm flex items-center justify-center shadow">
                     {s.n}
                   </div>
-                  {i < STEPS.length - 1 && <div className="w-px flex-1 mt-1 bg-gray-700/70 min-h-[10px]" />}
+                  {i < STEPS.length - 1 && <div className="w-px flex-1 mt-1 bg-gray-700/70 min-h-[8px]" />}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -172,7 +172,7 @@ export function LearningPathPage() {
 
       {/* ── When do decisions happen ── */}
       <Section title={`⏱️ ${isEn ? 'When decisions happen' : 'Quand surviennent les décisions'}`}>
-        <p className="text-sm text-gray-400 mb-4">
+        <p className="text-xs text-gray-400 mb-2">
           {isEn
             ? 'During a hand, each street raises a different question — and a different skill answers it.'
             : 'Pendant une main, chaque street pose une question différente — et une compétence différente y répond.'}
@@ -184,7 +184,7 @@ export function LearningPathPage() {
                 {isEn ? st.labelEn : st.labelFr}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-200 leading-snug">{isEn ? st.qEn : st.qFr}</p>
+                <p className="text-xs text-gray-200 leading-snug">{isEn ? st.qEn : st.qFr}</p>
                 <p className="text-xs text-gold-400/90 font-semibold mt-0.5">
                   → {isEn ? st.skillEn : st.skillFr}
                 </p>

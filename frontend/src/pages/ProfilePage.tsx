@@ -26,8 +26,8 @@ function SectionCard({ title, icon, children }: {
   title: string; icon: React.ReactNode; children: React.ReactNode;
 }) {
   return (
-    <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5">
-      <h2 className="text-white font-bold text-base flex items-center gap-2 mb-4">
+    <div className="bg-gray-900/50 border border-gray-800 rounded-xl px-3 py-2.5">
+      <h2 className="text-white font-bold text-sm flex items-center gap-1.5 mb-2">
         {icon}
         {title}
       </h2>
@@ -196,40 +196,40 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-2.5 max-w-xl mx-auto">
 
       {/* ── Hero card ── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-br from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-6 flex items-center gap-5"
+        className="bg-gray-900/50 border border-gray-800 rounded-xl px-3 py-2.5 flex items-center gap-3"
       >
         {/* Avatar */}
         <div className="relative shrink-0">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center text-2xl font-black text-gray-900 shadow-glow-gold">
+          <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-gold-500 to-gold-700 flex items-center justify-center text-lg font-black text-gray-900 shadow-glow-gold">
             {user.avatarUrl
               ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               : avatarLetter}
           </div>
           {user.isPremium && (
-            <div className="absolute -top-2 -right-1 bg-yellow-400 rounded-full p-0.5 shadow">
-              <Crown size={12} className="text-gray-900" fill="currentColor" />
+            <div className="absolute -top-1 -right-0.5 bg-yellow-400 rounded-full p-0.5 shadow">
+              <Crown size={10} className="text-gray-900" fill="currentColor" />
             </div>
           )}
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-black text-white truncate">{user.username}</h1>
-          <p className="text-sm text-gray-400 truncate mt-0.5">{user.email}</p>
-          <div className="mt-2 flex items-center gap-2 flex-wrap">
+          <h1 className="text-sm font-black text-white truncate">{user.username}</h1>
+          <p className="text-[11px] text-gray-400 truncate mt-0.5">{user.email}</p>
+          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
             {user.isPremium ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-yellow-900/30 border border-yellow-700/60 text-yellow-300 text-xs font-bold rounded-full">
-                <Crown size={11} fill="currentColor" />
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-yellow-900/30 border border-yellow-700/60 text-yellow-300 text-[10px] font-bold rounded-full">
+                <Crown size={9} fill="currentColor" />
                 Premium
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-800 border border-gray-700 text-gray-400 text-xs font-bold rounded-full">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-800 border border-gray-700 text-gray-400 text-[10px] font-bold rounded-full">
                 {isEn ? 'Free plan' : 'Gratuit'}
               </span>
             )}
@@ -251,8 +251,8 @@ export function ProfilePage() {
         <SectionCard title={isEn ? 'Appearance' : 'Apparence'} icon={<Palette size={16} className="text-purple-400" />}>
 
           {/* Background theme */}
-          <div className="mb-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2.5">
+          <div className="mb-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
               {isEn ? 'Background' : 'Fond'}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -283,8 +283,8 @@ export function ProfilePage() {
           </div>
 
           {/* Table color */}
-          <div className="mb-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2.5">
+          <div className="mb-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
               {isEn ? 'Table felt' : 'Tapis de table'}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -339,7 +339,7 @@ export function ProfilePage() {
         <SectionCard title={isEn ? 'Preferences' : 'Préférences'} icon={<Settings size={16} className="text-blue-400" />}>
 
           {/* Language */}
-          <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-800">
+          <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-800">
             <div>
               <p className="text-sm font-semibold text-white">{isEn ? 'Language' : 'Langue'}</p>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -364,7 +364,7 @@ export function ProfilePage() {
           </div>
 
           {/* Zoom / text size */}
-          <div className="mb-4 pb-4 border-b border-gray-800">
+          <div className="mb-3 pb-3 border-b border-gray-800">
             <div className="flex items-center gap-2 mb-3">
               <ZoomIn size={14} className="text-teal-400" />
               <div>

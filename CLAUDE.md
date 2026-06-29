@@ -315,6 +315,27 @@ Client Axios centralisé. Appels couverts :
 - **Modularité** — travailler de la manière la plus modulable possible : composants/fonctions petits, découplés et réutilisables.
 - **🚨 PRIORITÉ 1 — Politique « non-scroll » sur PC** — pendant les exercices, l'affichage **doit tenir dans le viewport sans aucun scroll** sur ordinateur. C'est une contrainte ferme, pas un objectif. Exceptions autorisées : écrans de **récap/résultats** et listes longues explicitement paginées. Pour chaque layout d'exercice, vérifier qu'il tient sur un écran 1280×800 px avant de valider. Si un composant dépasse, compresser les espacements (`gap`, `py`, `px`) ou réduire les tailles de texte — ne **jamais** laisser passer un layout scrollable en exercice.
 - **Direction artistique cohérente** — garder la **même direction artistique partout** (couleurs, typographie, composants, espacements). Pas d'incohérences visuelles entre pages/modules.
+- **Échelle visuelle standard (à respecter sur toute nouvelle page/module)** — s'aligner sur la densité de `TrainerIntro` / `PokerRulesPage`. Tableau de référence :
+
+  | Élément | Classe Tailwind |
+  |---|---|
+  | Conteneur max-width | `max-w-xl mx-auto` |
+  | Gap entre sections | `gap-2.5` |
+  | Encart / card | `bg-gray-900/50 rounded-xl px-3 py-2.5 border border-gray-800` |
+  | Titre de section (h2/h3) | `text-sm font-bold text-white mb-2` |
+  | Texte corps principal | `text-xs text-gray-400` |
+  | Texte secondaire / caption | `text-[11px] text-gray-400` |
+  | Très petite note | `text-[10px] text-gray-500` |
+  | Badge / pill inline | `px-1.5 py-0.5 rounded text-[10px] font-bold` |
+  | Bouton onglet inactif | `bg-gray-800 border border-gray-700 text-gray-400 px-2.5 py-1.5 rounded-lg text-xs font-semibold` |
+  | Bouton onglet actif | `bg-yellow-600 border-yellow-500 text-white` (même padding/radius) |
+  | Bouton CTA principal | `py-2 rounded-lg bg-yellow-600 text-white font-bold text-xs` |
+  | Bouton CTA grand | `py-2.5 rounded-lg bg-yellow-600 text-white font-bold text-sm` |
+  | Gap interne dans un encart | `gap-1.5` à `gap-2` |
+  | Icône dans titre | `w-4 h-4 rounded bg-gray-800 text-[10px]` |
+  | Spacing `mb` entre blocs | `mb-2` (jamais `mb-4` sauf titre de page) |
+
+  > Ces valeurs sont extraites de `TrainerIntro.tsx` et `PokerRulesPage.tsx` — référence visuelle de toute l'app.
 - **Textes utilisateur clairs et concis** — toute string affichée à l'utilisateur doit être la plus **claire et concise** possible. Pas de jargon inutile, pas de phrases longues : aller à l'essentiel.
 - **Cohérence des modules (icônes / couleurs / patterns)** — chaque module a son **icône** et sa **couleur** attitrées : les **réutiliser systématiquement** partout où le module apparaît (cartes, menus, stats, etc.). **Un nouveau module doit reprendre exactement les mêmes principes** : même convention d'icône (lib Lucide), même logique de couleur, et **mêmes patterns de code** que les modules existants (structure du trainer, props, i18n, etc.). On clone le modèle existant, on n'invente pas une nouvelle façon de faire.
 - **UX optimisée** — l'expérience utilisateur doit être soignée et fluide partout ; minimiser les frictions et les étapes inutiles.

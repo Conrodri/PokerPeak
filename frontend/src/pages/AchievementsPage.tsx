@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Trophy, Zap, Flame, Target, Calendar, Clock, Check } from 'lucide-react';
+import { Trophy, Zap, Flame, Target, Clock, Check } from 'lucide-react';
 import { AchievementsGrid } from '../components/stats/AchievementsGrid';
 import { Achievement, AchievementTier } from '../types/poker';
 import { useAuthStore } from '../store/authStore';
@@ -84,18 +84,18 @@ function TitleSection({ achievements, selectedTitleId, onSelect, isEn }: {
           key={activeTitle.id}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className={`flex items-center gap-4 rounded-2xl border ${hs.ring} ${hs.bg} px-5 py-4`}
+          className={`flex items-center gap-3 rounded-xl border ${hs.ring} ${hs.bg} px-3 py-2.5`}
         >
-          <span className="text-4xl leading-none shrink-0">{activeTitle.icon}</span>
+          <span className="text-2xl leading-none shrink-0">{activeTitle.icon}</span>
           <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-            <span className={`text-xl font-black ${hs.text} leading-tight`}>
+            <span className={`text-sm font-black ${hs.text} leading-tight`}>
               {isEn ? activeTitle.title_en : activeTitle.title_fr}
             </span>
-            <span className={`text-xs font-bold uppercase tracking-widest ${hs.text} opacity-60`}>
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${hs.text} opacity-60`}>
               {hs.label}
             </span>
           </div>
-          <p className="text-xs text-gray-500 shrink-0 text-right hidden sm:block">
+          <p className="text-[10px] text-gray-500 shrink-0 text-right hidden sm:block">
             {isEn ? 'Shown on leaderboard' : 'Affiché dans le classement'}
           </p>
         </motion.div>
@@ -224,30 +224,6 @@ function SprintRecords({ records, isEn }: {
   );
 }
 
-// ─── Daily Challenge placeholder ──────────────────────────────────────────────
-
-function DailyChallengePlaceholder({ isEn }: { isEn: boolean }) {
-  return (
-    <div className="flex flex-col sm:flex-row items-center gap-4 rounded-2xl border border-dashed border-gray-700 bg-gray-900/40 px-5 py-6">
-      <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gray-800 shrink-0">
-        <Calendar size={22} className="text-gray-500" />
-      </div>
-      <div className="text-center sm:text-left">
-        <p className="text-sm font-bold text-gray-300">
-          {isEn ? 'Daily Challenge' : 'Challenge du jour'}
-        </p>
-        <p className="text-xs text-gray-500 mt-0.5">
-          {isEn
-            ? 'Coming soon — daily objectives with exclusive rewards for Premium members.'
-            : 'Bientôt disponible — objectifs quotidiens avec récompenses exclusives pour les membres Premium.'}
-        </p>
-      </div>
-      <span className="shrink-0 px-2.5 py-1 rounded-full border border-gray-700 text-[10px] font-bold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-        {isEn ? 'Coming soon' : 'Bientôt'}
-      </span>
-    </div>
-  );
-}
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
@@ -256,11 +232,11 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
     <motion.section
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-2"
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <span className="text-gray-400">{icon}</span>
-        <h2 className="text-sm font-bold text-gray-200 uppercase tracking-wide">{title}</h2>
+        <h2 className="text-xs font-bold text-gray-200 uppercase tracking-wide">{title}</h2>
       </div>
       {children}
     </motion.section>
@@ -278,6 +254,7 @@ export function AchievementsPage() {
   const [selectedTitle,  setSelectedTitle]  = useState<string | null>(null);
   const [loading,        setLoading]        = useState(true);
   const [saving,         setSaving]         = useState(false);
+  const [activeTab,      setActiveTab]      = useState("titre");
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -327,17 +304,17 @@ export function AchievementsPage() {
   );
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-8">
+    <div className="max-w-xl mx-auto flex flex-col gap-4">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex flex-col gap-0.5">
-          <h1 className="text-xl font-black text-white flex items-center gap-2">
-            <Trophy size={20} className="text-gold-400" />
+          <h1 className="text-base font-black text-white flex items-center gap-1.5">
+            <Trophy size={16} className="text-gold-400" />
             {isEn ? 'Achievements' : 'Succès & Récompenses'}
           </h1>
           {totalCount > 0 && (
-            <p className="text-sm text-gray-400">
+            <p className="text-xs text-gray-400">
               {unlockedCount}/{totalCount} {isEn ? 'unlocked' : 'débloqués'}
               {unlockedCount > 0 && (
                 <span className="ml-2 text-gold-400 font-semibold">
@@ -355,37 +332,54 @@ export function AchievementsPage() {
         )}
       </div>
 
-      {/* ── Titre + sélection ── */}
-      <Section icon={<Trophy size={15} />} title={isEn ? 'Title' : 'Titre'}>
-        <TitleSection
-          achievements={achievements}
-          selectedTitleId={selectedTitle}
-          onSelect={handleSelectTitle}
-          isEn={isEn}
-        />
-      </Section>
+      {/* ── Filter tabs ── */}
+      <div className="flex gap-1.5 flex-wrap">
+        {[
+          { id: 'titre',     labelFr: 'Titre',     labelEn: 'Title'        },
+          { id: 'sprints',   labelFr: 'Sprints',   labelEn: 'Sprints'      },
+          { id: 'succes',    labelFr: 'Succès',    labelEn: 'Achievements' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${activeTab === tab.id ? 'bg-yellow-600 border-yellow-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'}`}
+          >
+            {isEn ? tab.labelEn : tab.labelFr}
+          </button>
+        ))}
+      </div>
 
-      {/* ── Sprints ── */}
-      <Section icon={<Target size={15} />} title={isEn ? 'Sprint records' : 'Records de sprints'}>
-        <SprintRecords records={records} isEn={isEn} />
-      </Section>
+      {/* ── Tab content ── */}
+      {activeTab === 'titre' && (
+        <Section icon={<Trophy size={15} />} title={isEn ? 'Title' : 'Titre'}>
+          <TitleSection
+            achievements={achievements}
+            selectedTitleId={selectedTitle}
+            onSelect={handleSelectTitle}
+            isEn={isEn}
+          />
+        </Section>
+      )}
 
-      {/* ── Achievements grid ── */}
-      <Section icon={<Clock size={15} />} title={isEn ? 'All achievements' : 'Tous les succès'}>
-        {achievements.length > 0
-          ? <AchievementsGrid achievements={achievements} />
-          : (
-            <p className="text-sm text-gray-500 py-4 text-center">
-              {isEn ? 'Play exercises to unlock your first achievement.' : 'Fais des exercices pour débloquer ton premier succès.'}
-            </p>
-          )
-        }
-      </Section>
+      {activeTab === 'sprints' && (
+        <Section icon={<Target size={15} />} title={isEn ? 'Sprint records' : 'Records de sprints'}>
+          <SprintRecords records={records} isEn={isEn} />
+        </Section>
+      )}
 
-      {/* ── Daily Challenge ── */}
-      <Section icon={<Calendar size={15} />} title={isEn ? 'Daily challenge' : 'Challenge du jour'}>
-        <DailyChallengePlaceholder isEn={isEn} />
-      </Section>
+      {activeTab === 'succes' && (
+        <Section icon={<Clock size={15} />} title={isEn ? 'All achievements' : 'Tous les succès'}>
+          {achievements.length > 0
+            ? <AchievementsGrid achievements={achievements} />
+            : (
+              <p className="text-sm text-gray-500 py-4 text-center">
+                {isEn ? 'Play exercises to unlock your first achievement.' : 'Fais des exercices pour débloquer ton premier succès.'}
+              </p>
+            )
+          }
+        </Section>
+      )}
+
 
     </div>
   );

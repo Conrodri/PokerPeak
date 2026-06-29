@@ -5,12 +5,10 @@ import { useAuthStore } from '../../store/authStore';
 import { useShallow } from 'zustand/react/shallow';
 import {
   BarChart2, Trophy, BookOpen, Home, LogOut, Crown,
-  ChevronDown, Lock, Menu, X, BookMarked, GraduationCap, Compass, Medal,
+  ChevronDown, Lock, Menu, X, BookMarked, Compass, Medal,
 } from 'lucide-react';
 import { LanguageToggle } from '../ui/LanguageToggle';
 import { ModeToggle } from '../ui/ModeToggle';
-import { Tutorial } from '../tutorial/Tutorial';
-import { HandTutorialModal } from '../tutorial/HandTutorialModal';
 import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 
@@ -32,8 +30,6 @@ export function Navbar() {
   const t      = useT();
   const isEn   = useLangStore(s => s.lang) === 'en';
 
-  const [tutorialOpen,     setTutorialOpen]     = useState(false);
-  const [handTutorialOpen, setHandTutorialOpen] = useState(false);
   const [dropOpen,         setDropOpen]         = useState(false);
   const [rulesOpen,        setRulesOpen]        = useState(false);
   const [mobileOpen,       setMobileOpen]       = useState(false);
@@ -130,14 +126,7 @@ export function Navbar() {
                       <Compass size={15} className="shrink-0" />
                       <span>{isEn ? 'How to learn' : 'Comment apprendre'}</span>
                     </Link>
-                    <button
-                      onClick={() => { setRulesOpen(false); setHandTutorialOpen(true); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                    >
-                      <span className="text-base leading-none">🎯</span>
-                      <span>{isEn ? 'Hand tutorial' : 'Main pas à pas'}</span>
-                    </button>
-                    <Link
+<Link
                       to="/glossary"
                       onClick={() => setRulesOpen(false)}
                       className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
@@ -147,13 +136,6 @@ export function Navbar() {
                       <BookMarked size={15} className="shrink-0" />
                       <span>{isEn ? 'Glossary' : 'Lexique'}</span>
                     </Link>
-                    <button
-                      onClick={() => { setRulesOpen(false); setTutorialOpen(true); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                    >
-                      <GraduationCap size={15} className="shrink-0" />
-                      <span>{isEn ? 'Tutorial' : 'Tutoriel'}</span>
-                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -287,14 +269,7 @@ export function Navbar() {
                     </p>
                     <MobileNavLink to="/rules" icon={<span>📚</span>} label={isEn ? 'Rules' : 'Règles'} active={location.pathname.startsWith('/rules')} />
                     <MobileNavLink to="/learning-path" icon={<Compass size={15} />} label={isEn ? 'How to learn' : 'Comment apprendre'} active={location.pathname.startsWith('/learning-path')} />
-                    <button
-                      onClick={() => { setHandTutorialOpen(true); setMobileOpen(false); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
-                    >
-                      <span className="w-4 flex items-center justify-center shrink-0 text-base leading-none">🎯</span>
-                      <span>{isEn ? 'Hand tutorial' : 'Main pas à pas'}</span>
-                    </button>
-                    <MobileNavLink to="/glossary" icon={<BookMarked size={15} />} label={isEn ? 'Glossary' : 'Lexique'} active={location.pathname.startsWith('/glossary')} />
+<MobileNavLink to="/glossary" icon={<BookMarked size={15} />} label={isEn ? 'Glossary' : 'Lexique'} active={location.pathname.startsWith('/glossary')} />
 
                     {/* Training section */}
                     <div className="mx-3 my-1.5 border-t border-gray-800" />
@@ -342,17 +317,6 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Tutorial modal */}
-      <AnimatePresence>
-        {tutorialOpen && <Tutorial onClose={() => setTutorialOpen(false)} />}
-      </AnimatePresence>
-
-      {/* Hand tutorial modal */}
-      <AnimatePresence>
-        {handTutorialOpen && (
-          <HandTutorialModal isEn={isEn} onClose={() => setHandTutorialOpen(false)} />
-        )}
-      </AnimatePresence>
     </>
   );
 }
