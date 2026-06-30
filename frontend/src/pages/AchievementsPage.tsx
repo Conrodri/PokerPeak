@@ -254,7 +254,7 @@ export function AchievementsPage() {
   const [selectedTitle,  setSelectedTitle]  = useState<string | null>(null);
   const [loading,        setLoading]        = useState(true);
   const [saving,         setSaving]         = useState(false);
-  const [activeTab,      setActiveTab]      = useState("titre");
+  const [activeTab,      setActiveTab]      = useState("succes");
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -335,9 +335,9 @@ export function AchievementsPage() {
       {/* ── Filter tabs ── */}
       <div className="flex gap-1.5 flex-wrap">
         {[
-          { id: 'titre',     labelFr: 'Titre',     labelEn: 'Title'        },
-          { id: 'sprints',   labelFr: 'Sprints',   labelEn: 'Sprints'      },
           { id: 'succes',    labelFr: 'Succès',    labelEn: 'Achievements' },
+          { id: 'sprints',   labelFr: 'Sprints',   labelEn: 'Sprints'      },
+          { id: 'titre',     labelFr: 'Titre',     labelEn: 'Title'        },
         ].map(tab => (
           <button
             key={tab.id}
