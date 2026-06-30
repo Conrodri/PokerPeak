@@ -22,7 +22,7 @@ const MODULES: {
   { key: 'preflop',  icon: '🎯', labelFr: 'Pré-flop',     labelEn: 'Pre-flop'   },
   { key: 'outs',     icon: '🎲', labelFr: 'Outs',          labelEn: 'Outs'       },
   { key: 'equity',   icon: '⚖️', labelFr: 'Équité',        labelEn: 'Equity'     },
-  { key: 'potodds',  icon: '📊', labelFr: 'Pot Odds',      labelEn: 'Pot Odds'   },
+  { key: 'potodds',  icon: '💰', labelFr: 'Pot Odds',      labelEn: 'Pot Odds'   },
   { key: 'postflop', icon: '🃏', labelFr: 'Post-flop',     labelEn: 'Post-flop'  },
   { key: 'fullhand', icon: '🎰', labelFr: 'Main complète', labelEn: 'Full Hand'  },
 ];

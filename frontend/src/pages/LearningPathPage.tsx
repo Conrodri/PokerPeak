@@ -45,7 +45,7 @@ const STEPS = [
     whyEn: 'Turn your outs into a win percentage (rule of 2 and 4).',
   },
   {
-    n: 4, icon: '📊', to: '/training?module=potodds', premium: false,
+    n: 4, icon: '💰', to: '/training?module=potodds', premium: false,
     titleFr: 'Pot Odds', titleEn: 'Pot Odds',
     tagFr: 'Décision clé', tagEn: 'Key decision',
     whyFr: 'Comparer ton équité à la cote du pot : savoir QUAND payer est rentable. Réunit Outs + Équité.',

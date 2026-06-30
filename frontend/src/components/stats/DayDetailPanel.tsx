@@ -5,7 +5,7 @@ interface DayData    { correct: number; total: number }
 interface ModuleDay  { correct: number; total: number; bestStreak: number }
 const MODULE_META: Record<string, { icon: string; label: string; labelFr: string }> = {
   preflop:   { icon: '🎯', label: 'Pre-flop',      labelFr: 'Pré-flop'       },
-  potodds:   { icon: '📐', label: 'Pot Odds',       labelFr: 'Pot Odds'       },
+  potodds:   { icon: '💰', label: 'Pot Odds',       labelFr: 'Pot Odds'       },
   equity:    { icon: '⚖️', label: 'Equity',         labelFr: 'Équité'         },
   outs:      { icon: '🎲', label: 'Outs',           labelFr: 'Outs'           },
   bbdefense: { icon: '🛡️', label: 'BB Defense',    labelFr: 'Défense BB'     },

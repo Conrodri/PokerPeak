@@ -17,7 +17,7 @@ const MODULES = [
   { id: 'preflop',   icon: '🎯', labelFr: 'Pré-flop',      labelEn: 'Pre-flop',    premium: false },
   { id: 'outs',      icon: '🎲', labelFr: 'Outs',           labelEn: 'Outs',        premium: false },
   { id: 'equity',    icon: '⚖️', labelFr: 'Équité',         labelEn: 'Equity',      premium: false },
-  { id: 'potodds',   icon: '📊', labelFr: 'Pot Odds',       labelEn: 'Pot Odds',    premium: false },
+  { id: 'potodds',   icon: '💰', labelFr: 'Pot Odds',       labelEn: 'Pot Odds',    premium: false },
   { id: 'postflop',  icon: '🃏', labelFr: 'Post-flop',      labelEn: 'Post-flop',   premium: true  },
   { id: 'betsizing', icon: '📐', labelFr: 'Bet Sizing',     labelEn: 'Bet Sizing',  premium: true  },
   { id: 'fullhand',  icon: '🎰', labelFr: 'Main complète',  labelEn: 'Full Hand',   premium: true  },

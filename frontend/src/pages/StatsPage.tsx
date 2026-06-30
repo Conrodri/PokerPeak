@@ -128,6 +128,15 @@ function DayCell({ dayLabel, dayNum, total, acc, isToday, isSelected, onClick }:
 // ─── Day detail panel ─────────────────────────────────────────────────────────
 
 
+const MODULE_ICONS: Record<string, string> = {
+  preflop:  '🎯',
+  potodds:  '💰',
+  equity:   '⚖️',
+  outs:     '🃏',
+  postflop: '🌊',
+  fullhand: '🎲',
+};
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function StatsPage() {
@@ -687,177 +696,137 @@ export function StatsPage() {
           className="bg-gray-900/50 rounded-xl px-3 py-2.5 border border-gray-800"
         >
           <h2 className="text-sm font-bold text-white mb-2">{t.stats.by_module}</h2>
-          <div className="space-y-3">
-            {moduleData.map(m => (
-              <div key={m.key}>
-                {/* Module row */}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <ProgressBar value={m.accuracy} label={m.name}
-                      color={m.accuracy >= 70 ? 'green' : m.accuracy >= 50 ? 'gold' : 'red'} showValue />
-                  </div>
-                  <span className="text-xs text-gray-400 font-mono shrink-0 w-16 text-right">
-                    {m.correct}/{m.total}
+
+          {/* Grid 3×2 — une card par module */}
+          <div className="grid grid-cols-3 gap-1.5 mb-2">
+            {moduleData.map(m => {
+              const noData = m.total === 0;
+              const ac = m.accuracy;
+              const valColor = noData ? 'text-gray-600'
+                : ac >= 70 ? 'text-green-400'
+                : ac >= 50 ? 'text-yellow-400'
+                : 'text-red-400';
+              return (
+                <div key={m.key} className={`rounded-xl border p-2 flex flex-col items-center gap-0.5 text-center
+                  ${noData ? 'bg-gray-800/20 border-gray-700/20' : 'bg-gray-800/50 border-gray-700/50'}`}>
+                  <span className="text-sm leading-none">{MODULE_ICONS[m.key]}</span>
+                  <span className={`text-lg font-black leading-none ${valColor}`}>
+                    {noData ? '—' : `${ac}%`}
                   </span>
-                </div>
-                {/* Sprint records — preflop: breakdown by format/gameType; others: single best */}
-                {m.key === 'preflop' ? (
-                  preflopSprintVariants.length > 0 && (
-                    <div className="mt-2 ml-1 rounded-lg border border-gray-800 overflow-hidden">
-                      <table className="w-full text-[10px]">
-                        <thead>
-                          <tr className="bg-gray-800/60 border-b border-gray-700/50">
-                            <th className="text-left px-2 py-1 text-gray-500 font-semibold">Format</th>
-                            <th className="px-2 py-1 text-yellow-400 font-bold">
-                              <span className="flex items-center justify-center gap-0.5">
-                                <Zap size={8} />{isEn ? 'Adv.' : 'Avancé'}
-                              </span>
-                            </th>
-                            <th className="px-2 py-1 text-purple-400 font-bold">
-                              <span className="flex items-center justify-center gap-0.5">
-                                <Flame size={8} />{isEn ? 'Expert' : 'Expert'}
-                              </span>
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {preflopSprintVariants.map((v, i) => (
-                            <tr key={v.key} className={i % 2 === 0 ? 'bg-gray-900/30' : 'bg-gray-800/20'}>
-                              <td className="px-2 py-1 text-gray-400 font-medium">{isEn ? v.en : v.fr}</td>
-                              <td className="px-2 py-1 text-center">
-                                {v.advanced > 0
-                                  ? <span className="font-black text-yellow-400">{v.advanced}</span>
-                                  : <span className="text-gray-600">—</span>}
-                              </td>
-                              <td className="px-2 py-1 text-center">
-                                {v.expert > 0
-                                  ? <span className="font-black text-purple-400">{v.expert}</span>
-                                  : <span className="text-gray-600">—</span>}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  <span className="text-[9px] text-gray-500 leading-tight">{m.name}</span>
+                  {!noData && (
+                    <span className="text-[8px] text-gray-600 font-mono">{m.correct}/{m.total}</span>
+                  )}
+                  {(m.advancedBest > 0 || m.expertBest > 0) && (
+                    <div className="flex gap-1.5 mt-0.5">
+                      {m.advancedBest > 0 && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-bold text-yellow-400">
+                          <Zap size={7} />{m.advancedBest}
+                        </span>
+                      )}
+                      {m.expertBest > 0 && (
+                        <span className="flex items-center gap-0.5 text-[9px] font-bold text-purple-400">
+                          <Flame size={7} />{m.expertBest}
+                        </span>
+                      )}
                     </div>
-                  )
-                ) : (m.advancedBest > 0 || m.expertBest > 0) && (
-                  <div className="mt-0.5 ml-1 flex items-center gap-2">
-                    <span className="text-[10px] text-gray-600">Sprint :</span>
-                    {m.advancedBest > 0 && (
-                      <span className="flex items-center gap-0.5 text-[10px]">
-                        <Zap size={9} className="text-yellow-400 shrink-0" />
-                        <span className="font-black text-yellow-400">{m.advancedBest}</span>
-                      </span>
-                    )}
-                    {m.expertBest > 0 && (
-                      <span className="flex items-center gap-0.5 text-[10px]">
-                        <Flame size={9} className="text-purple-400 shrink-0" />
-                        <span className="font-black text-purple-400">{m.expertBest}</span>
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Post-flop — détail par rue */}
-                {m.key === 'postflop' && (
-                  <div className="mt-2.5 ml-2 pl-3 border-l-2 border-gray-700/50 space-y-1.5">
-                    {postflopStreetData.map(s => (
-                      <div key={s.key} className="flex items-center gap-2">
-                        <span className="text-[10px] leading-none w-4 shrink-0">{s.icon}</span>
-                        <span className="text-[10px] font-bold text-gray-500 w-8 shrink-0">{s.label}</span>
-                        <div className="flex-1 h-1 rounded-full bg-gray-800 overflow-hidden">
-                          {s.total > 0 && (
-                            <motion.div
-                              className={`h-full rounded-full ${s.accuracy >= 70 ? 'bg-green-500/70' : s.accuracy >= 50 ? 'bg-yellow-500/70' : 'bg-red-500/70'}`}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${s.accuracy}%` }}
-                              transition={{ duration: 0.5, delay: 0.1 }}
-                            />
-                          )}
-                        </div>
-                        <span className={`text-[10px] font-bold font-mono w-8 text-right ${
-                          s.total === 0 ? 'text-gray-600'
-                          : s.accuracy >= 70 ? 'text-green-400'
-                          : s.accuracy >= 50 ? 'text-yellow-400'
-                          : 'text-red-400'
-                        }`}>
-                          {s.total > 0 ? `${s.accuracy}%` : '—'}
-                        </span>
-                        <span className="text-[10px] text-gray-600 font-mono w-11 text-right">
-                          {s.correct}/{s.total}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Full Hand — détail par rue */}
-                {m.key === 'fullhand' && (
-                  <div className="mt-2.5 ml-2 pl-3 border-l-2 border-gray-700/50 space-y-1.5">
-                    {fullhandStreetData.map(s => (
-                      <div key={s.key} className="flex items-center gap-2">
-                        <span className="text-[10px] leading-none w-4 shrink-0">{s.icon}</span>
-                        <span className="text-[10px] font-bold text-gray-500 w-8 shrink-0">{s.label}</span>
-                        <div className="flex-1 h-1 rounded-full bg-gray-800 overflow-hidden">
-                          {s.total > 0 && (
-                            <motion.div
-                              className={`h-full rounded-full ${s.accuracy >= 70 ? 'bg-green-500/70' : s.accuracy >= 50 ? 'bg-yellow-500/70' : 'bg-red-500/70'}`}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${s.accuracy}%` }}
-                              transition={{ duration: 0.5, delay: 0.1 }}
-                            />
-                          )}
-                        </div>
-                        <span className={`text-[10px] font-bold font-mono w-8 text-right ${
-                          s.total === 0 ? 'text-gray-600'
-                          : s.accuracy >= 70 ? 'text-green-400'
-                          : s.accuracy >= 50 ? 'text-yellow-400'
-                          : 'text-red-400'
-                        }`}>
-                          {s.total > 0 ? `${s.accuracy}%` : '—'}
-                        </span>
-                        <span className="text-[10px] text-gray-600 font-mono w-11 text-right">
-                          {s.correct}/{s.total}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Pré-flop — détail par position */}
-                {m.key === 'preflop' && (
-                  <div className="mt-2.5 ml-2 pl-3 border-l-2 border-gray-700/50 space-y-1.5">
-                    {positionData.map(p => (
-                      <div key={p.key} className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-gray-500 w-7 shrink-0">{p.label}</span>
-                        <div className="flex-1 h-1 rounded-full bg-gray-800 overflow-hidden">
-                          {p.total > 0 && (
-                            <motion.div
-                              className={`h-full rounded-full ${p.accuracy >= 70 ? 'bg-green-500/70' : p.accuracy >= 50 ? 'bg-yellow-500/70' : 'bg-red-500/70'}`}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${p.accuracy}%` }}
-                              transition={{ duration: 0.5, delay: 0.1 }}
-                            />
-                          )}
-                        </div>
-                        <span className={`text-[10px] font-bold font-mono w-8 text-right ${
-                          p.total === 0 ? 'text-gray-600'
-                          : p.accuracy >= 70 ? 'text-green-400'
-                          : p.accuracy >= 50 ? 'text-yellow-400'
-                          : 'text-red-400'
-                        }`}>
-                          {p.total > 0 ? `${p.accuracy}%` : '—'}
-                        </span>
-                        <span className="text-[10px] text-gray-600 font-mono w-11 text-right">
-                          {p.correct}/{p.total}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
+
+          {/* Préflop — positions */}
+          {(playerStats?.preflopTotal ?? 0) > 0 && (
+            <div className="rounded-lg border border-gray-800 bg-gray-900/30 p-2 mb-1.5">
+              <p className="text-[9px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">
+                {isEn ? 'Preflop by position' : 'Préflop par position'}
+              </p>
+              <div className="flex gap-1">
+                {positionData.map(p => (
+                  <div key={p.key} className={`flex-1 rounded-lg border px-1 py-1 text-center
+                    ${p.total === 0 ? 'border-gray-700/20' : 'border-gray-700/50 bg-gray-800/40'}`}>
+                    <div className="text-[9px] text-gray-500 font-bold">{p.label}</div>
+                    <div className={`text-[11px] font-black leading-tight ${
+                      p.total === 0 ? 'text-gray-600'
+                      : p.accuracy >= 70 ? 'text-green-400'
+                      : p.accuracy >= 50 ? 'text-yellow-400'
+                      : 'text-red-400'
+                    }`}>
+                      {p.total > 0 ? `${p.accuracy}%` : '—'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Préflop sprints par format */}
+          {preflopSprintVariants.length > 0 && (
+            <div className="rounded-lg border border-gray-800 overflow-hidden mb-1.5">
+              <table className="w-full text-[10px]">
+                <thead>
+                  <tr className="bg-gray-800/60 border-b border-gray-700/50">
+                    <th className="text-left px-2 py-1 text-gray-500 font-semibold">Format</th>
+                    <th className="px-2 py-1 text-yellow-400 font-bold">
+                      <span className="flex items-center justify-center gap-0.5">
+                        <Zap size={8} />{isEn ? 'Adv.' : 'Avancé'}
+                      </span>
+                    </th>
+                    <th className="px-2 py-1 text-purple-400 font-bold">
+                      <span className="flex items-center justify-center gap-0.5">
+                        <Flame size={8} />Expert
+                      </span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preflopSprintVariants.map((v, i) => (
+                    <tr key={v.key} className={i % 2 === 0 ? 'bg-gray-900/30' : 'bg-gray-800/20'}>
+                      <td className="px-2 py-1 text-gray-400 font-medium">{isEn ? v.en : v.fr}</td>
+                      <td className="px-2 py-1 text-center">
+                        {v.advanced > 0
+                          ? <span className="font-black text-yellow-400">{v.advanced}</span>
+                          : <span className="text-gray-600">—</span>}
+                      </td>
+                      <td className="px-2 py-1 text-center">
+                        {v.expert > 0
+                          ? <span className="font-black text-purple-400">{v.expert}</span>
+                          : <span className="text-gray-600">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Post-flop / Full Hand — chips par rue */}
+          {([
+            { key: 'postflop', data: postflopStreetData,  label: isEn ? 'Postflop by street' : 'Post-flop par rue' },
+            { key: 'fullhand', data: fullhandStreetData,  label: isEn ? 'Full hand by street' : 'Main complète par rue' },
+          ] as const).filter(sec => sec.data.some(d => d.total > 0)).map(sec => (
+            <div key={sec.key} className="rounded-lg border border-gray-800 bg-gray-900/30 p-2 mb-1.5">
+              <p className="text-[9px] text-gray-600 font-semibold uppercase tracking-wide mb-1.5">{sec.label}</p>
+              <div className="flex gap-1.5">
+                {sec.data.map(s => (
+                  <div key={s.key} className={`flex-1 rounded-lg border px-1.5 py-1.5 text-center
+                    ${s.total === 0 ? 'border-gray-700/20' : 'border-gray-700/50 bg-gray-800/40'}`}>
+                    <div className="text-sm leading-none mb-0.5">{s.icon}</div>
+                    <div className={`text-[11px] font-black leading-tight ${
+                      s.total === 0 ? 'text-gray-600'
+                      : s.accuracy >= 70 ? 'text-green-400'
+                      : s.accuracy >= 50 ? 'text-yellow-400'
+                      : 'text-red-400'
+                    }`}>
+                      {s.total > 0 ? `${s.accuracy}%` : '—'}
+                    </div>
+                    <div className="text-[8px] text-gray-500 font-bold">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </motion.div>
       )}
 

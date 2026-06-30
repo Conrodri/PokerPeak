@@ -173,7 +173,7 @@ const MODULES: ModuleEntry[] = [
   },
   {
     id: 'potodds',
-    icon: '📐',
+    icon: '💰',
     title: { fr: 'Pot Odds', en: 'Pot Odds' },
     subtitle: { fr: 'Calcul de rentabilité', en: 'Profitability calculation' },
     badge: { fr: 'Mathématiques', en: 'Mathematics' },

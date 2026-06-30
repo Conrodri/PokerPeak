@@ -124,7 +124,7 @@ export function PotOddsTrainer() {
     return (
       <div className="flex flex-col gap-3 sm:gap-4 max-w-2xl mx-auto">
         <TrainerIntro
-          emoji="📐"
+          emoji="💰"
           title={isEn ? 'Pot Odds Trainer' : 'Entraîneur Pot Odds'}
           description={isEn
             ? "Learn to calculate whether a call is profitable based on pot odds and your hand equity."

@@ -20,7 +20,7 @@ const SPRINT_MODULES: { key: string; labelFr: string; labelEn: string; icon: str
   { key: 'preflop-mtt-3max', labelFr: 'Préflop 3-max MTT',labelEn: 'Preflop 3-max MTT',icon: '🎯' },
   { key: 'preflop-hu',       labelFr: 'Préflop HU',       labelEn: 'Preflop HU',       icon: '🎯' },
   { key: 'preflop-mtt-hu',   labelFr: 'Préflop HU MTT',   labelEn: 'Preflop HU MTT',   icon: '🎯' },
-  { key: 'potodds',          labelFr: 'Pot Odds',         labelEn: 'Pot Odds',         icon: '📊' },
+  { key: 'potodds',          labelFr: 'Pot Odds',         labelEn: 'Pot Odds',         icon: '💰' },
   { key: 'equity',           labelFr: 'Équité',           labelEn: 'Equity',           icon: '⚖️' },
   { key: 'outs',             labelFr: 'Outs',             labelEn: 'Outs',             icon: '🎲' },
   { key: 'postflop',         labelFr: 'Post-flop',        labelEn: 'Post-flop',        icon: '🃏' },

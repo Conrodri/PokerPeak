@@ -168,7 +168,7 @@ function Slide1({ isEn }: { isEn: boolean }) {
 function Slide2({ isEn }: { isEn: boolean }) {
   const modules = [
     { icon: '🎯', name: isEn ? 'Pre-flop'      : 'Pré-flop',       desc: isEn ? 'Which hands to play by position'        : 'Quelles mains jouer selon ta position',          premium: false },
-    { icon: '📐', name: 'Pot Odds',              desc: isEn ? 'Is it profitable to call?'           : 'Est-ce rentable de suivre ?',                    premium: false },
+    { icon: '💰', name: 'Pot Odds',              desc: isEn ? 'Is it profitable to call?'           : 'Est-ce rentable de suivre ?',                    premium: false },
     { icon: '⚖️', name: isEn ? 'Equity'         : 'Équité',         desc: isEn ? 'Which hand has better odds?'            : 'Quelle main a plus de chances de gagner ?',      premium: false },
     { icon: '🔢', name: 'Outs',                  desc: isEn ? 'How many cards improve your hand?'   : 'Combien de cartes améliorent ta main ?',          premium: false },
     { icon: '🃏', name: 'Post-flop',             desc: isEn ? 'Bet, check, or fold after the flop'  : 'Miser, checker, ou folder après le flop',        premium: true  },

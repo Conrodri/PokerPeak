@@ -165,9 +165,9 @@ export function PokerRulesPage() {
     { id: 'preflop',   label: isEn ? '🎯 Preflop' : '🎯 Préflop',       color: 'bg-felt-700 hover:bg-felt-600 border-felt-500' },
     { id: 'outs',      label: '🎲 Outs',                                  color: 'bg-blue-800 hover:bg-blue-700 border-blue-600' },
     { id: 'equity',    label: isEn ? '⚖️ Equity' : '⚖️ Équité',         color: 'bg-purple-800 hover:bg-purple-700 border-purple-600' },
-    { id: 'potodds',   label: '📊 Pot Odds',                              color: 'bg-cyan-800 hover:bg-cyan-700 border-cyan-600' },
+    { id: 'potodds',   label: '💰 Pot Odds',                              color: 'bg-cyan-800 hover:bg-cyan-700 border-cyan-600' },
     { id: 'postflop',  label: '🃏 Post-flop',                             color: 'bg-rose-800 hover:bg-rose-700 border-rose-600' },
-    { id: 'betsizing', label: '💰 Bet Sizing',                            color: 'bg-orange-800 hover:bg-orange-700 border-orange-600' },
+    { id: 'betsizing', label: '📐 Bet Sizing',                            color: 'bg-orange-800 hover:bg-orange-700 border-orange-600' },
     { id: 'fullhand',  label: isEn ? '🎰 Full Hand' : '🎰 Main complète', color: 'bg-indigo-800 hover:bg-indigo-700 border-indigo-600' },
     { id: 'bluff',     label: '🎭 Bluff',                                 color: 'bg-pink-800 hover:bg-pink-700 border-pink-600' },
   ] as const;
