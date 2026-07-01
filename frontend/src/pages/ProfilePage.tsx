@@ -412,7 +412,7 @@ export function ProfilePage() {
             </div>
             <div className="flex gap-2">
               {([
-                { key: 'beginner', label: isEn ? '🎓 Beginner' : '🎓 Débutant' },
+                { key: 'basic', label: isEn ? '📖 Basic' : '📖 Basique' },
                 { key: 'advanced', label: isEn ? '⚡ Advanced' : '⚡ Avancé' },
               ] as const).map(({ key, label }) => (
                 <button

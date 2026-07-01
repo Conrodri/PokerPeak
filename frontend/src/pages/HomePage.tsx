@@ -58,7 +58,7 @@ const MODULES: ModuleEntry[] = [
     href: '/training?module=preflop',
     modes: [
       {
-        mode: 'beginner',
+        mode: 'basic',
         icon: <GraduationCap size={13} />,
         label: { fr: 'Débutant', en: 'Beginner' },
         color: BEGINNER_STYLE,
@@ -99,7 +99,7 @@ const MODULES: ModuleEntry[] = [
     href: '/training?module=outs',
     modes: [
       {
-        mode: 'beginner',
+        mode: 'basic',
         icon: <GraduationCap size={13} />,
         label: { fr: 'Débutant', en: 'Beginner' },
         color: BEGINNER_STYLE,
@@ -140,7 +140,7 @@ const MODULES: ModuleEntry[] = [
     href: '/training?module=equity',
     modes: [
       {
-        mode: 'beginner',
+        mode: 'basic',
         icon: <GraduationCap size={13} />,
         label: { fr: 'Débutant', en: 'Beginner' },
         color: BEGINNER_STYLE,
@@ -181,7 +181,7 @@ const MODULES: ModuleEntry[] = [
     href: '/training?module=potodds',
     modes: [
       {
-        mode: 'beginner',
+        mode: 'basic',
         icon: <GraduationCap size={13} />,
         label: { fr: 'Débutant', en: 'Beginner' },
         color: BEGINNER_STYLE,
@@ -223,7 +223,7 @@ const MODULES: ModuleEntry[] = [
     premium: true,
     modes: [
       {
-        mode: 'beginner',
+        mode: 'basic',
         icon: <GraduationCap size={13} />,
         label: { fr: 'Débutant', en: 'Beginner' },
         color: BEGINNER_STYLE,
@@ -265,7 +265,7 @@ const MODULES: ModuleEntry[] = [
     premium: true,
     modes: [
       {
-        mode: 'beginner',
+        mode: 'basic',
         icon: <GraduationCap size={13} />,
         label: { fr: 'Débutant', en: 'Beginner' },
         color: BEGINNER_STYLE,
@@ -307,7 +307,7 @@ const MODULES: ModuleEntry[] = [
     premium: true,
     modes: [
       {
-        mode: 'beginner',
+        mode: 'basic',
         icon: <GraduationCap size={13} />,
         label: { fr: 'Débutant', en: 'Beginner' },
         color: BEGINNER_STYLE,
@@ -349,7 +349,7 @@ const MODULES: ModuleEntry[] = [
     premium: true,
     modes: [
       {
-        mode: 'beginner',
+        mode: 'basic',
         icon: <GraduationCap size={13} />,
         label: { fr: 'Débutant', en: 'Beginner' },
         color: BEGINNER_STYLE,

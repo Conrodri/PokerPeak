@@ -235,12 +235,11 @@ export function PostflopTrainer() {
     useShallow(s => ({ sessionStats: s.sessionStats, recordResult: s.recordResult, setTrainerStarted: s.setTrainerStarted }))
   );
 
-  // Premium access / daily free-quota for non-premium users
   const user      = useAuthStore(s => s.user);
-  const isPremium = !!user?.isPremium;
+  const isPremium = true;
   const loggedIn  = !!user;
   const quota     = useQuotaStore();
-  const freeRemaining = isPremium ? Infinity : quota.remaining.postflop;
+  const freeRemaining = Infinity;
   const [quotaBlocked, setQuotaBlocked] = useState(false);
 
   const [showIntro, setShowIntro]   = useState(true);
@@ -409,7 +408,7 @@ export function PostflopTrainer() {
           ]}
           beginnerHint={isEn ? "Shows hand strength, equity & texture hints" : "Affiche force de main, équité & texture"}
           advancedHint={isEn ? 'No hints — for experienced players' : 'Sans indices — pour joueurs confirmés'}
-          expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
+          expertHint={isEn ? 'Complex boards — pure read, no hints, no equity shown' : 'Boards complexes — lecture pure, aucun indice, aucune équité affichée'}
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
@@ -418,7 +417,7 @@ export function PostflopTrainer() {
           freeInfo={!isPremium && loggedIn && freeRemaining > 0
             ? { remaining: freeRemaining, limit: quota.limit }
             : undefined}
-          examSlot={mode !== 'beginner' && isPremium ? <ExamLauncher module="postflop" onStart={handleStartExam} /> : undefined}
+          examSlot={<ExamLauncher module="postflop" onStart={handleStartExam} />}
         />
       </div>
     );
@@ -475,9 +474,10 @@ export function PostflopTrainer() {
       {/* Expert sprint countdown */}
       {!isLoading && phase === 'exercise' && ex && (
         <SprintTimer
-          active={examActive && mode === 'expert'}
+          active={examActive && (mode === 'advanced' || mode === 'expert')}
           resetKey={ex.heroNotation + ex.street}
           onTimeout={handleTimeout}
+          seconds={30}
         />
       )}
 
@@ -537,7 +537,7 @@ export function PostflopTrainer() {
                   <p className="text-gray-500 text-xs mt-0.5">
                     {isEn ? 'Pot at start of street:' : 'Pot au début du street :'}{' '}
                     <span className="text-yellow-400 font-bold">{ex.potSize}bb</span>
-                    {mode === 'beginner' && (
+                    {mode === 'basic' && (
                       <>
                         {' · '}
                         <span className={`font-semibold ${ex.isHeroIP ? 'text-green-400' : 'text-orange-400'}`}>
@@ -553,22 +553,22 @@ export function PostflopTrainer() {
 
               {/* Ligne 2 : Street actuel + action du villain */}
               {ex.villainAction === 'bet' ? (
-                <div className={`flex items-start gap-3 px-4 py-3 ${mode === 'beginner' ? 'bg-red-900/20' : 'bg-gray-800/40'}`}>
+                <div className={`flex items-start gap-3 px-4 py-3 ${mode === 'basic' ? 'bg-red-900/20' : 'bg-gray-800/40'}`}>
                   <span className="text-gray-500 font-bold text-xs uppercase tracking-wide pt-0.5 shrink-0 w-16">
                     {isEn ? ex.streetLabel.en : ex.streetLabel.fr}
                   </span>
                   <div className="flex-1">
-                    <p className={`font-medium ${mode === 'beginner' ? 'text-red-200' : 'text-gray-200'}`}>
-                      <span className={`font-bold ${mode === 'beginner' ? 'text-red-300' : 'text-white'}`}>
+                    <p className={`font-medium ${mode === 'basic' ? 'text-red-200' : 'text-gray-200'}`}>
+                      <span className={`font-bold ${mode === 'basic' ? 'text-red-300' : 'text-white'}`}>
                         {ex.villainPosition}
                       </span>
                       {isEn ? ' bets ' : ' mise '}
-                      <span className={`font-black text-base ${mode === 'beginner' ? 'text-red-300' : 'text-white'}`}>
+                      <span className={`font-black text-base ${mode === 'basic' ? 'text-red-300' : 'text-white'}`}>
                         {ex.villainBetSize}bb
                       </span>
                       {isEn ? ' — your action?' : ' — quelle est votre action ?'}
                     </p>
-                    {mode === 'beginner' && (
+                    {mode === 'basic' && (
                       <p className="text-gray-400 text-xs mt-0.5">
                         {isEn
                           ? `Pot if you call: ${ex.potSize + ex.villainBetSize * 2}bb`
@@ -587,7 +587,7 @@ export function PostflopTrainer() {
                       <span className="font-bold text-white">{ex.villainPosition}</span>
                       {isEn ? ' checks — your action?' : ' checke — quelle est votre action ?'}
                     </p>
-                    {mode === 'beginner' && (
+                    {mode === 'basic' && (
                       <p className="text-gray-500 text-xs mt-0.5">
                         {isEn
                           ? 'You can check (free card) or bet to build the pot.'

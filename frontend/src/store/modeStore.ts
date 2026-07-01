@@ -1,29 +1,30 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type TrainingMode = 'beginner' | 'advanced' | 'expert';
+/** Difficulty level — controls exercise complexity and content. */
+export type TrainingMode = 'basic' | 'advanced' | 'expert';
+
+/** Hint visibility within a level. */
+export type HintsMode = 'easy' | 'hard';
 
 interface ModeState {
   mode: TrainingMode;
+  hints: HintsMode;
   setMode: (mode: TrainingMode) => void;
+  setHints: (hints: HintsMode) => void;
 }
 
 export const useModeStore = create<ModeState>()(
   persist(
     (set) => ({
-      mode: 'beginner',
+      mode: 'basic',
+      hints: 'easy',
       setMode: (mode) => set({ mode }),
+      setHints: (hints) => set({ hints }),
     }),
     { name: 'poker-mode' }
   )
 );
 
-// ── Mode helpers ──────────────────────────────────────────────────────────────
-// Keep the three-way logic in one place so trainers never branch on each mode.
-
-/** Hints + how-to guidance are shown outright (beginner only). */
-export const showHints = (mode: TrainingMode): boolean => mode === 'beginner';
-
-/** Hints exist but are hidden behind a "reveal" (spoil) button (advanced only).
- *  Expert shows no hints at all. */
-export const hintsAvailable = (mode: TrainingMode): boolean => mode === 'advanced';
+/** Returns true when hints and guidance should be displayed (easy mode). */
+export const showHints = (hints: HintsMode): boolean => hints === 'easy';

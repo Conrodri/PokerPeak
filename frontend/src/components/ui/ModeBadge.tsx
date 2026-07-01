@@ -1,20 +1,11 @@
-import { GraduationCap, Zap, Flame } from 'lucide-react';
+import { BookOpen, Zap, Flame } from 'lucide-react';
 import { useModeStore } from '../../store/modeStore';
 import { useLangStore } from '../../store/langStore';
 
-/**
- * ModeBadge
- * ─────────
- * Small read-only pill that reminds the user which training mode is active
- * (Beginner / Advanced / Expert). Shown at the top of every exercise module —
- * the mode can't be changed mid-exercise, so this is purely informational.
- * Colours mirror the ModeToggle (blue / gold / purple).
- */
-
 const CONFIG = {
-  beginner: {
-    label: { fr: 'Débutant', en: 'Beginner' },
-    Icon: GraduationCap,
+  basic: {
+    label: { fr: 'Basique', en: 'Basic' },
+    Icon: BookOpen,
     cls: 'bg-blue-600/15 text-blue-300 border-blue-600/40',
   },
   advanced: {

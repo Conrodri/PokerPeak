@@ -32,7 +32,9 @@ type SizingKey  = 'check' | 'small' | 'medium' | 'large' | 'overbet';
 type Phase      = 'exercise' | 'result';
 type Street     = 'flop' | 'turn' | 'river';
 
-interface BetSizingExercise {
+type FreqKey = '0%' | '33%' | '67%' | '100%';
+
+interface BaseExercise {
   id:              string;
   street:          Street;
   heroPosition:    Position;
@@ -45,12 +47,23 @@ interface BetSizingExercise {
   preflopContext:  { fr: string; en: string };
   boardTexture:    { fr: string; en: string };
   handDescription: { fr: string; en: string };
-  options:         SizingKey[];
-  correctKey:      SizingKey;
   conceptTag:      { fr: string; en: string };
   explanation:     { fr: string; en: string };
   difficulty:      'normal' | 'hard';
 }
+
+interface SizingExercise extends BaseExercise {
+  frequencyMode?: false;
+  options:    SizingKey[];
+  correctKey: SizingKey;
+}
+
+interface FrequencyExercise extends BaseExercise {
+  frequencyMode: true;
+  correctFrequency: FreqKey;
+}
+
+type BetSizingExercise = SizingExercise | FrequencyExercise;
 
 // ─── Sizing config ────────────────────────────────────────────────────────────
 
@@ -73,6 +86,13 @@ const SIZING_VARIANT: Record<SizingKey, 'secondary' | 'gold' | 'danger'> = {
   large:   'gold',
   overbet: 'danger',
 };
+
+const FREQ_OPTIONS: { key: FreqKey; labelFr: string; labelEn: string }[] = [
+  { key: '0%',   labelFr: 'Jamais (0%)',      labelEn: 'Never (0%)' },
+  { key: '33%',  labelFr: 'Rarement (33%)',   labelEn: 'Rarely (33%)' },
+  { key: '67%',  labelFr: 'Souvent (67%)',    labelEn: 'Often (67%)' },
+  { key: '100%', labelFr: 'Toujours (100%)',  labelEn: 'Always (100%)' },
+];
 
 const CONCEPT_COLOR: Record<string, string> = {
   'Range Bet':       'bg-blue-900/30 text-blue-300 border-blue-700',
@@ -528,6 +548,141 @@ const EXERCISES: BetSizingExercise[] = [
   },
 ];
 
+// ─── Frequency exercises (expert only) ───────────────────────────────────────
+// Instead of "what sizing?", expert must answer "how often (%) should you bet?"
+// 4 possible answers: 0% / 33% / 67% / 100%
+
+const FREQUENCY_EXERCISES: FrequencyExercise[] = [
+  // F01: Range bet dry board IP (100%)
+  {
+    id: 'bf-01', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['Kh', 'Qd'], board: ['As', '7c', '2d'],
+    potSize: 4, effectiveStack: 96, isHeroIP: true,
+    preflopContext: { fr: 'BTN ouvre à 2bb, BB défend. Flop A72 arc-en-ciel.', en: 'BTN opens 2bb, BB defends. Flop A72 rainbow.' },
+    boardTexture: { fr: 'Sec, statique, arc-en-ciel', en: 'Dry, static, rainbow' },
+    handDescription: { fr: 'KQ — overcards, aucune paire, aucun tirage', en: 'KQ — overcards, no pair, no draw' },
+    conceptTag: { fr: 'Range Bet', en: 'Range Bet' },
+    correctFrequency: '100%',
+    explanation: {
+      fr: 'Sur A72 arc-en-ciel, le BTN a un avantage de range massif (AA, AK, AQ, A7s, A2s). La BB a très peu d\'As en défense. GTO : le BTN mise **100% de sa range** à un sizing petit (~33%). Même KQ sans paire profite du fold equity. Ne pas miser serait une erreur d\'EV : on abandonne l\'avantage de range.',
+      en: 'On A72 rainbow, BTN has a massive range advantage (AA, AK, AQ, A7s, A2s). BB has very few Aces in defense range. GTO: BTN bets **100% of their range** at a small sizing (~33%). Even KQ with no pair benefits from fold equity. Not betting is an EV mistake: you abandon the range advantage.',
+    },
+  },
+  // F02: OOP air on highly connected board (0%)
+  {
+    id: 'bf-02', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BB', villainPosition: 'BTN',
+    heroHand: ['6c', '2s'], board: ['9h', '8c', '7d'],
+    potSize: 5, effectiveStack: 95, isHeroIP: false,
+    preflopContext: { fr: 'BTN ouvre, BB défend. Flop 9-8-7 très connecté.', en: 'BTN opens, BB defends. Flop 9-8-7 highly connected.' },
+    boardTexture: { fr: 'Hautement connecté, multiples quintes', en: 'Highly connected, multiple straight draws' },
+    handDescription: { fr: '62 — aucune main, aucun tirage réel', en: '62 — no hand, no real draw' },
+    conceptTag: { fr: 'Hors position', en: 'Out of Position' },
+    correctFrequency: '0%',
+    explanation: {
+      fr: 'Avec 62 sur 9-8-7 très connecté, hors position, on n\'a **aucune équité** : pas de paire, pas de tirage exploitable. Miser serait un bluff sur le board qui favorise le plus le BTN (T7, T9, 65, 56 pour des quintes). GTO : checker **100% du temps**. Bluffer avec la main la plus faible sur le board le plus dangereux est la pire erreur.',
+      en: 'With 62 on 9-8-7 highly connected, out of position, we have **zero equity**: no pair, no meaningful draw. Betting is a pure bluff on the board that most favors BTN (T7, T9, 65, 56 for straights). GTO: check **100% of the time**. Bluffing with the weakest hand on the most dangerous board is the worst mistake.',
+    },
+  },
+  // F03: IP nut flush draw + overcard (100%)
+  {
+    id: 'bf-03', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['Ah', 'Qh'], board: ['7h', '8h', 'Kd'],
+    potSize: 5, effectiveStack: 95, isHeroIP: true,
+    preflopContext: { fr: 'BTN ouvre, BB défend. Flop K-8-7 bicolore cœur.', en: 'BTN opens, BB defends. Flop K-8-7 two-tone hearts.' },
+    boardTexture: { fr: 'Bicolore, semi-connecté, tirage couleur nut', en: 'Two-tone, semi-connected, nut flush draw' },
+    handDescription: { fr: 'AhQh — flush draw nut (9 outs) + overcard As', en: 'AhQh — nut flush draw (9 outs) + Ace overcard' },
+    conceptTag: { fr: 'Polarisation', en: 'Polarisation' },
+    correctFrequency: '100%',
+    explanation: {
+      fr: 'AhQh sur 7h-8h-Kd : flush draw nut (9 outs) + As overcard (~3 outs). ~30% d\'équité brute. En position avec ce draw nut, GTO : miser **100% du temps**. (1) Énorme fold equity sur le villain. (2) En position, si villain call, on réalise avec le meilleur flush possible. Ne pas miser serait abandonner un avantage massif.',
+      en: 'AhQh on 7h-8h-Kd: nut flush draw (9 outs) + Ace overcard (~3 outs). ~30% raw equity. In position with this nut draw, GTO: bet **100% of the time**. (1) Enormous fold equity against villain. (2) In position, if villain calls, we realize with the best possible flush. Not betting abandons a massive advantage.',
+    },
+  },
+  // F04: OOP weak overcards on high board (33%)
+  {
+    id: 'bf-04', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BB', villainPosition: 'BTN',
+    heroHand: ['Jd', '6d'], board: ['Kh', 'Tc', '4s'],
+    potSize: 5, effectiveStack: 95, isHeroIP: false,
+    preflopContext: { fr: 'BTN ouvre, BB défend. Flop K-T-4 arc-en-ciel.', en: 'BTN opens, BB defends. Flop K-T-4 rainbow.' },
+    boardTexture: { fr: 'Sec, board haut — K et T favorisent le BTN', en: 'Dry, high board — K and T favor BTN' },
+    handDescription: { fr: 'J6 — aucune paire, cartes sous le board', en: 'J6 — no pair, undercards to board' },
+    conceptTag: { fr: 'Hors position', en: 'Out of Position' },
+    correctFrequency: '33%',
+    explanation: {
+      fr: 'J6 OOP sur K-T-4 : aucune paire, range du BTN très forte (Kx, Tx, paires). Miser serait principalement un bluff peu efficace. GTO : checker **~67%** du temps (contrôle du pot) et parfois donk-bet sparse (~33%) pour garder la range non-exploitable. La ligne majoritaire est le check.',
+      en: 'J6 OOP on K-T-4: no pair, BTN range is very strong (Kx, Tx, pairs). Betting would mainly be an inefficient bluff. GTO: check **~67%** of the time (pot control) and occasionally donk-bet sparse (~33%) to keep the range unexploitable. The default line is check.',
+    },
+  },
+  // F05: IP underpair on connected board (33%)
+  {
+    id: 'bf-05', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'CO', villainPosition: 'BB',
+    heroHand: ['5h', '5c'], board: ['Js', '9d', '6h'],
+    potSize: 5, effectiveStack: 95, isHeroIP: true,
+    preflopContext: { fr: 'CO ouvre, BB défend. Flop J-9-6 bigarré.', en: 'CO opens, BB defends. Flop J-9-6 rainbow.' },
+    boardTexture: { fr: 'Semi-connecté — J96 — quintes possibles (T8, 87)', en: 'Semi-connected — J96 — straight draws possible (T8, 87)' },
+    handDescription: { fr: '55 — paire en dessous du board (underpair)', en: '55 — underpair to the board' },
+    conceptTag: { fr: 'Pot Control', en: 'Pot Control' },
+    correctFrequency: '33%',
+    explanation: {
+      fr: 'Paire de 5 sur J-9-6 : underpair à tous les overcards. En position, valeur de showdown mais main vulnérable. GTO : **checker ~67%** du temps (contrôle du pot), parfois petit bet blocker (~33%). Miser gros et se faire relancer = situation impossible. La ligne la plus fréquente est checker, mais pas à 100% pour rester équilibré.',
+      en: 'Pocket fives on J-9-6: underpair to all board overcards. In position, showdown value but vulnerable hand. GTO: **check ~67%** of the time (pot control), occasionally small blocking bet (~33%). Betting big and being raised = impossible spot. The most frequent line is checking, but not 100% to stay balanced.',
+    },
+  },
+  // F06: OOP two pair on wet board (67%)
+  {
+    id: 'bf-06', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BB', villainPosition: 'BTN',
+    heroHand: ['9s', '8s'], board: ['9d', '8c', 'Jh'],
+    potSize: 5, effectiveStack: 95, isHeroIP: false,
+    preflopContext: { fr: 'BTN ouvre, BB défend. Flop J-9-8 bicolore.', en: 'BTN opens, BB defends. Flop J-9-8 two-tone.' },
+    boardTexture: { fr: 'Connecté, dangereux (flush + quinte), board dynamique', en: 'Connected, dangerous (flush + straight draws), dynamic board' },
+    handDescription: { fr: '98 — deux paires (neuvièmes et huitièmes)', en: '98 — two pair (nines and eights)' },
+    conceptTag: { fr: 'Protection', en: 'Protection' },
+    correctFrequency: '67%',
+    explanation: {
+      fr: 'Deux paires OOP sur J-9-8 ultra-dynamique. Les flush draws ont ~35% d\'équité, les quintes ~30%. GTO : **miser ~67%** pour la protection + valeur. Checker à 100% donnerait trop de cartes gratuites aux draws. Miser à 100% surexpose dans un spot où check-raise est parfois optimal. La ligne correcte : bet souvent, parfois check-raise.',
+      en: 'Two pair OOP on ultra-dynamic J-9-8. Flush draws have ~35% equity, straights ~30%. GTO: **bet ~67%** for protection + value. Checking 100% gives too many free cards to draws. Betting 100% over-exposes in a spot where check-raise is sometimes optimal. Correct line: bet often, sometimes check-raise.',
+    },
+  },
+  // F07: IP top pair weak kicker semi-dynamic (67%)
+  {
+    id: 'bf-07', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['Kd', '3d'], board: ['Ks', '8h', '7s'],
+    potSize: 5, effectiveStack: 95, isHeroIP: true,
+    preflopContext: { fr: 'BTN ouvre, BB défend. Flop K-8-7 deux tons piques.', en: 'BTN opens, BB defends. Flop K-8-7 two-tone spades.' },
+    boardTexture: { fr: 'Semi-dynamique — tirage couleur pique, quelques quintes', en: 'Semi-dynamic — spade flush draw, some straight draws' },
+    handDescription: { fr: 'K3 — top paire, kicker faible (3)', en: 'K3 — top pair, weak kicker (3)' },
+    conceptTag: { fr: 'Protection', en: 'Protection' },
+    correctFrequency: '67%',
+    explanation: {
+      fr: 'K3 sur K-8-7 deux tons : top paire kicker faible, board semi-dynamique. GTO : **miser ~67%** (valeur + protection). Miser 100% exposerait trop (parfois check-call est mieux vs certaines ranges). Checker 100% laisserait trop de cartes gratuites aux draws. Fréquence élevée mais pas totale : l\'underkicker rend la main vulnérable aux relances.',
+      en: 'K3 on K-8-7 two-tone: top pair weak kicker, semi-dynamic board. GTO: **bet ~67%** (value + protection). Betting 100% over-exposes (sometimes check-call is better vs certain ranges). Checking 100% gives too many free cards to draws. High but not total frequency: the weak kicker makes the hand vulnerable to raises.',
+    },
+  },
+  // F08: River air with no pair (0%)
+  {
+    id: 'bf-08', street: 'river', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['Kd', 'Jc'], board: ['Ah', 'Td', '5s', '2c', '9s'],
+    potSize: 20, effectiveStack: 80, isHeroIP: true,
+    preflopContext: { fr: 'BTN ouvre, BB défend. River KJ sans amélioration sur A-T-5-2-9.', en: 'BTN opens, BB defends. River KJ unimproved on A-T-5-2-9.' },
+    boardTexture: { fr: 'River brick, board sec — KJ sans paire', en: 'River brick, dry board — KJ no pair' },
+    handDescription: { fr: 'KJ — carte haute, aucune combinaison sur ce board', en: 'KJ — high card, no made hand on this board' },
+    conceptTag: { fr: 'Pot Control', en: 'Pot Control' },
+    correctFrequency: '0%',
+    explanation: {
+      fr: 'KJ sur A-T-5-2-9 à la river : aucune combinaison. En position, bluffer ici n\'est jamais rentable : la BB a des Ax et Tx facilement, KJ ne bloque pas ces mains. GTO : checker **100% du temps** pour le showdown gratuit. Un bluff ici = perdre le pot vs toutes les mains de valeur que la BB tient.',
+      en: 'KJ on A-T-5-2-9 at the river: no made hand. In position, bluffing here is never profitable: BB easily has Ax and Tx, KJ doesn\'t block those hands. GTO: check **100% of the time** for a free showdown. Bluffing here = losing the pot against all the value hands BB holds.',
+    },
+  },
+];
+
 // Shuffle utility (Fisher-Yates)
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -652,19 +807,18 @@ export function BetSizingTrainer() {
   );
   const mode     = useModeStore(s => s.mode);
 
-  // Premium access / daily free-quota for non-premium users
   const user      = useAuthStore(s => s.user);
-  const isPremium = !!user?.isPremium;
+  const isPremium = true;
   const loggedIn  = !!user;
   const quota     = useQuotaStore();
-  const freeRemaining = isPremium ? Infinity : quota.remaining.betsizing;
+  const freeRemaining = Infinity;
   const [quotaBlocked, setQuotaBlocked] = useState(false);
 
   const [showIntro, setShowIntro] = useState(true);
   const [phase,     setPhase]     = useState<Phase>('exercise');
   const [queue,     setQueue]     = useState<BetSizingExercise[]>([]);
   const [exercise,  setExercise]  = useState<BetSizingExercise | null>(null);
-  const [selected,  setSelected]  = useState<SizingKey | null>(null);
+  const [selected,  setSelected]  = useState<string | null>(null);
   const [xpEarned,  setXpEarned]  = useState(0);
 
   // Refresh free-quota counts when a non-premium user opens the module
@@ -688,13 +842,13 @@ export function BetSizingTrainer() {
 
   // Bet sizing is generated client-side, so we explicitly spend a credit
   // server-side before revealing each exercise (premium users never consume).
-  const buildPool = () => {
+  const buildPool = (): BetSizingExercise[] => {
     if (mode === 'expert') {
-      // Hard exercises appear twice → ~2/3 of draws are hard spots
+      // Hard sizing exercises appear twice + all frequency exercises (expert only)
       const hard = EXERCISES.filter(e => e.difficulty === 'hard');
-      return shuffle([...EXERCISES, ...hard]);
+      return shuffle([...EXERCISES, ...hard, ...FREQUENCY_EXERCISES, ...FREQUENCY_EXERCISES]);
     }
-    return shuffle(EXERCISES);
+    return shuffle(EXERCISES as BetSizingExercise[]);
   };
 
   const nextExercise = async (q = queue) => {
@@ -729,10 +883,12 @@ export function BetSizingTrainer() {
     setTrainerStarted(false);
   };
 
-  const handleAnswer = async (key: SizingKey) => {
+  const handleAnswer = async (key: string) => {
     if (!exercise || phase === 'result') return;
     setSelected(key);
-    const ok = key === exercise.correctKey;
+    const ok = exercise.frequencyMode
+      ? key === exercise.correctFrequency
+      : key === exercise.correctKey;
     const xp = ok ? 15 : 5;
     setXpEarned(xp);
     await recordResult(ok, xp, 'betsizing');
@@ -740,11 +896,16 @@ export function BetSizingTrainer() {
     if (examActive) recordAnswer(ok, handleNext);
   };
 
-  // Expert sprint: no decision within 5s → submit a wrong sizing (a miss).
+  // Expert sprint: no decision within 30 s → submit a wrong answer (a miss).
   const handleTimeout = () => {
     if (!exercise || phase !== 'exercise') return;
-    const wrong = exercise.options.find(k => k !== exercise.correctKey);
-    if (wrong) handleAnswer(wrong);
+    if (exercise.frequencyMode) {
+      const wrong = FREQ_OPTIONS.find(o => o.key !== exercise.correctFrequency);
+      if (wrong) handleAnswer(wrong.key);
+    } else {
+      const wrong = exercise.options.find(k => k !== exercise.correctKey);
+      if (wrong) handleAnswer(wrong);
+    }
   };
 
   const handleNext = () => nextExercise();
@@ -764,7 +925,9 @@ export function BetSizingTrainer() {
   };
 
   const ex        = exercise;
-  const isCorrect = !!ex && selected === ex.correctKey;
+  const isCorrect = !!ex && (
+    ex.frequencyMode ? selected === ex.correctFrequency : selected === ex.correctKey
+  );
 
   // ── Intro ─────────────────────────────────────────────────────────────────
   if (showIntro) return (
@@ -806,17 +969,15 @@ export function BetSizingTrainer() {
           '🃏 Cards displayed on the poker table — no text descriptions',
           '📐 Choose the best sizing from the options',
           '💡 Detailed GTO explanation after each answer',
-          '📚 Sources listed at the bottom of the page',
         ] : [
           '🎯 Un scénario s\'affiche : position, board, main, pot',
           '🃏 Cartes affichées sur la table — pas de descriptions texte',
           '📐 Choisissez la meilleure taille parmi les options',
           '💡 Explication GTO détaillée après chaque réponse',
-          '📚 Sources listées en bas de page',
         ]}
         beginnerHint={isEn ? 'Shows board texture, hand type & key hints' : 'Affiche texture, type de main & indices clés'}
         advancedHint={isEn ? 'No hints — raw decision-making' : 'Sans indices — décision brute'}
-        expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
+        expertHint={isEn ? 'Advanced GTO spots — no hints, no texture shown, raw sizing decision' : 'Spots GTO avancés — aucun indice, aucune texture affichée, décision de sizing pure'}
         startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
         onStart={handleStart}
         mode={mode}
@@ -825,9 +986,8 @@ export function BetSizingTrainer() {
         freeInfo={!isPremium && loggedIn && freeRemaining > 0
           ? { remaining: freeRemaining, limit: quota.limit }
           : undefined}
-        examSlot={mode !== 'beginner' && isPremium ? <ExamLauncher module="betsizing" onStart={handleStartExam} /> : undefined}
+        examSlot={<ExamLauncher module="betsizing" onStart={handleStartExam} />}
       />
-      <SourcesFooter isEn={isEn} />
     </div>
   );
 
@@ -856,9 +1016,10 @@ export function BetSizingTrainer() {
       {/* Expert sprint countdown */}
       {phase === 'exercise' && ex && (
         <SprintTimer
-          active={examActive && mode === 'expert'}
+          active={examActive && (mode === 'advanced' || mode === 'expert')}
           resetKey={ex.id}
           onTimeout={handleTimeout}
+          seconds={30}
         />
       )}
 
@@ -930,42 +1091,60 @@ export function BetSizingTrainer() {
                   {isEn ? 'Question' : 'Question'}
                 </span>
                 <p className="text-yellow-100 font-semibold flex-1">
-                  {isEn
-                    ? 'Your opponent checks to you. What is the optimal bet size?'
-                    : 'Votre adversaire checke. Quelle est la taille de mise optimale ?'}
+                  {ex.frequencyMode
+                    ? (isEn
+                        ? 'Villain checks. How often (%) should you bet in this spot? (GTO frequency)'
+                        : 'Villain checke. À quelle fréquence (%) faut-il miser dans ce spot ? (fréquence GTO)')
+                    : (isEn
+                        ? 'Your opponent checks to you. What is the optimal bet size?'
+                        : 'Votre adversaire checke. Quelle est la taille de mise optimale ?')}
                 </p>
               </div>
             </div>
 
-            {/* Sizing buttons */}
+            {/* Action buttons */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="flex flex-wrap gap-3 justify-center w-full"
             >
-              {ex.options.map(key => {
-                const cfg = SIZING[key];
-                const bb  = key === 'check' ? null : sizingBb(ex.potSize, key);
-                return (
+              {ex.frequencyMode ? (
+                FREQ_OPTIONS.map(opt => (
                   <Button
-                    key={key}
+                    key={opt.key}
                     size="lg"
-                    variant={SIZING_VARIANT[key]}
-                    onClick={() => handleAnswer(key)}
-                    className="min-w-[150px] flex flex-col items-center gap-0.5 py-3"
+                    variant="secondary"
+                    onClick={() => handleAnswer(opt.key)}
+                    className="min-w-[150px]"
                   >
-                    <span className="font-bold">
-                      {isEn ? cfg.labelEn(bb ?? 0) : cfg.labelFr(bb ?? 0)}
-                    </span>
-                    {bb !== null && (
-                      <span className="text-xs opacity-70 font-normal">
-                        {isEn ? `= ${bb}bb into ${ex.potSize}bb` : `= ${bb}bb dans pot ${ex.potSize}bb`}
-                      </span>
-                    )}
+                    {isEn ? opt.labelEn : opt.labelFr}
                   </Button>
-                );
-              })}
+                ))
+              ) : (
+                ex.options.map(key => {
+                  const cfg = SIZING[key];
+                  const bb  = key === 'check' ? null : sizingBb(ex.potSize, key);
+                  return (
+                    <Button
+                      key={key}
+                      size="lg"
+                      variant={SIZING_VARIANT[key]}
+                      onClick={() => handleAnswer(key)}
+                      className="min-w-[150px] flex flex-col items-center gap-0.5 py-3"
+                    >
+                      <span className="font-bold">
+                        {isEn ? cfg.labelEn(bb ?? 0) : cfg.labelFr(bb ?? 0)}
+                      </span>
+                      {bb !== null && (
+                        <span className="text-xs opacity-70 font-normal">
+                          {isEn ? `= ${bb}bb into ${ex.potSize}bb` : `= ${bb}bb dans pot ${ex.potSize}bb`}
+                        </span>
+                      )}
+                    </Button>
+                  );
+                })
+              )}
             </motion.div>
 
             {/* ── Indices — below the decision. Beginner shows them; advanced
@@ -1049,24 +1228,39 @@ export function BetSizingTrainer() {
 
           {/* Answer recap pills */}
           <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-            {(() => {
-              const correctCfg = SIZING[ex.correctKey];
-              const correctBb  = ex.correctKey === 'check' ? null : sizingBb(ex.potSize, ex.correctKey);
-              return (
+            {ex.frequencyMode ? (
+              <>
                 <span className="px-2.5 py-1 rounded-full border bg-green-900/30 text-green-300 border-green-700">
-                  ✓ {isEn ? 'Correct:' : 'Correct :'}{' '}
-                  <strong>{isEn ? correctCfg.labelEn(correctBb ?? 0) : correctCfg.labelFr(correctBb ?? 0)}</strong>
+                  ✓ {isEn ? 'Correct:' : 'Correct :'} <strong>{ex.correctFrequency}</strong>
                 </span>
-              );
-            })()}
-            {selected && selected !== ex.correctKey && (() => {
-              const selCfg = SIZING[selected];
-              const selBb  = selected === 'check' ? null : sizingBb(ex.potSize, selected);
+                {selected && selected !== ex.correctFrequency && (
+                  <span className="px-2.5 py-1 rounded-full border bg-red-900/30 text-red-300 border-red-700">
+                    ✗ {isEn ? 'You chose:' : 'Votre choix :'} <strong>{selected}</strong>
+                  </span>
+                )}
+              </>
+            ) : (() => {
+              const ck = ex.correctKey as SizingKey;
+              const sk = selected as SizingKey | null;
+              const correctCfg = SIZING[ck];
+              const correctBb  = ck === 'check' ? null : sizingBb(ex.potSize, ck);
               return (
-                <span className="px-2.5 py-1 rounded-full border bg-red-900/30 text-red-300 border-red-700">
-                  ✗ {isEn ? 'You chose:' : 'Votre choix :'}{' '}
-                  <strong>{isEn ? selCfg.labelEn(selBb ?? 0) : selCfg.labelFr(selBb ?? 0)}</strong>
-                </span>
+                <>
+                  <span className="px-2.5 py-1 rounded-full border bg-green-900/30 text-green-300 border-green-700">
+                    ✓ {isEn ? 'Correct:' : 'Correct :'}{' '}
+                    <strong>{isEn ? correctCfg.labelEn(correctBb ?? 0) : correctCfg.labelFr(correctBb ?? 0)}</strong>
+                  </span>
+                  {sk && sk !== ck && (() => {
+                    const selCfg = SIZING[sk];
+                    const selBb  = sk === 'check' ? null : sizingBb(ex.potSize, sk);
+                    return (
+                      <span className="px-2.5 py-1 rounded-full border bg-red-900/30 text-red-300 border-red-700">
+                        ✗ {isEn ? 'You chose:' : 'Votre choix :'}{' '}
+                        <strong>{isEn ? selCfg.labelEn(selBb ?? 0) : selCfg.labelFr(selBb ?? 0)}</strong>
+                      </span>
+                    );
+                  })()}
+                </>
               );
             })()}
             <span className="px-2.5 py-1 rounded-full border bg-blue-900/30 text-blue-300 border-blue-700">
@@ -1106,8 +1300,8 @@ export function BetSizingTrainer() {
             </>
           )}
 
-          {/* Bet sizing calculation panel — beginner only */}
-          {mode === 'beginner' && (() => {
+          {/* Bet sizing calculation panel — beginner + sizing exercises only */}
+          {mode === 'basic' && !ex.frequencyMode && (() => {
             const correctCfg = SIZING[ex.correctKey];
             const correctBb  = ex.correctKey === 'check' ? 0 : sizingBb(ex.potSize, ex.correctKey);
             const totalAfterBet = ex.potSize + correctBb;

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, TrendingUp, Zap, Lightbulb } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
-import { useModeStore, showHints } from '../../store/modeStore';
+import { useModeStore } from '../../store/modeStore';
 import { useLangStore } from '../../store/langStore';
 import { useAuthStore } from '../../store/authStore';
 import { useQuotaStore } from '../../store/quotaStore';
@@ -236,7 +236,6 @@ function ActionButton({
 export function BluffTrainer() {
   const isEn = useLangStore(s => s.lang) === 'en';
   const mode = useModeStore(s => s.mode);
-  const showBeginnerHints = showHints(mode);
 
   const { bluffExercise, fetchBluffExercise, isLoading, recordResult, sessionStats, setIsExercising, setTrainerStarted } =
     useTrainingStore(useShallow(s => ({
@@ -249,12 +248,11 @@ export function BluffTrainer() {
       setTrainerStarted:  s.setTrainerStarted,
     })));
 
-  // Premium access / daily free-quota for non-premium users
   const user      = useAuthStore(s => s.user);
-  const isPremium = !!user?.isPremium;
+  const isPremium = true;
   const loggedIn  = !!user;
   const quota     = useQuotaStore();
-  const freeRemaining = isPremium ? Infinity : quota.remaining.bluff;
+  const freeRemaining = Infinity;
   const [quotaBlocked, setQuotaBlocked] = useState(false);
 
   const [showIntro, setShowIntro]       = useState(true);
@@ -364,7 +362,7 @@ export function BluffTrainer() {
       freeInfo={!isPremium && loggedIn && freeRemaining > 0
         ? { remaining: freeRemaining, limit: quota.limit }
         : undefined}
-      examSlot={mode !== 'beginner' ? <ExamLauncher module="bluff" onStart={handleStartExam} /> : undefined}
+      examSlot={<ExamLauncher module="bluff" onStart={handleStartExam} />}
     />
   );
 
@@ -412,9 +410,10 @@ export function BluffTrainer() {
 
       {phase === 'exercise' && (
         <SprintTimer
-          active={examActive && mode === 'expert' && !!bluffExercise && !isLoading}
+          active={examActive && (mode === 'advanced' || mode === 'expert') && !!bluffExercise && !isLoading}
           resetKey={resetKey}
           onTimeout={handleTimeout}
+          seconds={30}
         />
       )}
 

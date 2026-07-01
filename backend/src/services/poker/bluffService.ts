@@ -554,10 +554,123 @@ This is the "delayed c-bet" or "float steal." You take initiative on the turn af
   };
 }
 
+// ─── Scenario 5 — OOP missed flop → check/fold ───────────────────────────────
+// Hero raised UTG/HJ (tight range), BTN called (wide range, IP).
+// Flop: mid-connected two-tone — BTN's range connects perfectly.
+// Hero checks. BTN bets. Hero should fold.
+
+function buildOopMissedFlop(): BluffExercise {
+  const heroPos = rand(['UTG', 'HJ'] as string[]);
+  const villainPos = 'BTN';
+
+  let board: string[] = [];
+  let attempts = 0;
+  while (attempts++ < 50) {
+    const base = 4 + Math.floor(Math.random() * 5);
+    const r1 = RANKS[base - 2] as Rank;
+    const r2 = RANKS[base - 1] as Rank;
+    const r3 = RANKS[base] as Rank;
+    const suit1 = rand(SUITS);
+    const suit2 = rand(SUITS.filter(s => s !== suit1));
+    const candidate = [`${r1}${suit1}`, `${r2}${suit2}`, `${r3}${suit1}`];
+    if (new Set(candidate).size === 3) { board = candidate; break; }
+  }
+  if (!board.length) board = ['9h','8d','7h'];
+
+  const used = [...board];
+  const pairs = [['A','K'],['A','Q'],['K','Q'],['A','J'],['K','J']] as [Rank, Rank][];
+  const chosen = rand(pairs);
+  const heroSuits = shuf([...SUITS]);
+  let heroHand: string[] = [];
+  const c1 = avail(used).find(c => c[0] === chosen[0] && c[1] === heroSuits[0]);
+  const c2 = c1 ? avail([...used, c1]).find(c => c[0] === chosen[1] && c[1] === heroSuits[1]) : null;
+  heroHand = (c1 && c2) ? [c1, c2] : pickCards(2, avail(used).filter(c => rv(c[0]) >= 11));
+
+  const potBB = potRange(7, 12);
+  const stackBB = potRange(88, 100);
+  const villainBet = Math.round(potBB * 0.6);
+  const boardStr = bd(board);
+  const handFr = heroHand.map(cd).join(' ');
+  const rangeDescFr = heroPos === 'UTG' ? 'très serrée (TT+, AK, AQ, AJs, KQs)' : 'serrée (88+, AJ+, KQ, QJs, JTs)';
+  const rangeDescEn = heroPos === 'UTG' ? 'very tight (TT+, AK, AQ, AJs, KQs)' : 'tight (88+, AJ+, KQ, QJs, JTs)';
+
+  const explFr = `**Situation**
+Vous avez ouvert depuis ${heroPos} (range ${rangeDescFr}), le BTN a suivi (~30% des mains). Vous agissez EN PREMIER sur chaque street — vous êtes hors position (OOP).
+
+**Analyse du board** [${boardStr}]
+Board connecté et two-tone : il favorise massivement la range BTN. Le BTN suit avec des connecteurs (${board[0][0]}${board[1][0]}s, ${board[1][0]}${board[2][0]}s), des paires basses... qui touchent parfaitement ces 3 cartes. Votre range ${heroPos} — broadways et grosses paires — rate complètement.
+
+**Le problème OOP**
+Être OOP sur un board hostile vous place dans une double impasse :
+1. Vous devez agir EN PREMIER sans information
+2. Si vous misez et vilain relance, vous avez perdu le contrôle du pot
+Bluffer OOP contre une range qui connecte = EV très négatif.
+
+**Votre main** [${handFr}]
+Overcards sans tirage. Même une paire vous laisserait souvent derrière deux paires ou un set de vilain.
+
+**Décision — Checker / Abandonner**
+OOP sur un board hostile : checker s'impose. Quand le BTN mise ${villainBet} BB, fold est la bonne réponse. Tenter un check-raise bluff ici serait une erreur grave — vilain call (ou re-raise) trop souvent avec ses mains qui connectent.`;
+
+  const explEn = `**Situation**
+You opened from ${heroPos} (${rangeDescEn}), BTN called (~30% of hands). You act FIRST on every street — you are out of position (OOP).
+
+**Board Analysis** [${boardStr}]
+Connected two-tone board: massively favors BTN's range. BTN calls with connectors (${board[0][0]}${board[1][0]}s, ${board[1][0]}${board[2][0]}s), small pairs... which hit this board perfectly. Your ${heroPos} range — broadways and big pairs — misses entirely.
+
+**The OOP problem**
+Being OOP on a hostile board creates a double bind:
+1. You must act FIRST without any information
+2. If you bet and villain raises, you've lost pot control
+Bluffing OOP into a range that connects = very negative EV.
+
+**Your hand** [${handFr}]
+Overcards with no draw. Even a pair would often leave you behind villain's two pair or set.
+
+**Decision — Check / Fold**
+OOP on a hostile board: checking is mandatory. When BTN bets ${villainBet} BB, fold is correct. Attempting a check-raise bluff here is a serious mistake — villain calls (or re-raises) too often with their connecting hands.`;
+
+  return {
+    heroHand,
+    board,
+    street: 'flop',
+    heroPosition: heroPos,
+    villainPosition: villainPos,
+    heroIsIP: false,
+    potBB,
+    stackBB,
+    preflopNarrative: {
+      fr: `Vous ouvrez depuis ${heroPos} à 2.5 BB, le BTN suit. Pot : ${potBB} BB.`,
+      en: `You open from ${heroPos} to 2.5 BB, BTN calls. Pot: ${potBB} BB.`,
+    },
+    streetNarrative: [
+      { fr: `Flop [${boardStr}] : vous checkez. Le BTN mise ${villainBet} BB.`, en: `Flop [${boardStr}]: you check. BTN bets ${villainBet} BB.` },
+    ],
+    correctAction: 'check-fold',
+    bluffAmountBB: 0,
+    factors: {
+      position:     { score: 'negative', fr: `OOP (${heroPos} vs BTN) — vous agissez en premier, désavantage total`, en: `OOP (${heroPos} vs BTN) — you act first, total disadvantage` },
+      board:        { score: 'negative', fr: `Board connecté ${board[0][0]}-${board[1][0]}-${board[2][0]} — favorable à la range large BTN`, en: `Connected board ${board[0][0]}-${board[1][0]}-${board[2][0]} — favors BTN's wide range` },
+      villainRange: { score: 'negative', fr: 'BTN connecte fortement (connecteurs, paires basses, tirages)', en: 'BTN connects strongly (connectors, small pairs, draws)' },
+      heroHand:     { score: 'negative', fr: `Overcards ${heroHand.map(c => c[0]).join('')} sans tirage — aucune équité sur ce board`, en: `Overcards ${heroHand.map(c => c[0]).join('')} with no draws — no equity on this board` },
+    },
+    explanation: { fr: explFr, en: explEn },
+  };
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export function generateBluffExercise(): BluffExercise {
+export function generateBluffExercise(mode?: string): BluffExercise {
   const r = Math.random();
+  if (mode === 'expert') {
+    // Expert: heavier weight on harder spots — OOP scenarios, float steal, wet c-bet
+    // Skip the easy dry c-bet (scenario 1) entirely
+    if (r < 0.30) return buildIpCbetWet();
+    if (r < 0.55) return buildFloatSteal();
+    if (r < 0.80) return buildOopMissedFlop();
+    return buildIpSemiBluff();
+  }
+  // Basic / advanced: original distribution
   if (r < 0.30) return buildIpCbetDry();
   if (r < 0.52) return buildIpCbetWet();
   if (r < 0.76) return buildIpSemiBluff();

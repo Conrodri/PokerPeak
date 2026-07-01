@@ -1,41 +1,30 @@
 import { motion } from 'framer-motion';
-import { GraduationCap, Play, Zap, Check, Crown, Lock, Gift, Flame } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { BookOpen, Play, Zap, Check, Crown, Lock, Gift, Flame, Eye, EyeOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from './Button';
 import { RichText } from './RichText';
 import { useLangStore } from '../../store/langStore';
 import { useModeStore, TrainingMode } from '../../store/modeStore';
-import { useAuthStore } from '../../store/authStore';
 import { analytics } from '../../lib/analytics';
 
 interface TrainerIntroProps {
   emoji: string;
-  title: string;            // already localized by caller
-  description: string;      // already localized by caller
-  whatTitle: string;        // already localized by caller
-  whatContent: React.ReactNode;  // the inner content of the "What is X?" section — varies
-  steps: string[];          // already localized bullet items (emoji + text combined)
-  beginnerHint: string;     // already localized
-  advancedHint: string;     // already localized
-  expertHint?: string;      // already localized — optional 3rd (expert) hint
-  startLabel: string;       // already localized
+  title: string;
+  description: string;
+  whatTitle: string;
+  whatContent: React.ReactNode;
+  steps: string[];
+  beginnerHint: string;
+  advancedHint: string;
+  expertHint?: string;
+  startLabel: string;
   onStart: () => void;
   mode: TrainingMode;
-  /** When true, the module is a Premium preview: the intro is fully visible
-   *  but the start button is replaced by a Premium upsell CTA. */
   locked?: boolean;
-  /** Tailors the locked-state copy/CTA. 'premium' (default) = upgrade prompt,
-   *  'login' = sign-in prompt, 'quota' = daily free allowance used up. */
   lockedVariant?: 'premium' | 'login' | 'quota';
-  /** For non-premium logged-in users with credits left: shows a free-allowance
-   *  banner above the (working) start button. */
   freeInfo?: { remaining: number; limit: number };
-  /** Optional secondary CTA (the exam launcher) shown on the same row as the
-   *  start button so both ways to begin are visible without scrolling. */
   examSlot?: React.ReactNode;
-  /** Optional tertiary action shown below the start+exam row (e.g. "Mes ranges"). */
   bottomSlot?: React.ReactNode;
-  /** Optional slot rendered between the info sections and the start button. */
   aboveActionsSlot?: React.ReactNode;
 }
 
@@ -46,8 +35,9 @@ export function TrainerIntro({
 }: TrainerIntroProps) {
   const isEn = useLangStore(s => s.lang) === 'en';
   const setMode = useModeStore(s => s.setMode);
-  const isExpert = !!useAuthStore(s => s.user?.isPremiumExpert);
-  const navigate = useNavigate();
+  const hints = useModeStore(s => s.hints);
+  const setHints = useModeStore(s => s.setHints);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -71,7 +61,7 @@ export function TrainerIntro({
         </div>
       </div>
 
-      {/* Info sections — always visible, compact */}
+      {/* Info sections */}
       <div className="flex flex-col gap-1">
         {/* What is X? */}
         <section className="bg-gray-900/50 rounded-xl px-2.5 py-1.5 border border-gray-800">
@@ -104,19 +94,20 @@ export function TrainerIntro({
         </section>
       </div>
 
-      {/* Mode selector — pushed to the footer (below the start/exam buttons) via order-last */}
-      <div className="flex flex-col items-center gap-1 order-last">
+      {/* Mode + Hints selectors — footer of the card */}
+      <div className="flex flex-wrap items-center justify-center gap-2 order-last">
+        {/* Level selector */}
         <div className="inline-flex p-0.5 rounded-2xl bg-gray-900/70 border border-gray-700 gap-0.5">
           <button
             type="button"
-            onClick={() => setMode('beginner')}
+            onClick={() => setMode('basic')}
             className={`flex items-center gap-1.5 px-3.5 py-1 rounded-xl text-sm font-bold transition-all ${
-              mode === 'beginner' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'
+              mode === 'basic' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
           >
-            <GraduationCap size={15} />
-            {isEn ? 'Beginner' : 'Débutant'}
-            {mode === 'beginner' && <Check size={13} />}
+            <BookOpen size={15} />
+            {isEn ? 'Basic' : 'Basique'}
+            {mode === 'basic' && <Check size={13} />}
           </button>
           <button
             type="button"
@@ -131,40 +122,43 @@ export function TrainerIntro({
           </button>
           <button
             type="button"
-            onClick={() => (isExpert ? setMode('expert') : navigate('/premium'))}
-            title={isExpert ? undefined : (isEn ? 'Expert — premium tier' : 'Expert — offre premium')}
+            onClick={() => setMode('expert')}
             className={`flex items-center gap-1.5 px-3.5 py-1 rounded-xl text-sm font-bold transition-all ${
               mode === 'expert' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-white'
             }`}
           >
-            {isExpert ? <Flame size={15} /> : <Lock size={13} />}
+            <Flame size={15} />
             Expert
             {mode === 'expert' && <Check size={13} />}
           </button>
         </div>
 
-        {/* Modes explained — active one highlighted */}
-        <div className="w-full max-w-md rounded-xl border border-gray-800 bg-gray-900/40 px-2.5 py-1 flex flex-col gap-0.5 text-[10px] leading-snug">
-          <div className={`flex items-start gap-1.5 transition-opacity ${mode === 'beginner' ? 'opacity-100' : 'opacity-50'}`}>
-            <GraduationCap size={12} className="text-blue-400 mt-0.5 shrink-0" />
-            <span className="text-gray-400">
-              <span className="font-bold text-blue-300">{isEn ? 'Beginner' : 'Débutant'}</span> — {beginnerHint}
-            </span>
-          </div>
-          <div className={`flex items-start gap-1.5 transition-opacity ${mode === 'advanced' ? 'opacity-100' : 'opacity-50'}`}>
-            <Zap size={12} className="text-gold-400 mt-0.5 shrink-0" />
-            <span className="text-gray-400">
-              <span className="font-bold text-gold-300">{isEn ? 'Advanced' : 'Avancé'}</span> — {advancedHint}
-            </span>
-          </div>
-          {expertHint && (
-            <div className={`flex items-start gap-1.5 transition-opacity ${mode === 'expert' ? 'opacity-100' : 'opacity-50'}`}>
-              <Flame size={12} className="text-purple-400 mt-0.5 shrink-0" />
-              <span className="text-gray-400">
-                <span className="font-bold text-purple-300">Expert</span> — {expertHint}
-              </span>
-            </div>
-          )}
+        {/* Hints toggle */}
+        <div className="inline-flex p-0.5 rounded-xl bg-gray-900/70 border border-gray-700 gap-0.5">
+          <button
+            type="button"
+            onClick={() => setHints('easy')}
+            className={`flex items-center gap-1.5 px-3 py-0.5 rounded-lg text-xs font-bold transition-all ${
+              hints === 'easy'
+                ? 'bg-emerald-700/50 text-emerald-300 border border-emerald-600/40'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <Eye size={12} />
+            {isEn ? 'Easy — hints on' : 'Easy — indices'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setHints('hard')}
+            className={`flex items-center gap-1.5 px-3 py-0.5 rounded-lg text-xs font-bold transition-all ${
+              hints === 'hard'
+                ? 'bg-red-900/40 text-red-300 border border-red-700/40'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <EyeOff size={12} />
+            {isEn ? 'Hard — no hints' : 'Hard — sans indices'}
+          </button>
         </div>
       </div>
 
@@ -242,12 +236,6 @@ export function TrainerIntro({
             {examSlot}
           </div>
           {bottomSlot}
-          {freeInfo && (
-            <Link to="/premium" className="text-[11px] text-gray-500 hover:text-yellow-400 transition-colors flex items-center gap-1">
-              <Crown size={10} />
-              {isEn ? 'Premium = unlimited access' : 'Premium = accès illimité'}
-            </Link>
-          )}
         </div>
       )}
     </motion.div>

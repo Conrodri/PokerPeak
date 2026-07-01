@@ -151,8 +151,8 @@ async function main() {
   // Top up to target
   const flop             = topUp('Flop (non-expert)',    flop0,             TARGETS.flop,             flopKey,     buildFlopExercise);
   const expertFlop       = topUp('Flop (expert)',         expertFlop0,       TARGETS.expertFlop,       flopKey,     buildExpertFlopExercise);
-  const equityFr         = topUp('Equity beginner FR',    equityFr0,         TARGETS.equityFr,         equityKey,   () => generateEquityExercise('fr', 'beginner'));
-  const equityEn         = topUp('Equity beginner EN',    equityEn0,         TARGETS.equityEn,         equityKey,   () => generateEquityExercise('en', 'beginner'));
+  const equityFr         = topUp('Equity basic FR',    equityFr0,         TARGETS.equityFr,         equityKey,   () => generateEquityExercise('fr', 'basic'));
+  const equityEn         = topUp('Equity basic EN',    equityEn0,         TARGETS.equityEn,         equityKey,   () => generateEquityExercise('en', 'basic'));
   const equityAdvancedFr = topUp('Equity advanced FR',    equityAdvancedFr0, TARGETS.equityAdvancedFr, equityKey,   () => generateEquityExercise('fr', 'advanced'));
   const equityAdvancedEn = topUp('Equity advanced EN',    equityAdvancedEn0, TARGETS.equityAdvancedEn, equityKey,   () => generateEquityExercise('en', 'advanced'));
   const preflopFr        = topUp('Preflop FR',            preflopFr0,        TARGETS.preflopFr,        preflopKey,  () => generatePreflopExercise(undefined, 'fr'));

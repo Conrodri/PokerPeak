@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth, requirePremium, optionalAuth } from '../middleware/auth';
+import { requireAuth, optionalAuth } from '../middleware/auth';
 import {
   getCustomRange, saveCustomRange, deleteCustomRange,
   getDefaultRanges,
@@ -11,22 +11,18 @@ const router = Router();
 
 // ── Specific named routes first (must precede /:position wildcard) ────────────
 
-// GTO defaults — requires auth only (no premium needed — it's just public GTO data)
-router.get('/defaults',               requireAuth, getDefaultRanges);
+router.get('/defaults',               optionalAuth, getDefaultRanges);
 
-// Active preset — used by trainers to decide which range to display
-router.get('/presets/active',         requireAuth, requirePremium, getActivePreset);
+router.get('/presets/active',         requireAuth, getActivePreset);
 
-// Preset CRUD
-router.get('/presets',                requireAuth, requirePremium, listPresets);
-router.post('/presets',               requireAuth, requirePremium, createPreset);
-router.put('/presets/:id',            requireAuth, requirePremium, updatePreset);
-router.delete('/presets/:id',         requireAuth, requirePremium, deletePreset);
-router.post('/presets/:id/activate',  requireAuth, requirePremium, activatePreset);
+router.get('/presets',                requireAuth, listPresets);
+router.post('/presets',               requireAuth, createPreset);
+router.put('/presets/:id',            requireAuth, updatePreset);
+router.delete('/presets/:id',         requireAuth, deletePreset);
+router.post('/presets/:id/activate',  requireAuth, activatePreset);
 
-// ── Per-position custom range (premium) ──────────────────────────────────────
-router.get('/:position',    requireAuth, requirePremium, getCustomRange);
-router.put('/:position',    requireAuth, requirePremium, saveCustomRange);
-router.delete('/:position', requireAuth, requirePremium, deleteCustomRange);
+router.get('/:position',    requireAuth, getCustomRange);
+router.put('/:position',    requireAuth, saveCustomRange);
+router.delete('/:position', requireAuth, deleteCustomRange);
 
 export default router;

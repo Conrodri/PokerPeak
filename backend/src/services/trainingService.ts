@@ -134,10 +134,8 @@ function buildPreflopExplanationEn(notation: string, position: Position8, action
   return `${handDesc} → FOLD from ${position}.\n\n${posDesc[position]}.\n\nThis hand is not strong enough to open from this position. Wait for better spots.`;
 }
 
-export function generatePotOddsExercise(lang: 'fr' | 'en' = 'fr', difficulty?: 'expert') {
-  // Expert → implied odds scenarios (direct odds vs implied winnings).
-  const isExpert = difficulty === 'expert';
-  const scenario = isExpert ? generateImpliedOddsScenario(lang) : getRandomScenario();
+export function generatePotOddsExercise(lang: 'fr' | 'en' = 'fr', level: 'basic' | 'advanced' | 'expert' = 'basic') {
+  const scenario = level === 'expert' ? generateImpliedOddsScenario(lang) : getRandomScenario();
   const result = calculatePotOdds(scenario.potSize, scenario.betSize, scenario.heroEquity, lang);
 
   // Compute implied fields when present
@@ -178,19 +176,75 @@ export function generatePotOddsExercise(lang: 'fr' | 'en' = 'fr', difficulty?: '
 }
 
 // ─── Equity: required-equity-to-call generator ───────────────────────────────
-// Pure math — no Monte Carlo needed. O(1) per exercise.
 
-const EQUITY_POTS     = [6, 8, 9, 10, 12, 14, 15, 18, 20, 24, 25, 28, 30, 36, 40, 50];
-const EQUITY_BETS     = [
-  { label: '1/3 pot',   labelEn: '1/3 pot',   frac: 1 / 3  },
-  { label: '1/2 pot',   labelEn: '1/2 pot',   frac: 1 / 2  },
-  { label: '2/3 pot',   labelEn: '2/3 pot',   frac: 2 / 3  },
-  { label: 'pot',       labelEn: 'pot',        frac: 1      },
-  { label: '1.25x pot', labelEn: '1.25x pot',  frac: 1.25   },
-];
 const EQUITY_STREETS  = ['flop', 'turn', 'river'] as const;
 const EQUITY_BOUNTIES = [8, 10, 12, 15, 20, 25];
 const ALL_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+
+// Pre-computed (pot, bet) pairs where bet/(pot+2*bet) = targetEquity/100 exactly (or very close).
+interface EquityScenario { potBB: number; betBB: number; targetEquity: number; }
+
+const BASIC_EQUITY_SCENARIOS: EquityScenario[] = [
+  // 10%: pot=8*bet
+  { potBB: 16, betBB: 2,  targetEquity: 10 },
+  { potBB: 24, betBB: 3,  targetEquity: 10 },
+  { potBB: 32, betBB: 4,  targetEquity: 10 },
+  { potBB: 40, betBB: 5,  targetEquity: 10 },
+  // 15%: 3/(14+6)=15%
+  { potBB: 14, betBB: 3,  targetEquity: 15 },
+  { potBB: 28, betBB: 6,  targetEquity: 15 },
+  { potBB: 42, betBB: 9,  targetEquity: 15 },
+  // 20%: pot=3*bet
+  { potBB: 12, betBB: 4,  targetEquity: 20 },
+  { potBB: 18, betBB: 6,  targetEquity: 20 },
+  { potBB: 24, betBB: 8,  targetEquity: 20 },
+  { potBB: 30, betBB: 10, targetEquity: 20 },
+  // 25%: pot=2*bet
+  { potBB: 10, betBB: 5,  targetEquity: 25 },
+  { potBB: 16, betBB: 8,  targetEquity: 25 },
+  { potBB: 20, betBB: 10, targetEquity: 25 },
+  { potBB: 24, betBB: 12, targetEquity: 25 },
+  // 30%: 3/(4+6)=30%
+  { potBB: 4,  betBB: 3,  targetEquity: 30 },
+  { potBB: 8,  betBB: 6,  targetEquity: 30 },
+  { potBB: 12, betBB: 9,  targetEquity: 30 },
+  { potBB: 16, betBB: 12, targetEquity: 30 },
+  // 33%: pot=bet → 1/3
+  { potBB: 10, betBB: 10, targetEquity: 33 },
+  { potBB: 15, betBB: 15, targetEquity: 33 },
+  { potBB: 20, betBB: 20, targetEquity: 33 },
+];
+
+const ADVANCED_EQUITY_SCENARIOS: EquityScenario[] = [
+  // 12%: 3/(19+6)=12%
+  { potBB: 19, betBB: 3,  targetEquity: 12 },
+  { potBB: 38, betBB: 6,  targetEquity: 12 },
+  { potBB: 57, betBB: 9,  targetEquity: 12 },
+  // 16%: 4/(17+8)=16%
+  { potBB: 17, betBB: 4,  targetEquity: 16 },
+  { potBB: 34, betBB: 8,  targetEquity: 16 },
+  // 18%: 9/(32+18)=18%
+  { potBB: 32, betBB: 9,  targetEquity: 18 },
+  { potBB: 64, betBB: 18, targetEquity: 18 },
+  // 22%: 11/(28+22)=22%
+  { potBB: 28, betBB: 11, targetEquity: 22 },
+  { potBB: 56, betBB: 22, targetEquity: 22 },
+  // 28%: 7/(11+14)=28%
+  { potBB: 11, betBB: 7,  targetEquity: 28 },
+  { potBB: 22, betBB: 14, targetEquity: 28 },
+  { potBB: 33, betBB: 21, targetEquity: 28 },
+  // 34%: 17/(16+34)=34%
+  { potBB: 16, betBB: 17, targetEquity: 34 },
+  { potBB: 32, betBB: 34, targetEquity: 34 },
+];
+
+const BASIC_OPTIONS_POOL    = [10, 15, 20, 25, 30, 33];
+const ADVANCED_OPTIONS_POOL = [12, 16, 18, 22, 28, 34];
+
+function buildLevelOptions(correct: number, pool: number[]): number[] {
+  const others = pool.filter(v => v !== correct).sort(() => Math.random() - 0.5).slice(0, 3);
+  return [...others, correct].sort((a, b) => a - b);
+}
 
 function buildEquityCallOptions(correctInt: number): number[] {
   const opts: number[] = [correctInt];
@@ -204,50 +258,66 @@ function buildEquityCallOptions(correctInt: number): number[] {
 
 export function generateEquityExercise(
   lang: 'fr' | 'en' = 'fr',
-  _mode: 'beginner' | 'advanced' = 'beginner',
-  difficulty?: 'expert',
+  level: 'basic' | 'advanced' | 'expert' = 'basic',
 ): EquityExercise {
-  const potBB  = EQUITY_POTS[Math.floor(Math.random() * EQUITY_POTS.length)];
-  const betCfg = EQUITY_BETS[Math.floor(Math.random() * EQUITY_BETS.length)];
-  const betBB  = Math.max(1, Math.round(potBB * betCfg.frac));
-
-  // Required equity = call / (pot_after_call) = bet / (pot + 2*bet)
-  const requiredEquity = Math.round(betBB / (potBB + 2 * betBB) * 1000) / 10;
-  const options        = buildEquityCallOptions(Math.round(requiredEquity));
-
-  const street        = EQUITY_STREETS[Math.floor(Math.random() * EQUITY_STREETS.length)];
-  const heroIdx       = Math.floor(Math.random() * ALL_POSITIONS.length);
-  const villainIdx    = (heroIdx + 1 + Math.floor(Math.random() * (ALL_POSITIONS.length - 1))) % ALL_POSITIONS.length;
-  const heroPosition  = ALL_POSITIONS[heroIdx];
+  const street = EQUITY_STREETS[Math.floor(Math.random() * EQUITY_STREETS.length)];
+  const heroIdx = Math.floor(Math.random() * ALL_POSITIONS.length);
+  const villainIdx = (heroIdx + 1 + Math.floor(Math.random() * (ALL_POSITIONS.length - 1))) % ALL_POSITIONS.length;
+  const heroPosition = ALL_POSITIONS[heroIdx];
   const villainPosition = ALL_POSITIONS[villainIdx];
-
-  const hasBounty          = difficulty === 'expert';
-  const bountyBB           = hasBounty ? EQUITY_BOUNTIES[Math.floor(Math.random() * EQUITY_BOUNTIES.length)] : 0;
-  const requiredEquityBounty = hasBounty
-    ? Math.round(betBB / (potBB + 2 * betBB + bountyBB) * 1000) / 10
-    : 0;
-
-  const betLabel = lang === 'en' ? betCfg.labelEn : betCfg.label;
   const streetFr = { flop: 'flop', turn: 'turn', river: 'river' }[street];
-  const streetEn = street;
 
+  if (level === 'basic' || level === 'advanced') {
+    const pool = level === 'basic' ? BASIC_EQUITY_SCENARIOS : ADVANCED_EQUITY_SCENARIOS;
+    const optPool = level === 'basic' ? BASIC_OPTIONS_POOL : ADVANCED_OPTIONS_POOL;
+    const sc = pool[Math.floor(Math.random() * pool.length)];
+    const { potBB, betBB, targetEquity } = sc;
+    const totalPot = potBB + 2 * betBB;
+    const options = buildLevelOptions(targetEquity, optPool);
+    const betLabel = `${Math.round((betBB / potBB) * 100)}% pot`;
+
+    const explanation = lang === 'en'
+      ? `**Required equity = call ÷ total pot** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${targetEquity}%**.\n\nWith at least ${targetEquity}% equity you break even in the long run. Below that, folding is the better mathematical play.`
+      : `**Équité requise = appel ÷ pot total** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${targetEquity}%**.\n\nAvec au moins ${targetEquity}% d'équité vous êtes break-even sur le long terme. En dessous, coucher est le meilleur choix mathématique.`;
+
+    const explanationAdvanced = lang === 'en'
+      ? `Pot odds formula: **call / (pot + bet + call)** → ${betBB}/${totalPot} = **${targetEquity}%**.\n\nVillain bet on the ${street}. Any time you have more than ${targetEquity}% equity, calling has positive expected value.`
+      : `Formule des cotes du pot : **appel / (pot + mise + appel)** → ${betBB}/${totalPot} = **${targetEquity}%**.\n\nVilain a misé au ${streetFr}. Dès lors que votre équité dépasse ${targetEquity}%, appeler a une espérance positive.`;
+
+    return {
+      street, potBB, betBB, villainPosition, heroPosition,
+      betFractionLabel: betLabel,
+      requiredEquity: targetEquity,
+      options, explanation, explanationAdvanced,
+      hasBounty: false, bountyBB: 0, requiredEquityBounty: 0,
+    };
+  }
+
+  // Expert: advanced scenario + bounty calculation
+  const sc = ADVANCED_EQUITY_SCENARIOS[Math.floor(Math.random() * ADVANCED_EQUITY_SCENARIOS.length)];
+  const { potBB, betBB } = sc;
+  const requiredEquity = Math.round(betBB / (potBB + 2 * betBB) * 1000) / 10;
+  const bountyBB = EQUITY_BOUNTIES[Math.floor(Math.random() * EQUITY_BOUNTIES.length)];
+  const requiredEquityBounty = Math.round(betBB / (potBB + 2 * betBB + bountyBB) * 1000) / 10;
+  const options = buildEquityCallOptions(Math.round(requiredEquityBounty));
+  const betLabel = `${Math.round((betBB / potBB) * 100)}% pot`;
   const totalPot = potBB + 2 * betBB;
-  const pct      = requiredEquity;
+  const totalPotBounty = potBB + 2 * betBB + bountyBB;
+  const pct = requiredEquityBounty;
 
   const explanation = lang === 'en'
-    ? `**Required equity = call ÷ total pot** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${pct}%**.\n\nWith at least ${pct}% equity you break even in the long run. Below that, folding is the better mathematical play.`
-    : `**Équité requise = appel ÷ pot total** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${pct}%**.\n\nAvec au moins ${pct}% d'équité vous êtes break-even sur le long terme. En dessous, coucher est le meilleur choix mathématique.`;
+    ? `**Required equity with bounty** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB} + ${bountyBB}) = ${betBB}/${totalPotBounty} ≈ **${pct}%**.\n\nThe bounty (${bountyBB} BB) is added to the total pot, reducing the equity needed to call.`
+    : `**Équité requise avec bounty** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB} + ${bountyBB}) = ${betBB}/${totalPotBounty} ≈ **${pct}%**.\n\nLe bounty (${bountyBB} BB) s'ajoute au pot total, ce qui réduit l'équité nécessaire pour suivre.`;
 
   const explanationAdvanced = lang === 'en'
-    ? `Pot odds formula: **call / (pot + bet + call)** → ${betBB}/${totalPot} = **${pct}%**.\n\nVillain bet ${betCfg.labelEn} on the ${streetEn}. Any time you have more than ${pct}% equity, calling has positive expected value.`
-    : `Formule des cotes du pot : **appel / (pot + mise + appel)** → ${betBB}/${totalPot} = **${pct}%**.\n\nVilain a misé ${betLabel} au ${streetFr}. Dès lors que votre équité dépasse ${pct}%, appeler a une espérance positive.`;
+    ? `Without bounty: ${betBB}/${totalPot} = ${requiredEquity}%. With bounty: ${betBB}/${totalPotBounty} = **${pct}%**.`
+    : `Sans bounty : ${betBB}/${totalPot} = ${requiredEquity}%. Avec bounty : ${betBB}/${totalPotBounty} = **${pct}%**.`;
 
   return {
     street, potBB, betBB, villainPosition, heroPosition,
     betFractionLabel: betLabel,
-    requiredEquity, options,
-    explanation, explanationAdvanced,
-    hasBounty, bountyBB, requiredEquityBounty,
+    requiredEquity, options, explanation, explanationAdvanced,
+    hasBounty: true, bountyBB, requiredEquityBounty,
   };
 }
 

@@ -117,8 +117,8 @@ export function PotOddsTrainer() {
   const ex = potOddsExercise;
   const ev = lastResult?.ev ?? 0;
   // Beginner gets the simple text; advanced AND expert get the detailed variant.
-  const equityText = ex ? (mode === 'beginner' ? ex.equityExplanation : ex.equityExplanationAdvanced) : '';
-  const thresholdText = ex ? (mode === 'beginner' ? ex.thresholdExplanation : ex.thresholdExplanationAdvanced) : '';
+  const equityText = ex ? (mode === 'basic' ? ex.equityExplanation : ex.equityExplanationAdvanced) : '';
+  const thresholdText = ex ? (mode === 'basic' ? ex.thresholdExplanation : ex.thresholdExplanationAdvanced) : '';
 
   if (showIntro) {
     return (
@@ -162,11 +162,11 @@ export function PotOddsTrainer() {
           ]}
           beginnerHint={isEn ? "Shows formula, equity hints & EV breakdown" : "Affiche formule, équité & décomposition EV"}
           advancedHint={isEn ? 'No hints — calculate on your own' : 'Sans indices — calculez par vous-même'}
-          expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
+          expertHint={isEn ? 'Complex spots — variable equity, no formula, pure mental math' : 'Spots complexes — équité variable, aucune formule, calcul mental pur'}
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
-          examSlot={mode !== 'beginner' ? <ExamLauncher module="potodds" onStart={handleStartExam} /> : undefined}
+          examSlot={<ExamLauncher module="potodds" onStart={handleStartExam} />}
         />
       </div>
     );
@@ -185,12 +185,13 @@ export function PotOddsTrainer() {
       {/* Header — replaced by the lives HUD during an exam */}
       {examActive && <ExamHud onQuit={handleQuitExam} />}
 
-      {/* Expert sprint countdown */}
+      {/* Sprint countdown — active for advanced and expert (30s each; basic has no timer) */}
       {phase === 'exercise' && (
         <SprintTimer
-          active={examActive && mode === 'expert' && !!ex && !isLoading}
+          active={examActive && (mode === 'advanced' || mode === 'expert') && !!ex && !isLoading}
           resetKey={`${ex?.potSize}-${ex?.betSize}-${ex?.heroEquity}`}
           onTimeout={handleTimeout}
+          seconds={30}
         />
       )}
 
@@ -342,7 +343,7 @@ export function PotOddsTrainer() {
           )}
 
           {/* Beginner banner */}
-          {mode === 'beginner' && (
+          {mode === 'basic' && (
             <div className="bg-blue-950/30 border border-blue-900/50 rounded-xl px-4 py-2.5 text-xs text-blue-300 flex items-center gap-2">
               <GraduationCap size={13} className="shrink-0" />
               <span>
@@ -352,21 +353,21 @@ export function PotOddsTrainer() {
           )}
 
           {/* Step 1 — Equity (beginner only) */}
-          {mode === 'beginner' && (
+          {mode === 'basic' && (
             <StepPanel icon={<Target size={14} className="text-blue-400" />} title={t.training.equity_calc_how} accent="blue">
               <RichText text={equityText} />
             </StepPanel>
           )}
 
           {/* Step 2 — Threshold (beginner only) */}
-          {mode === 'beginner' && (
+          {mode === 'basic' && (
             <StepPanel icon={<Scale size={14} className="text-yellow-400" />} title={t.training.threshold_how} accent="yellow">
               <RichText text={thresholdText} />
             </StepPanel>
           )}
 
           {/* Step 3 — Decision — beginner only */}
-          {mode === 'beginner' && <StepPanel icon={<Info size={14} className="text-green-400" />} title={t.training.decision_how} accent="green">
+          {mode === 'basic' && <StepPanel icon={<Info size={14} className="text-green-400" />} title={t.training.decision_how} accent="green">
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gray-900/60 rounded-xl p-3 text-center">
                 <p className="text-xs text-gray-500 mb-1">{t.training.req_equity}</p>
@@ -394,7 +395,7 @@ export function PotOddsTrainer() {
               EV = {ev >= 0 ? '+' : ''}{ev.toFixed(2)}bb {ev >= 0 ? '✓' : '✗'}
             </div>
 
-            {mode === 'beginner' && (
+            {mode === 'basic' && (
               <div className="mt-3 bg-purple-950/25 border border-purple-900/40 rounded-xl p-3">
                 <p className="text-xs font-semibold text-purple-300 flex items-center gap-1.5 mb-1">
                   <TrendingUp size={12} /> {t.training.ev_means}

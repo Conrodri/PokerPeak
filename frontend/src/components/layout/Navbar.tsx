@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useShallow } from 'zustand/react/shallow';
 import {
   BarChart2, Trophy, BookOpen, Home, LogOut, Crown,
-  ChevronDown, Lock, Menu, X, BookMarked, Compass, Medal,
+  ChevronDown, Menu, X, BookMarked, Compass, Medal,
 } from 'lucide-react';
 import { LanguageToggle } from '../ui/LanguageToggle';
 import { ModeToggle } from '../ui/ModeToggle';
@@ -197,16 +197,6 @@ export function Navbar() {
 
           {/* ── Right side ── */}
           <div className="flex items-center gap-1 shrink-0">
-            {/* Devenir membre CTA — non-premium users */}
-            {(!user || !user.isPremium) && (
-              <Link
-                to={user ? '/premium' : '/login'}
-                className="hidden min-[480px]:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gold-600/20 hover:bg-gold-600/30 border border-gold-600/40 text-gold-400 hover:text-gold-300 text-xs font-bold transition-colors whitespace-nowrap"
-              >
-                <Crown size={12} fill="currentColor" />
-                {isEn ? 'Become a member' : 'Devenir membre'}
-              </Link>
-            )}
             <LanguageToggle />
 
             {/* User avatar — always visible */}
@@ -291,18 +281,6 @@ export function Navbar() {
                     {/* Bottom actions */}
                     <div className="mx-3 my-1.5 border-t border-gray-800" />
 
-                    {/* Premium CTA in mobile menu — logged-in non-premium only */}
-                    {user && !user.isPremium && (
-                      <Link
-                        to="/premium"
-                        onClick={() => setMobileOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 text-sm text-gold-400 hover:text-gold-300 hover:bg-yellow-900/20 transition-colors font-semibold"
-                      >
-                        <Crown size={15} fill="currentColor" />
-                        {isEn ? 'Go Premium' : 'Devenir Premium'}
-                      </Link>
-                    )}
-
                     {user ? (
                       <button
                         onClick={() => { logout(); setMobileOpen(false); }}
@@ -376,12 +354,8 @@ function ModuleList({ user, isEn, location, isTrainingActive, onClose }: {
 
       <div className="mx-3 my-1.5 border-t border-gray-800" />
 
-      <p className="px-3 pb-1.5 text-[10px] font-bold text-yellow-700 uppercase tracking-wider flex items-center gap-1">
-        <Crown size={9} className="text-yellow-600" /> Premium
-      </p>
       {MODULES.filter(m => m.premium).map(mod => {
         const label    = isEn ? mod.labelEn : mod.labelFr;
-        const isLocked = !user?.isPremium;
         const isActive = location.search.includes(`module=${mod.id}`) && isTrainingActive;
         return (
           <Link
@@ -389,35 +363,14 @@ function ModuleList({ user, isEn, location, isTrainingActive, onClose }: {
             to={`/training?module=${mod.id}`}
             onClick={onClose}
             className={`flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-              isActive
-                ? 'bg-white/10 text-white'
-                : isLocked
-                  ? 'text-gray-500 hover:bg-gray-800/60 hover:text-gray-400'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+              isActive ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'
             }`}
           >
             <span className="text-base leading-none">{mod.icon}</span>
             <span className="flex-1">{label}</span>
-            {isLocked
-              ? <Lock size={11} className="text-yellow-700 shrink-0" />
-              : <Crown size={10} className="text-yellow-500 shrink-0 opacity-60" />
-            }
           </Link>
         );
       })}
-
-      {!user && (
-        <>
-          <div className="mx-3 my-1.5 border-t border-gray-800" />
-          <Link
-            to="/login"
-            onClick={onClose}
-            className="flex items-center justify-center gap-1.5 mx-2 mb-1 py-1.5 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-400 text-xs font-semibold transition-colors"
-          >
-            {isEn ? 'Log in for Premium' : 'Connexion pour le Premium'}
-          </Link>
-        </>
-      )}
     </>
   );
 }

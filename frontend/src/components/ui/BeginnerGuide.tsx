@@ -1,31 +1,24 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, GraduationCap } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 import { useModeStore } from '../../store/modeStore';
 import { useExamStore } from '../../store/examStore';
 import { useLangStore } from '../../store/langStore';
 import { RichText } from './RichText';
 
 interface BeginnerGuideProps {
-  /** Short, friendly title — e.g. "Ce qu'on te demande". */
   title: string;
-  /** Kid-friendly explanation. Supports `\n` line breaks and **bold**. */
   text: string;
-  /** Optional rich content (e.g. example hands with card icons) rendered below the text. */
   children?: React.ReactNode;
-  /** Whether the guide starts expanded. Default false (collapsed — click to open). */
   defaultOpen?: boolean;
-  /** Bypass the beginner-only guard (used when revealed via SpoilableHint in advanced). */
+  /** Bypass the hints guard when called explicitly (legacy compat). */
   forceShow?: boolean;
   className?: string;
 }
 
 /**
- * BeginnerGuide
- * ─────────────
- * A soft, friendly "tutor" panel that explains the current exercise in very
- * simple terms — as if explaining to a child. Renders ONLY in beginner mode.
- * Collapsible so it doesn't get in the way once the concept is understood.
+ * Collapsible guide panel shown when hints are enabled (easy mode).
+ * Hidden in hard mode and during sprints.
  */
 export function BeginnerGuide({
   title,
@@ -35,14 +28,13 @@ export function BeginnerGuide({
   forceShow = false,
   className,
 }: BeginnerGuideProps) {
-  const mode = useModeStore(s => s.mode);
+  const hints = useModeStore(s => s.hints);
   const examActive = useExamStore(s => s.active);
   const isEn = useLangStore(s => s.lang) === 'en';
   const [open, setOpen] = useState(defaultOpen);
 
-  // During an exam (sprint) → no guidance, in any mode. Work the module, don't learn.
   if (examActive) return null;
-  if (mode !== 'beginner' && !forceShow) return null;
+  if (hints !== 'easy' && !forceShow) return null;
 
   return (
     <div
@@ -53,12 +45,12 @@ export function BeginnerGuide({
         className="w-full flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-blue-900/20 transition-colors"
       >
         <span className="flex items-center gap-2 text-sm font-bold text-blue-200">
-          <GraduationCap size={16} className="text-blue-400 shrink-0" />
+          <Lightbulb size={16} className="text-blue-400 shrink-0" />
           {title}
         </span>
         <span className="flex items-center gap-1.5 shrink-0">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500/70 hidden sm:block">
-            {isEn ? 'Beginner' : 'Débutant'}
+            {isEn ? 'Guide' : 'Guide'}
           </span>
           {open
             ? <ChevronUp   size={16} className="text-blue-400" />

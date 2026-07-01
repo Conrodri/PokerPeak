@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAuth, requirePremium } from '../middleware/auth';
+import { requireAuth } from '../middleware/auth';
 import {
   listProfiles, createProfile, updateProfile, deleteProfile, activateProfile,
   createStackRange, updateStackRange, deleteStackRange,
@@ -8,8 +8,7 @@ import {
 
 const router = Router();
 
-// All routes require auth + premium
-router.use(requireAuth, requirePremium);
+router.use(requireAuth);
 
 // Resolve (used by trainers during exercise — must come before /:id wildcard)
 router.get('/resolve', resolveRange);

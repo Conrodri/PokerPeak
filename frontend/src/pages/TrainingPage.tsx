@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock } from 'lucide-react';
 import { useTrainingStore } from '../store/trainingStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../store/authStore';
@@ -42,7 +41,7 @@ export function TrainingPage() {
   // Beginner trains on GTO only → no custom-range toolbar.
   const trainMode = useModeStore(s => s.mode);
   const setMode = useModeStore(s => s.setMode);
-  const isBeginnerMode = trainMode === 'beginner';
+  const isBeginnerMode = trainMode === 'basic';
   const [activeModule, setActiveModule] = useState<TrainingModule>(
     (searchParams.get('module') as TrainingModule) || 'preflop'
   );
@@ -66,23 +65,22 @@ export function TrainingPage() {
   // profile outside it. In Beginner, custom ranges are off entirely (GTO only).
   useEffect(() => {
     if (trainMode !== 'expert') profilesApi.deactivate().catch(() => {});
-    if (trainMode === 'beginner' && preflopEnabled) togglePreflopEnabled();
+    if (trainMode === 'basic' && preflopEnabled) togglePreflopEnabled();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trainMode]);
 
 
-  const isPremium = !!user?.isPremium;
   const isRangeModule = activeModule === 'preflop';
 
-  const TABS = useMemo<{ id: TrainingModule; label: string; icon: string; premium?: boolean }[]>(() => [
+  const TABS = useMemo<{ id: TrainingModule; label: string; icon: string }[]>(() => [
     { id: 'preflop',   label: t.training.tab_preflop,   icon: '🎯' },
     { id: 'outs',      label: t.training.tab_outs,      icon: '🎲' },
     { id: 'equity',    label: t.training.tab_equity,    icon: '⚖️' },
     { id: 'potodds',   label: t.training.tab_potodds,   icon: '💰' },
-    { id: 'postflop',  label: isEn ? 'Post-flop'   : 'Post-flop',     icon: '🃏', premium: true },
-    { id: 'betsizing', label: isEn ? 'Bet Sizing'  : 'Bet Sizing',    icon: '📐', premium: true },
-    { id: 'fullhand',  label: isEn ? 'Full Hand'   : 'Main complète', icon: '🎰', premium: true },
-    { id: 'bluff',     label: isEn ? 'Bluff'       : 'Bluff',         icon: '🎭', premium: true },
+    { id: 'postflop',  label: isEn ? 'Post-flop'   : 'Post-flop',     icon: '🃏' },
+    { id: 'betsizing', label: isEn ? 'Bet Sizing'  : 'Bet Sizing',    icon: '📐' },
+    { id: 'fullhand',  label: isEn ? 'Full Hand'   : 'Main complète', icon: '🎰' },
+    { id: 'bluff',     label: isEn ? 'Bluff'       : 'Bluff',         icon: '🎭' },
   ], [t, isEn]);
 
   // Sync activeModule when URL param changes (e.g. navbar dropdown click)
@@ -99,7 +97,7 @@ export function TrainingPage() {
   // Read ?mode= param from URL (set by homepage mode buttons) on mount only
   useEffect(() => {
     const modeParam = searchParams.get('mode');
-    if (modeParam === 'beginner' || modeParam === 'advanced' || modeParam === 'expert') {
+    if (modeParam === 'basic' || modeParam === 'advanced' || modeParam === 'expert') {
       setMode(modeParam);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,11 +137,10 @@ export function TrainingPage() {
 
   return (
     <div className="flex flex-col gap-2.5">
-      {/* Module tabs — 2 explicit rows: free / premium */}
-      <div className="flex flex-col gap-1 border-b border-gray-800 pb-2">
-        {/* Row 1 — Free */}
+      {/* Module tabs — single row */}
+      <div className="border-b border-gray-800 pb-2">
         <div className="flex flex-wrap justify-center gap-1.5">
-          {TABS.filter(t => !t.premium).map(tab => (
+          {TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
@@ -156,25 +153,6 @@ export function TrainingPage() {
             >
               <span className="text-sm leading-none">{tab.icon}</span>
               <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-        {/* Row 2 — Premium */}
-        <div className="flex flex-wrap justify-center gap-1.5">
-          {TABS.filter(t => t.premium).map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`
-                flex items-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap shrink-0 transition-all
-                ${activeModule === tab.id
-                  ? 'bg-yellow-700/60 text-yellow-200 border border-yellow-600/50'
-                  : 'text-yellow-700 hover:text-yellow-400 hover:bg-yellow-900/20'}
-              `}
-            >
-              <span className="text-sm leading-none">{tab.icon}</span>
-              <span>{tab.label}</span>
-              {!isPremium && <Lock size={10} className="text-yellow-600 shrink-0 ml-0.5" />}
             </button>
           ))}
         </div>
@@ -205,7 +183,6 @@ export function TrainingPage() {
               const fmtPrefix  = rangesFormat === '8max' ? '8max:' : '';
               return `${mttPrefix}${fmtPrefix}${currentPosition}`;
             })()}
-            locked={!isPremium}
           />
         )}
       </AnimatePresence>

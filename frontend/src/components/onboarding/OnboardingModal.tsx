@@ -27,8 +27,8 @@ export function OnboardingModal({ onClose }: OnboardingModalProps) {
   };
 
   // ── Level choice handlers ──────────────────────────────────────────────────
-  const pickNewbie = () => { setMode('beginner'); setStep('explain'); };
-  const pickBasics = () => { setMode('beginner'); finish('/training'); };
+  const pickNewbie = () => { setMode('basic'); setStep('explain'); };
+  const pickBasics = () => { setMode('basic'); finish('/training'); };
   const pickPro    = () => { setMode('advanced'); finish('/training'); };
 
   const skip = () => { markOnboardingDone(); onClose(); navigate('/training'); };

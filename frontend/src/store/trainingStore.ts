@@ -156,9 +156,8 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   fetchPotOddsExercise: async () => {
     set({ isLoading: true, error: null, lastResult: null });
     try {
-      // Expert mode → borderline call/fold spots.
-      const difficulty = useModeStore.getState().mode === 'expert' ? 'expert' : undefined;
-      const exercise = await trainingApi.getPotOddsExercise(difficulty);
+      const level = useModeStore.getState().mode;
+      const exercise = await trainingApi.getPotOddsExercise(level);
       set({ potOddsExercise: exercise, isLoading: false });
     } catch {
       set({ error: 'Impossible de charger l\'exercice', isLoading: false });
@@ -206,9 +205,8 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   fetchEquityExercise: async () => {
     set({ isLoading: true, error: null, lastResult: null });
     try {
-      // Expert mode → close matchups (coin-flips / domination), board shown more often.
-      const difficulty = useModeStore.getState().mode === 'expert' ? 'expert' : undefined;
-      const exercise = await trainingApi.getEquityExercise(difficulty);
+      const level = useModeStore.getState().mode;
+      const exercise = await trainingApi.getEquityExercise(level);
       set({ equityExercise: exercise, isLoading: false });
     } catch {
       set({ error: 'Impossible de charger l\'exercice', isLoading: false });
@@ -240,7 +238,8 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   fetchBluffExercise: async () => {
     set({ isLoading: true, error: null, lastResult: null });
     try {
-      const exercise = await trainingApi.getBluffExercise();
+      const mode = useModeStore.getState().mode;
+      const exercise = await trainingApi.getBluffExercise(mode);
       set({ bluffExercise: exercise, isLoading: false });
     } catch {
       set({ error: 'Impossible de charger l\'exercice', isLoading: false });

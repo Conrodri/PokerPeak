@@ -15,6 +15,7 @@ import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
 import { SourcesFooter } from '../ui/SourcesFooter';
@@ -76,9 +77,16 @@ export function EquityTrainer() {
     await fetchEquityExercise();
   };
 
+  const handleTimeout = () => {
+    if (!equityExercise || picked !== null) return;
+    const correct = Math.round(equityExercise.hasBounty ? equityExercise.requiredEquityBounty : equityExercise.requiredEquity);
+    const wrong = equityExercise.options.find(o => o !== correct) ?? equityExercise.options[0];
+    handleAnswer(wrong);
+  };
+
   const handleAnswer = (option: number) => {
     if (!equityExercise || picked !== null) return;
-    const correct      = Math.round(equityExercise.requiredEquity);
+    const correct      = Math.round(equityExercise.hasBounty ? equityExercise.requiredEquityBounty : equityExercise.requiredEquity);
     const isRight      = option === correct;
     setPicked(option);
     setIsCorrect(isRight);
@@ -119,7 +127,7 @@ export function EquityTrainer() {
   }, []);
 
   const currentExplanation = equityExercise
-    ? (mode === 'beginner' ? equityExercise.explanation : equityExercise.explanationAdvanced)
+    ? (mode === 'basic' ? equityExercise.explanation : equityExercise.explanationAdvanced)
     : '';
 
   // ── Intro ──────────────────────────────────────────────────────────────────
@@ -180,7 +188,7 @@ export function EquityTrainer() {
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
-          examSlot={mode !== 'beginner' ? <ExamLauncher module="equity" onStart={handleStartExam} /> : undefined}
+          examSlot={<ExamLauncher module="equity" onStart={handleStartExam} />}
         />
       </div>
     );
@@ -196,13 +204,23 @@ export function EquityTrainer() {
 
   const ex = equityExercise;
   const resetKey = ex ? `${ex.potBB}-${ex.betBB}-${ex.street}` : 'loading';
-  const correctInt = ex ? Math.round(ex.requiredEquity) : 0;
+  const correctInt = ex ? Math.round(ex.hasBounty ? ex.requiredEquityBounty : ex.requiredEquity) : 0;
 
   return (
     <div className="flex flex-col gap-6 max-w-xl mx-auto">
 
       {/* Header */}
       {examActive && <ExamHud onQuit={handleQuitExam} />}
+
+      {/* Sprint countdown — advanced and expert only */}
+      {phase === 'exercise' && (
+        <SprintTimer
+          active={examActive && (mode === 'advanced' || mode === 'expert') && !!equityExercise && !isLoading}
+          resetKey={equityExercise ? `${equityExercise.potBB}-${equityExercise.betBB}-${equityExercise.street}` : 'loading'}
+          onTimeout={handleTimeout}
+          seconds={30}
+        />
+      )}
 
       {/* Exercise */}
       {phase === 'exercise' && (

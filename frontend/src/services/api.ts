@@ -85,17 +85,15 @@ export const trainingApi = {
   getRangeMatrix: (position: Position8, format: TableFormat = '6max', gameType: GameType = 'cashgame') =>
     api.get(`/training/preflop/range/${position}`, { params: { format, gameType } }).then(r => r.data.data),
 
-  getPotOddsExercise: (difficulty?: string) =>
-    api.get('/training/potodds/exercise', { params: difficulty ? { difficulty } : {} }).then(r => r.data.data),
+  getPotOddsExercise: (level?: string) =>
+    api.get('/training/potodds/exercise', { params: level ? { level } : {} }).then(r => r.data.data),
   checkPotOddsAnswer: (payload: {
     potSize: number; betSize: number; heroEquity: number;
     userAction: string; timeTaken: number; sessionId: string;
   }) => api.post('/training/potodds/check', payload).then(r => r.data.data),
 
-  getEquityExercise: (difficulty?: string) => {
-    const mode = localStorage.getItem('poker-equity-mode') || 'beginner';
-    return api.get('/training/equity/exercise', { params: { mode, ...(difficulty ? { difficulty } : {}) } }).then(r => r.data.data);
-  },
+  getEquityExercise: (level?: string) =>
+    api.get('/training/equity/exercise', { params: level ? { level } : {} }).then(r => r.data.data),
 
   getOutsExercise: (difficulty?: string) =>
     api.get('/training/outs/exercise', { params: difficulty ? { difficulty } : {} }).then(r => r.data.data),
@@ -105,8 +103,8 @@ export const trainingApi = {
   getBBDefenseRange: () =>
     api.get('/training/bbdefense/range').then(r => r.data.data),
 
-  getBluffExercise: () =>
-    api.get('/training/bluff/exercise').then(r => r.data.data),
+  getBluffExercise: (mode?: string) =>
+    api.get('/training/bluff/exercise', { params: mode ? { mode } : {} }).then(r => r.data.data),
 
   recordResult: (payload: { module: string; isCorrect: boolean; xpEarned: number; timeTaken?: number; sessionId: string }) =>
     api.post('/training/record', payload).then(r => r.data.data).catch(() => null),
@@ -236,8 +234,8 @@ export const postflopApi = {
     if (difficulty) params.difficulty = difficulty;
     return api.get('/postflop/exercise', { params }).then(r => r.data.data);
   },
-  getFullHandScenario: () =>
-    api.get('/postflop/full-hand').then(r => r.data.data),
+  getFullHandScenario: (mode?: string) =>
+    api.get('/postflop/full-hand', { params: mode ? { mode } : {} }).then(r => r.data.data),
 };
 
 // Expert multi-action ranges (premium-expert tier). mix = flat 169×4 floats.
@@ -256,7 +254,7 @@ export const examApi = {
   records: () => api.get('/exam/records').then(r => r.data.data as Record<string, { advanced: number; expert: number }>),
   /** Submit a run's score; returns the (possibly updated) best, whether it beat
    *  the record, and the module's recent run history. */
-  saveScore: (module: string, score: number, mode: 'beginner' | 'advanced' | 'expert' = 'advanced') =>
+  saveScore: (module: string, score: number, mode: 'basic' | 'advanced' | 'expert' = 'advanced') =>
     api.post('/exam/record', { module, score, mode }).then(r => r.data.data as {
       best: number; isNewRecord: boolean; history: { score: number; createdAt: string }[];
     }),

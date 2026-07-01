@@ -10,6 +10,116 @@ import { PokerTerm } from '../ui/PokerTerm';
 import { TutorialHand } from '../tutorial/HandTutorialModal';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
+// ─── Module detail data ───────────────────────────────────────────────────────
+
+type ModuleModeTexts = { fr: string; en: string };
+type ModuleDetail = {
+  id: string;
+  icon: string;
+  accentClass: string;
+  borderClass: string;
+  label: { fr: string; en: string };
+  desc: { fr: string; en: string };
+  modes: { basic: ModuleModeTexts; advanced: ModuleModeTexts; expert: ModuleModeTexts };
+};
+
+const MODULE_DETAILS: ModuleDetail[] = [
+  {
+    id: 'preflop', icon: '🎯',
+    accentClass: 'text-green-400', borderClass: 'border-green-700/50',
+    label: { fr: 'Préflop', en: 'Preflop' },
+    desc: { fr: 'Choisir la bonne action pré-flop selon ta main et ta position (4 formats × CG/MTT).', en: 'Choose the right pre-flop action based on your hand and position (4 formats × CG/MTT).' },
+    modes: {
+      basic:    { fr: 'Range GTO affichée. La fréquence de la main et son contexte sont expliqués. Action : Fold ou Raise.', en: 'GTO range displayed. Hand frequency and context explained. Action: Fold or Raise.' },
+      advanced: { fr: 'Range masquée. Tes ranges simples de "Mes Ranges" sont utilisées si activées. Jouez à l\'intuition.', en: 'Range hidden. Your simple ranges from "My Ranges" are used if enabled. Play by intuition.' },
+      expert:   { fr: 'Format différent : choisis l\'action (Fold/Call/Raise/All-in) puis sa fréquence exacte %, d\'après tes ranges complexes. Aucun indice.', en: 'Different format: pick the action (Fold/Call/Raise/All-in) then its exact frequency %, from your complex ranges. No hints.' },
+    },
+  },
+  {
+    id: 'outs', icon: '🎲',
+    accentClass: 'text-blue-400', borderClass: 'border-blue-700/50',
+    label: { fr: 'Outs', en: 'Outs' },
+    desc: { fr: 'Identifier les cartes qui améliorent ta main et estimer ta probabilité de gagner.', en: 'Identify the cards that improve your hand and estimate your winning probability.' },
+    modes: {
+      basic:    { fr: 'Type de tirage indiqué, règle ×2/×4 expliquée. Tu saisis le nombre d\'outs.', en: 'Draw type shown, ×2/×4 rule explained. You enter the number of outs.' },
+      advanced: { fr: 'Aucun indice — compte de tête. Réponse en nombre d\'outs. Timer 30 s en sprint.', en: 'No hints — count from scratch. Answer in number of outs. 30 s timer in sprint.' },
+      expert:   { fr: 'Question différente : estimer directement l\'équité % (pas les outs). Applique la règle ×2/×4 mentalement. Scénarios plus durs. Timer 30 s.', en: 'Different question: estimate equity % directly (not outs). Apply ×2/×4 rule mentally. Harder scenarios. 30 s timer.' },
+    },
+  },
+  {
+    id: 'equity', icon: '⚖️',
+    accentClass: 'text-purple-400', borderClass: 'border-purple-700/50',
+    label: { fr: 'Équité', en: 'Equity' },
+    desc: { fr: 'Calculer l\'équité requise pour appeler et décider si le call est rentable.', en: 'Calculate the required equity to call and decide whether calling is profitable.' },
+    modes: {
+      basic:    { fr: 'Formule d\'équité affichée étape par étape. Explication complète de la décision.', en: 'Equity formula shown step by step. Full explanation of the decision.' },
+      advanced: { fr: 'Aucune formule — calculez de tête. Timer 30 s en sprint.', en: 'No formula — calculate mentally. 30 s timer in sprint.' },
+      expert:   { fr: 'Scénarios avec bounty KO de tournoi : l\'équité requise intègre la valeur du bounty. Timer 30 s.', en: 'Scenarios with KO tournament bounty: required equity includes bounty value. 30 s timer.' },
+    },
+  },
+  {
+    id: 'potodds', icon: '💰',
+    accentClass: 'text-cyan-400', borderClass: 'border-cyan-700/50',
+    label: { fr: 'Pot Odds', en: 'Pot Odds' },
+    desc: { fr: 'Décider si un call est rentable en comparant le prix payé à l\'équité requise.', en: 'Decide if a call is profitable by comparing the price paid to the required equity.' },
+    modes: {
+      basic:    { fr: 'Formule, équité et décomposition EV affichées. Calcul guidé pas à pas.', en: 'Formula, equity and EV breakdown displayed. Guided step-by-step calculation.' },
+      advanced: { fr: 'Aucun indice — calculez vous-même. Timer 30 s en sprint.', en: 'No hints — calculate on your own. 30 s timer in sprint.' },
+      expert:   { fr: 'L\'équité est masquée : tu dois la calculer mentalement depuis les outs. Spots complexes, calcul mental pur. Timer 30 s.', en: 'Equity is hidden: you must calculate it mentally from your outs. Complex spots, pure mental math. 30 s timer.' },
+    },
+  },
+  {
+    id: 'postflop', icon: '🃏',
+    accentClass: 'text-rose-400', borderClass: 'border-rose-700/50',
+    label: { fr: 'Post-flop', en: 'Post-flop' },
+    desc: { fr: 'Analyser la texture du board et choisir la bonne action après le flop (Premium).', en: 'Analyse board texture and choose the right action after the flop (Premium).' },
+    modes: {
+      basic:    { fr: 'Force de main, équité et texture du board affichées. Situations lisibles.', en: 'Hand strength, equity and board texture shown. Readable situations.' },
+      advanced: { fr: 'Aucun indice. Timer 30 s en sprint.', en: 'No hints. 30 s timer in sprint.' },
+      expert:   { fr: 'Boards complexes — aucun indice, aucune équité affichée. Quand villain checke : choix entre Check / Bet 33% / Bet 67% / Bet pot (sizing précis requis). Timer 30 s.', en: 'Complex boards — no hints, no equity shown. When villain checks: choose between Check / Bet 33% / Bet 67% / Bet pot (exact sizing required). 30 s timer.' },
+    },
+  },
+  {
+    id: 'betsizing', icon: '📐',
+    accentClass: 'text-orange-400', borderClass: 'border-orange-700/50',
+    label: { fr: 'Bet Sizing', en: 'Bet Sizing' },
+    desc: { fr: 'Choisir le sizing optimal (25 % / 50 % / 75 % / 125 % / jam) pour maximiser ton EV.', en: 'Pick the optimal sizing (25% / 50% / 75% / 125% / jam) to maximise your EV.' },
+    modes: {
+      basic:    { fr: 'Texture du board, type de main et indices clés affichés. Panneau de calcul du sizing fourni.', en: 'Board texture, hand type and key hints shown. Sizing calculation panel provided.' },
+      advanced: { fr: 'Aucun indice, décision brute. Timer 30 s en sprint.', en: 'No hints, raw decision. 30 s timer in sprint.' },
+      expert:   { fr: 'Questions de fréquence GTO : à quelle fréquence (0%, 33%, 67%, 100%) faut-il miser dans ce spot ? Décision de range, pas seulement de sizing. Timer 30 s.', en: 'GTO frequency questions: how often (0%, 33%, 67%, 100%) should you bet in this spot? Range decision, not just sizing. 30 s timer.' },
+    },
+  },
+  {
+    id: 'fullhand', icon: '🎰',
+    accentClass: 'text-indigo-400', borderClass: 'border-indigo-700/50',
+    label: { fr: 'Main complète', en: 'Full Hand' },
+    desc: { fr: 'Jouer une main entière de A (préflop) à Z (river), décision à chaque street (Premium).', en: 'Play a full hand from start (preflop) to end (river), one decision per street (Premium).' },
+    modes: {
+      basic:    { fr: 'Équité et indices de texture affichés à chaque street. Mains favorables (90% in-range).', en: 'Equity and texture hints shown at each street. Favourable hands (90% in-range).' },
+      advanced: { fr: 'Aucun indice — immersion totale. Timer 30 s en sprint.', en: 'No hints — full immersion. 30 s timer in sprint.' },
+      expert:   { fr: 'Mains complexes multi-rues, aucune aide. À la river : attribution de range à villain (main forte / paire / draw / bluff) avant de choisir ton action. Décisions enchaînées. Timer 30 s.', en: 'Complex multi-street hands, no help. At the river: assign a range category to villain (strong hand / pair / draw / bluff) before choosing your action. Chained decisions. 30 s timer.' },
+    },
+  },
+  {
+    id: 'bluff', icon: '🎭',
+    accentClass: 'text-pink-400', borderClass: 'border-pink-700/50',
+    label: { fr: 'Bluff', en: 'Bluff' },
+    desc: { fr: 'Évaluer si un bluff est rentable en analysant position, texture et équité.', en: 'Evaluate whether a bluff is profitable by analysing position, texture and equity.' },
+    modes: {
+      basic:    { fr: 'Analyse détaillée de chaque facteur (position, texture du board, range adverse, équité) affichée avant de répondre.', en: 'Detailed breakdown of each factor (position, board texture, opponent range, equity) shown before answering.' },
+      advanced: { fr: 'Les facteurs s\'affichent seulement après ta réponse — lis le board et le contexte seul. Timer 30 s en sprint.', en: 'Factors only shown after your answer — read the board and context alone. 30 s timer in sprint.' },
+      expert:   { fr: 'Aucun indice. Lecture pure de la position, range et dynamique du board. Scénarios OOP inclus. Timer 30 s.', en: 'No hints. Pure read of position, range and board dynamics. OOP scenarios included. 30 s timer.' },
+    },
+  },
+];
+
+const LEVEL_CONFIGS = [
+  { key: 'basic'    as const, badge: '🎓', labelFr: 'Débutant', labelEn: 'Basic',    cls: 'text-blue-300 bg-blue-900/20 border-blue-700/40' },
+  { key: 'advanced' as const, badge: '⚡', labelFr: 'Avancé',   labelEn: 'Advanced', cls: 'text-yellow-300 bg-yellow-900/20 border-yellow-700/40' },
+  { key: 'expert'   as const, badge: '🔥', labelFr: 'Expert',   labelEn: 'Expert',   cls: 'text-red-300 bg-red-900/20 border-red-700/40' },
+];
+
 // ─── Section wrapper ──────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -130,6 +240,7 @@ export function PokerRulesPage() {
   const [activePos, setActivePos] = useState<Position8>('BTN');
   const [tab, setTab] = useState<Tab>('jeu');
   const [tableFormat, setTableFormat] = useState<TableFormat>('6max');
+  const [expandedModule, setExpandedModule] = useState<string | null>(null);
 
   const formatPositions = FORMAT_POSITIONS[tableFormat];
   const rangePct = isEn ? FORMAT_RANGE_PCT_EN[tableFormat] : FORMAT_RANGE_PCT[tableFormat];
@@ -159,17 +270,6 @@ export function PokerRulesPage() {
     { num: 3, color: 'bg-yellow-500', label: 'Turn',      descFr: 'Une 4ème carte est posée au milieu. Nouveau tour de mises.', descEn: 'A 4th card is placed in the middle. Another betting round.' },
     { num: 4, color: 'bg-red-500',    label: 'River',     descFr: 'La 5ème et dernière carte. Dernier tour de mises.', descEn: 'The 5th and last card. Final betting round.' },
     { num: 5, color: 'bg-yellow-400', label: 'Showdown',  descFr: 'Les joueurs restants montrent leurs cartes. La meilleure combinaison gagne !', descEn: 'Remaining players show their cards. The best hand wins!' },
-  ] as const;
-
-  const modules = [
-    { id: 'preflop',   label: isEn ? '🎯 Preflop' : '🎯 Préflop',       color: 'bg-felt-700 hover:bg-felt-600 border-felt-500' },
-    { id: 'outs',      label: '🎲 Outs',                                  color: 'bg-blue-800 hover:bg-blue-700 border-blue-600' },
-    { id: 'equity',    label: isEn ? '⚖️ Equity' : '⚖️ Équité',         color: 'bg-purple-800 hover:bg-purple-700 border-purple-600' },
-    { id: 'potodds',   label: '💰 Pot Odds',                              color: 'bg-cyan-800 hover:bg-cyan-700 border-cyan-600' },
-    { id: 'postflop',  label: '🃏 Post-flop',                             color: 'bg-rose-800 hover:bg-rose-700 border-rose-600' },
-    { id: 'betsizing', label: '📐 Bet Sizing',                            color: 'bg-orange-800 hover:bg-orange-700 border-orange-600' },
-    { id: 'fullhand',  label: isEn ? '🎰 Full Hand' : '🎰 Main complète', color: 'bg-indigo-800 hover:bg-indigo-700 border-indigo-600' },
-    { id: 'bluff',     label: '🎭 Bluff',                                 color: 'bg-pink-800 hover:bg-pink-700 border-pink-600' },
   ] as const;
 
   const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
@@ -454,28 +554,61 @@ export function PokerRulesPage() {
 
           {/* ══ MODULES ══ */}
           {tab === 'modules' && (
-            <Section title={`🎯 ${isEn ? 'PokerPeak modules' : 'Les modules de PokerPeak'}`}>
-              <p className="text-[11px] text-gray-400 mb-2">
-                {isEn ? 'Now that you know the rules, go practice!' : 'Maintenant que tu connais les règles, va t\'entraîner !'}
+            <div className="flex flex-col gap-2">
+              <p className="text-[11px] text-gray-500 px-0.5">
+                {isEn
+                  ? 'Tap a module to see what each difficulty level trains.'
+                  : 'Appuie sur un module pour voir ce que chaque niveau entraîne.'}
               </p>
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {modules.map(m => (
-                  <button
+              {MODULE_DETAILS.map(m => {
+                const isOpen = expandedModule === m.id;
+                const label = isEn ? m.label.en : m.label.fr;
+                return (
+                  <div
                     key={m.id}
-                    onClick={() => navigate(`/training?module=${m.id}`)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white border transition-all ${m.color}`}
+                    className={`bg-gray-900/50 rounded-xl border transition-colors ${isOpen ? m.borderClass : 'border-gray-800'}`}
                   >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => navigate('/training?module=preflop')}
-                className="w-full py-2.5 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
-              >
-                {isEn ? 'Start training →' : 'Commencer l\'entraînement →'}
-              </button>
-            </Section>
+                    <button
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
+                      onClick={() => setExpandedModule(isOpen ? null : m.id)}
+                    >
+                      <span className="text-sm leading-none shrink-0">{m.icon}</span>
+                      <span className={`font-bold text-xs ${isOpen ? m.accentClass : 'text-white'}`}>{label}</span>
+                      <span className={`ml-auto text-[10px] text-gray-600 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}>
+                        ▼
+                      </span>
+                    </button>
+
+                    {isOpen && (
+                      <div className="px-3 pb-2.5 flex flex-col gap-2">
+                        <p className="text-[11px] text-gray-400 leading-snug">
+                          {isEn ? m.desc.en : m.desc.fr}
+                        </p>
+                        <div className="flex flex-col gap-1.5">
+                          {LEVEL_CONFIGS.map(lvl => (
+                            <div key={lvl.key} className={`rounded-lg px-2.5 py-1.5 border ${lvl.cls}`}>
+                              <p className="text-[10px] font-bold mb-0.5">
+                                {lvl.badge} {isEn ? lvl.labelEn : lvl.labelFr}
+                              </p>
+                              <p className="text-[11px] opacity-80 leading-snug">
+                                {isEn ? m.modes[lvl.key].en : m.modes[lvl.key].fr}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => navigate(`/training?module=${m.id}`)}
+                          className="w-full py-2 rounded-lg bg-yellow-600 hover:bg-yellow-500 text-white font-bold text-xs transition-colors flex items-center justify-center gap-1.5 mt-0.5"
+                        >
+                          {isEn ? `Train — ${label}` : `S'entraîner — ${label}`}
+                          <ArrowRight size={12} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
 
         </motion.div>

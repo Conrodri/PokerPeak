@@ -41,7 +41,7 @@ export function SprintTimer({
   if (!active) return null;
 
   const pct = Math.max(0, Math.min(100, (left / seconds) * 100));
-  const urgent = left <= 2;
+  const urgent = left <= 5;
   const color = urgent ? '#ef4444' : '#f59e0b';
 
   return (

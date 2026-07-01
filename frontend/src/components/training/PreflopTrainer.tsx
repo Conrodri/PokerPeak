@@ -37,7 +37,6 @@ import { SpoilableHint } from '../ui/SpoilableHint';
 import { handHint } from '../../utils/handHints';
 import { TrainerIntro } from '../ui/TrainerIntro';
 import { useModeStore } from '../../store/modeStore';
-import { useAuthStore } from '../../store/authStore';
 import { VerdictBanner } from '../ui/VerdictBanner';
 import { handToDisplay, getMatrixIndices, frequencyBg, bbCellColor } from '../../utils/pokerUtils';
 import { useT } from '../../i18n';
@@ -358,7 +357,7 @@ export function PreflopTrainer() {
   // all-fold tier can never lock the trainer in an infinite skip loop.
   const foldSkipRef = useRef(0);
   const mode = useModeStore(s => s.mode);
-  const isPremium = !!useAuthStore(s => s.user?.isPremium);
+  const isPremium = true;
   const preflopEnabled = useCustomRangeStore(s => s.preflopEnabled);
   const setPreflopEnabled = useCustomRangeStore(s => s.setPreflopEnabled);
 
@@ -601,7 +600,7 @@ export function PreflopTrainer() {
     let openCorrect: boolean | null = null;
 
     // Beginner = GTO only. Custom ranges apply from Advanced upward.
-    if (preflopEnabled && mode !== 'beginner') {
+    if (preflopEnabled && mode !== 'basic') {
       let flat: number[] | null = null;
       let rangeLabel: string | undefined;
 
@@ -713,7 +712,7 @@ export function PreflopTrainer() {
     let resultIsMixed = bbExercise.isMixed;
 
     // Beginner = GTO only. Custom ranges apply from Advanced upward.
-    if (preflopEnabled && mode !== 'beginner') {
+    if (preflopEnabled && mode !== 'basic') {
       let flat: number[] | null = null;
       let label: string | null = null;
 
@@ -984,17 +983,16 @@ export function PreflopTrainer() {
       {/* Pill 2 — Nombre de joueurs */}
       <div className="flex items-center gap-1 p-1 rounded-xl border border-gray-700 bg-gray-900/60">
         {([
-          { f: '6max' as TableFormat, label: '6-max', title: isEn ? '6 players at the table' : '6 joueurs à la table' },
-          { f: '8max' as TableFormat, label: '8-max', title: isEn ? '8 players — full-ring (UTG, UTG+1, LJ added)' : '8 joueurs — full-ring (UTG, UTG+1, LJ ajoutés)' },
-          { f: '3max' as TableFormat, label: '3-max', title: isEn ? '3 players — BTN, SB, BB only' : '3 joueurs — BTN, SB, BB uniquement' },
-          { f: 'hu'   as TableFormat, label: 'HU',    title: isEn ? 'Heads-up — BTN vs BB' : 'Têtes-à-têtes — BTN vs BB' },
-        ] as const).map(({ f, label, title }) => (
+          { f: '6max' as TableFormat, label: '6-max', title: isEn ? '6 players at the table' : '6 joueurs à la table',                                                    activeCls: 'bg-blue-700 text-white border border-blue-500' },
+          { f: '8max' as TableFormat, label: '8-max', title: isEn ? '8 players — full-ring (UTG, UTG+1, LJ added)' : '8 joueurs — full-ring (UTG, UTG+1, LJ ajoutés)',    activeCls: 'bg-violet-700 text-white border border-violet-500' },
+          { f: '3max' as TableFormat, label: '3-max', title: isEn ? '3 players — BTN, SB, BB only' : '3 joueurs — BTN, SB, BB uniquement',                                activeCls: 'bg-amber-600 text-white border border-amber-500' },
+          { f: 'hu'   as TableFormat, label: 'HU',    title: isEn ? 'Heads-up — BTN vs BB' : 'Têtes-à-têtes — BTN vs BB',                                                 activeCls: 'bg-rose-700 text-white border border-rose-500' },
+        ] as const).map(({ f, label, title, activeCls }) => (
           <button
             key={f}
             title={title}
             onClick={() => {
               setFormat(f);
-              // Ensure selected position exists in the new format
               const validPositions: Record<TableFormat, string[]> = {
                 '6max': ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
                 '8max': ['UTG', 'UTG1', 'LJ', 'HJ', 'CO', 'BTN', 'SB'],
@@ -1005,7 +1003,7 @@ export function PreflopTrainer() {
             }}
             className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${
               format === f
-                ? 'bg-felt-700 text-white shadow-glow-green border border-felt-500'
+                ? activeCls
                 : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
@@ -1181,13 +1179,13 @@ export function PreflopTrainer() {
             ];
           })()}
           beginnerHint={isEn ? "Shows range frequency & hand context" : "Affiche la fréquence de range & contexte"}
-          advancedHint={isEn ? "No hints — play by intuition & memory" : "Sans indices — jouez à l'intuition & mémoire"}
-          expertHint={isEn ? "Premium Expert — quizzed on your own ranges (Fold/Call/Raise/All-in mix)" : "Premium Expert — interrogé sur tes propres ranges (mix Fold/Call/Raise/All-in)"}
+          advancedHint={isEn ? "No hints — play by intuition & memory. Your simple ranges from My Ranges are used if enabled." : "Sans indices — jouez à l'intuition & mémoire. Vos ranges simples de Mes Ranges sont utilisées si activées."}
+          expertHint={isEn ? "Quizzed on your complex ranges from My Ranges: pick the action (Fold/Call/Raise/All-in) then its exact frequency. No hints, no time to think." : "Interrogé sur tes ranges complexes de Mes Ranges : choisis l'action (Fold/Call/Raise/All-in) puis sa fréquence exacte. Aucun indice, pas le temps de réfléchir."}
           startLabel={isEn ? 'Start Training' : "Commencer l'entraînement"}
           onStart={handleStartClick}
           mode={mode}
           aboveActionsSlot={renderFormatToggle()}
-          examSlot={mode !== 'beginner' ? <ExamLauncher module={examModule} onStart={requestExam} /> : undefined}
+          examSlot={mode !== 'basic' ? <ExamLauncher module={examModule} onStart={requestExam} /> : undefined}
           bottomSlot={
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('training:open-ranges', { detail: { format, gameType } }))}
@@ -1195,14 +1193,6 @@ export function PreflopTrainer() {
             >
               <BookOpen size={13} className="text-purple-400 shrink-0" />
               {isEn ? 'My Ranges' : 'Mes ranges'}
-              <span className="ml-auto flex items-center gap-1">
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-900/50 text-yellow-400 border border-yellow-800/40">
-                  <Crown size={9} />{isEn ? 'Premium' : 'Premium'}
-                </span>
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-900/50 text-purple-400 border border-purple-800/40">
-                  <Flame size={9} />{isEn ? 'Expert' : 'Expert'}
-                </span>
-              </span>
             </button>
           }
         />
@@ -1442,7 +1432,7 @@ export function PreflopTrainer() {
                           }}
                           className="flex-1 sm:flex-none sm:min-w-[110px]"
                         >
-                          {mode === 'beginner' ? 'Raise' : '3-Bet'}
+                          {mode === 'basic' ? 'Raise' : '3-Bet'}
                         </Button>
                       </div>
                     )}
@@ -1613,7 +1603,7 @@ export function PreflopTrainer() {
                     {bbSelected && (
                       <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${localResult.isCorrect ? 'border-green-700 text-green-300 bg-green-900/20' : 'border-red-700 text-red-300 bg-red-900/20'}`}>
                         {isEn ? 'Your action' : 'Ton action'} : <strong>{
-                          bbSelected === '3bet' && mode === 'beginner' ? 'Raise' : bbSelected
+                          bbSelected === '3bet' && mode === 'basic' ? 'Raise' : bbSelected
                         }</strong>
                       </span>
                     )}
@@ -1636,7 +1626,7 @@ export function PreflopTrainer() {
                     <span className={`px-3 py-1.5 rounded-full border text-xs font-bold ${localResult.isCorrect ? 'border-green-700 text-green-300 bg-green-900/20' : 'border-red-700 text-red-300 bg-red-900/20'}`}>
                       {isEn ? 'Your action' : 'Ton action'} : <strong>{
                         bbSelected === '3bet' && bb3betType ? (bb3betType === 'value' ? (isEn ? '3-bet value' : '3-bet valeur') : '3-bet bluff')
-                          : bbSelected === '3bet' && mode === 'beginner' ? 'Raise'
+                          : bbSelected === '3bet' && mode === 'basic' ? 'Raise'
                           : bbSelected
                       }</strong>
                     </span>

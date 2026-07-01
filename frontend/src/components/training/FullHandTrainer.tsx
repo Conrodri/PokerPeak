@@ -294,6 +294,49 @@ function EquityBadge({ equity, label }: { equity: number; label: string }) {
   );
 }
 
+// ─── Range attribution (expert river) ────────────────────────────────────────
+
+const RANGE_CATEGORIES = [
+  { key: 'value',  labelFr: 'Main forte (deux paires+)',   labelEn: 'Strong hand (two pair+)' },
+  { key: 'medium', labelFr: 'Main moyenne (une paire)',    labelEn: 'Medium hand (one pair)' },
+  { key: 'draw',   labelFr: 'Draw / Semi-bluff',          labelEn: 'Draw / Semi-bluff' },
+  { key: 'bluff',  labelFr: 'Bluff (air pur)',            labelEn: 'Pure bluff (air)' },
+] as const;
+type RangeCategory = typeof RANGE_CATEGORIES[number]['key'];
+
+function classifyVillainHand(villainHand: string[], board: string[]): RangeCategory {
+  const vRanks   = villainHand.map(c => c[0]);
+  const vSuits   = villainHand.map(c => c[1]);
+  const bRanks   = board.map(c => c[0]);
+  const bSuits   = board.map(c => c[1]);
+
+  const allRanks = [...vRanks, ...bRanks];
+  const freq: Record<string, number> = {};
+  allRanks.forEach(r => { freq[r] = (freq[r] ?? 0) + 1; });
+
+  const maxFreq      = Math.max(...Object.values(freq));
+  const isPocketPair = vRanks[0] === vRanks[1];
+  const cardsOnBoard = vRanks.filter(r => bRanks.includes(r)).length;
+
+  if (maxFreq >= 3) return 'value';                   // set / trips / full house / quads
+  if (cardsOnBoard >= 2) return 'value';              // both hole cards pair different board ranks = two pair
+  if (isPocketPair && cardsOnBoard >= 1) return 'value'; // set already caught above; overpair+trips variant
+  if (cardsOnBoard >= 1 || isPocketPair) return 'medium'; // one pair
+
+  const isSuited  = vSuits[0] === vSuits[1];
+  const suitCount = isSuited ? bSuits.filter(s => s === vSuits[0]).length : 0;
+  if (isSuited && suitCount >= 2) return 'draw';      // suited with 2+ matching board suits = flush draw
+
+  const RANK_NUM: Record<string, number> = {
+    A:14, K:13, Q:12, J:11, T:10, '9':9, '8':8, '7':7, '6':6, '5':5, '4':4, '3':3, '2':2,
+  };
+  const r1 = RANK_NUM[vRanks[0]] ?? 0;
+  const r2 = RANK_NUM[vRanks[1]] ?? 0;
+  if (isSuited || Math.abs(r1 - r2) <= 2) return 'draw'; // suited or connected = draw type
+
+  return 'bluff';
+}
+
 // ─── Main component ──────────────────────────────────────────────────────────
 
 export function FullHandTrainer() {
@@ -304,12 +347,11 @@ export function FullHandTrainer() {
     useShallow(s => ({ sessionStats: s.sessionStats, recordResult: s.recordResult, setTrainerStarted: s.setTrainerStarted }))
   );
 
-  // Premium access / daily free-quota for non-premium users
   const user      = useAuthStore(s => s.user);
-  const isPremium = !!user?.isPremium;
+  const isPremium = true;
   const loggedIn  = !!user;
   const quota     = useQuotaStore();
-  const freeRemaining = isPremium ? Infinity : quota.remaining.fullhand;
+  const freeRemaining = Infinity;
   const [quotaBlocked, setQuotaBlocked] = useState(false);
 
   const [showIntro, setShowIntro] = useState(true);
@@ -323,12 +365,20 @@ export function FullHandTrainer() {
   const [rangeMatrix, setRangeMatrix] = useState<number[][] | null>(null);
   const [showRange,   setShowRange]   = useState(false);
 
+  // River range attribution (expert only)
+  const [riverRangeStep,     setRiverRangeStep]     = useState<'hidden' | 'question' | 'answered'>('hidden');
+  const [riverRangeSelected, setRiverRangeSelected] = useState<RangeCategory | null>(null);
+  const [riverRangeCorrect,  setRiverRangeCorrect]  = useState(false);
+
   const loadScenario = async () => {
     setPhase('loading');
     setAnswered({});
     setXpTotal(0);
+    setRiverRangeStep('hidden');
+    setRiverRangeSelected(null);
+    setRiverRangeCorrect(false);
     try {
-      const data = await postflopApi.getFullHandScenario();
+      const data = await postflopApi.getFullHandScenario(mode);
       setScenario(data);
       setPhase('preflop');
       if (!isPremium) quota.decrement('fullhand'); // server consumed one credit
@@ -439,12 +489,23 @@ export function FullHandTrainer() {
     if (examActive) recordAnswer(ok, handleContinue);
   };
 
-  // Expert sprint: no decision within 5s → submit a wrong action (a miss).
+  // Expert sprint: no decision within 30 s → submit a wrong action (a miss).
   const handleTimeout = () => {
     if (!decision || phase.endsWith('_result') || phase === 'loading') return;
+    if (riverRangeStep !== 'hidden') return; // don't auto-miss during range attribution
     const d = 'preflop' in decision ? decision.preflop : decision.street;
     const wrong = d.options.find(o => o.key !== d.correctAction);
     if (wrong) handleAnswer(wrong.key);
+  };
+
+  // River range attribution handler (expert only)
+  const handleRangeAnswer = (category: RangeCategory) => {
+    if (!scenario) return;
+    const board = [...scenario.flop, scenario.turn, scenario.river];
+    const correct = classifyVillainHand(scenario.villainHand as string[], board as string[]);
+    setRiverRangeSelected(category);
+    setRiverRangeCorrect(category === correct);
+    setRiverRangeStep('answered');
   };
 
   // ── Handle continue ──────────────────────────────────────────────────────────
@@ -461,6 +522,7 @@ export function FullHandTrainer() {
     }
     if (phase === 'turn_result') {
       if (scenario.lastStreet === 'turn') { loadScenario(); return; }
+      if (mode === 'expert') setRiverRangeStep('question');
       setPhase('river'); return;
     }
     if (phase === 'river_result') { loadScenario(); return; }
@@ -537,7 +599,7 @@ export function FullHandTrainer() {
           ]}
           beginnerHint={isEn ? 'Shows equity & board texture hints' : 'Affiche équité & indices de texture'}
           advancedHint={isEn ? 'No hints — full immersion' : 'Sans indices — immersion totale'}
-          expertHint={isEn ? 'Premium Expert — the most demanding level, zero help' : 'Premium Expert — le niveau le plus exigeant, aucune aide'}
+          expertHint={isEn ? 'Complex multi-street hands — no help, chained decisions' : 'Mains multi-rues complexes — aucune aide, décisions enchaînées'}
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
@@ -546,7 +608,7 @@ export function FullHandTrainer() {
           freeInfo={!isPremium && loggedIn && freeRemaining > 0
             ? { remaining: freeRemaining, limit: quota.limit }
             : undefined}
-          examSlot={mode !== 'beginner' && isPremium ? <ExamLauncher module="fullhand" onStart={handleStartExam} /> : undefined}
+          examSlot={<ExamLauncher module="fullhand" onStart={handleStartExam} />}
         />
       </div>
     );
@@ -592,11 +654,12 @@ export function FullHandTrainer() {
       {/* ── Header — lives HUD during an exam ── */}
       {examActive && <ExamHud onQuit={handleQuitExam} />}
 
-      {/* Expert sprint countdown — one per street decision */}
+      {/* Expert sprint countdown — one per street decision; paused during range attribution */}
       <SprintTimer
-        active={examActive && mode === 'expert' && !!decision && !phase.endsWith('_result')}
-        resetKey={`${scenario?.heroPosition}-${scenario?.flop?.join('')}-${currentStep}`}
+        active={examActive && (mode === 'advanced' || mode === 'expert') && !!decision && !phase.endsWith('_result') && riverRangeStep === 'hidden'}
+        resetKey={`${scenario?.heroPosition}-${scenario?.flop?.join('')}-${currentStep}-${riverRangeStep}`}
         onTimeout={handleTimeout}
+        seconds={30}
       />
 
       {/* ── Stepper ── */}
@@ -684,7 +747,87 @@ export function FullHandTrainer() {
               )
             )}
 
-            {/* Action buttons */}
+            {/* ── River range attribution (expert only) ── */}
+            {phase === 'river' && mode === 'expert' && riverRangeStep !== 'hidden' ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-2.5 w-full"
+              >
+                {/* Action history */}
+                <div className="bg-gray-900/60 rounded-xl border border-gray-700 px-3 py-2.5">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wide font-semibold mb-2">
+                    {isEn ? `${scenario.villainPosition} action history` : `Historique de ${scenario.villainPosition}`}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { street: isEn ? 'Flop' : 'Flop',   action: scenario.flopDecision.villainAction,   size: scenario.flopDecision.villainBetSize },
+                      scenario.turnDecision  && { street: 'Turn',  action: scenario.turnDecision.villainAction,   size: scenario.turnDecision.villainBetSize },
+                      scenario.riverDecision && { street: isEn ? 'River' : 'River', action: scenario.riverDecision.villainAction, size: scenario.riverDecision.villainBetSize },
+                    ].filter(Boolean).map((e, i) => {
+                      const entry = e as { street: string; action: string; size: number };
+                      return (
+                        <span key={i} className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                          entry.action === 'bet'
+                            ? 'bg-red-900/30 text-red-300 border-red-700'
+                            : 'bg-gray-800 text-gray-400 border-gray-700'
+                        }`}>
+                          {entry.street}: {entry.action === 'bet'
+                            ? `${isEn ? 'Bet' : 'Mise'} ${entry.size}bb`
+                            : 'Check'}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {riverRangeStep === 'question' ? (
+                  <>
+                    <p className="text-sm font-semibold text-white text-center">
+                      {isEn
+                        ? `What type of hand is ${scenario.villainPosition} most likely holding?`
+                        : `Quel type de main ${scenario.villainPosition} a-t-il le plus probablement ?`}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {RANGE_CATEGORIES.map(cat => (
+                        <Button
+                          key={cat.key}
+                          variant="secondary"
+                          onClick={() => handleRangeAnswer(cat.key)}
+                          className="text-xs py-2.5"
+                        >
+                          {isEn ? cat.labelEn : cat.labelFr}
+                        </Button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <div className={`rounded-xl border px-3 py-2.5 text-sm font-semibold text-center ${
+                      riverRangeCorrect
+                        ? 'bg-green-900/20 border-green-700 text-green-300'
+                        : 'bg-red-900/20 border-red-700 text-red-300'
+                    }`}>
+                      {riverRangeCorrect
+                        ? (isEn ? '✓ Good range read!' : '✓ Bonne lecture de range !')
+                        : (() => {
+                            const correct = classifyVillainHand(
+                              scenario.villainHand as string[],
+                              [...scenario.flop, scenario.turn, scenario.river] as string[]
+                            );
+                            const correctCat = RANGE_CATEGORIES.find(c => c.key === correct);
+                            return isEn
+                              ? `✗ Villain was in: ${correctCat?.labelEn}`
+                              : `✗ Villain était dans : ${correctCat?.labelFr}`;
+                          })()}
+                    </div>
+                    <Button variant="gold" onClick={() => setRiverRangeStep('hidden')}>
+                      {isEn ? 'Make your river decision →' : 'Prendre la décision river →'}
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+            /* Action buttons */
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -707,6 +850,7 @@ export function FullHandTrainer() {
                 </Button>
               ))}
             </motion.div>
+            )}
 
             {/* ── Indices — below the decision. Beginner shows them; advanced
                 reveals behind a streak-breaking spoiler; expert hides them. ── */}

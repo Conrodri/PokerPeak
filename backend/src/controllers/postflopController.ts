@@ -1130,8 +1130,12 @@ export async function getPostflopExercise(req: Request, res: Response): Promise<
 
 export async function getFullHandScenario(req: Request, res: Response): Promise<void> {
   try {
-    // Serve from pool when available (zero latency)
-    if (fullHandPool.length > 0) {
+    const mode = req.query.mode as string | undefined;
+    const isExpert = mode === 'expert';
+    const isBasic  = mode === 'basic';
+
+    // Serve from pool when available — skip pool for expert to ensure harder scenarios
+    if (fullHandPool.length > 0 && !isExpert) {
       const data = fullHandPool.shift()!;
       if (fullHandPool.length < FULLHAND_POOL_THRESHOLD) {
         refillFullHandPool().catch(err => console.error('[fullHandPool] refill error:', err));
@@ -1139,13 +1143,14 @@ export async function getFullHandScenario(req: Request, res: Response): Promise<
       return void res.json({ success: true, data });
     }
 
-    // On-demand fallback when pool is empty
+    // On-demand generation
     const matchup = RFI_MATCHUPS[Math.floor(Math.random() * RFI_MATCHUPS.length)];
 
-    // Deal all cards from a shuffled deck.
-    // 80 % of the time we want an in-range hand (raise scenario) so the module
-    // stays focused on playing decisions rather than repeated fold drills.
-    const wantInRange = Math.random() < 0.80;
+    // Expert: 50/50 in-range vs fold (more decision variety)
+    // Basic: 90% in-range (more action, easier practice)
+    // Advanced: 80% in-range (original default)
+    const inRangeProb = isExpert ? 0.50 : isBasic ? 0.90 : 0.80;
+    const wantInRange = Math.random() < inRangeProb;
     let deck = shuffleDeck(createDeck());
     let heroHand: [Card, Card] = [deck[0], deck[1]];
     let rangeFreq = getHandRangeFreq(heroHand, matchup.hero);

@@ -211,7 +211,7 @@ export function OutsTrainer() {
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
-          examSlot={mode !== 'beginner' ? <ExamLauncher module="outs" onStart={handleStartExam} /> : undefined}
+          examSlot={<ExamLauncher module="outs" onStart={handleStartExam} />}
         />
       </div>
     );
@@ -234,9 +234,10 @@ export function OutsTrainer() {
       {/* Expert sprint countdown */}
       {phase === 'exercise' && (
         <SprintTimer
-          active={examActive && mode === 'expert' && !!ex && !isLoading}
+          active={examActive && (mode === 'advanced' || mode === 'expert') && !!ex && !isLoading}
           resetKey={`${ex?.heroCards?.join('')}-${ex?.board?.join('')}`}
           onTimeout={handleTimeout}
+          seconds={30}
         />
       )}
 
@@ -407,7 +408,7 @@ export function OutsTrainer() {
           )}
 
           {/* Draws identified — beginner only */}
-          {mode === 'beginner' && (
+          {mode === 'basic' && (
             <div className="bg-gray-800/60 rounded-2xl p-4 border border-gray-700">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
                 {t.training.outs_draws_lbl}

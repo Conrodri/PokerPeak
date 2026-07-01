@@ -144,8 +144,9 @@ export async function checkPreflopAnswer(req: Request, res: Response): Promise<v
 export async function getPotOddsExercise(req: Request, res: Response): Promise<void> {
   try {
     const lang = getLang(req);
-    const difficulty = req.query.difficulty === 'expert' ? 'expert' : undefined;
-    const exercise = generatePotOddsExercise(lang, difficulty);
+    const raw = req.query.level as string | undefined;
+    const level = raw === 'expert' ? 'expert' : raw === 'advanced' ? 'advanced' : 'basic';
+    const exercise = generatePotOddsExercise(lang, level);
     res.json({ success: true, data: exercise } as ApiResponse);
   } catch {
     res.status(500).json({ success: false, error: 'Failed to generate exercise' } as ApiResponse);
@@ -188,10 +189,10 @@ export async function checkPotOddsAnswer(req: Request, res: Response): Promise<v
 
 export function getEquityExercise(req: Request, res: Response): void {
   try {
-    const lang       = getLang(req);
-    const mode       = (req.query.mode === 'advanced' ? 'advanced' : 'beginner') as 'beginner' | 'advanced';
-    const difficulty = req.query.difficulty === 'expert' ? 'expert' : undefined;
-    const exercise   = generateEquityExercise(lang, mode, difficulty);
+    const lang  = getLang(req);
+    const raw   = req.query.level as string | undefined;
+    const level = raw === 'expert' ? 'expert' : raw === 'advanced' ? 'advanced' : 'basic';
+    const exercise = generateEquityExercise(lang, level);
     res.json({ success: true, data: exercise } as ApiResponse);
   } catch {
     res.status(500).json({ success: false, error: 'Failed to generate exercise' } as ApiResponse);
@@ -228,9 +229,10 @@ export async function getBBDefenseRange(_req: Request, res: Response): Promise<v
   }
 }
 
-export async function getBluffExercise(_req: Request, res: Response): Promise<void> {
+export async function getBluffExercise(req: Request, res: Response): Promise<void> {
   try {
-    const exercise = generateBluffExercise();
+    const mode = req.query.mode as string | undefined;
+    const exercise = generateBluffExercise(mode);
     res.json({ success: true, data: exercise } as ApiResponse);
   } catch {
     res.status(500).json({ success: false, error: 'Failed to generate bluff exercise' } as ApiResponse);
