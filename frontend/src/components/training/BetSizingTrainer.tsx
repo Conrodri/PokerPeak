@@ -546,6 +546,174 @@ const EXERCISES: BetSizingExercise[] = [
       en: 'As the 3-bettor OOP in a 3-bet pot with AsKs, we have a hand that doesn\'t realize equity by checking (AK no pair on flop). Nut flush draw (9 outs) + two overcards (6 outs) = ~15 effective outs. In a 3-bet pot, our range is more polarized: we 3-bet AA, KK, AK — so the board favors us (3-bettor range advantage). A large bet (75%) with AK here is high-EV: either villain folds, or we realize equity with a nut draw.',
     },
   },
+
+  // ── 21. Range bet, dry low flop, IP ─────────────────────────────────────────
+  {
+    id: 'bs-21', street: 'flop', difficulty: 'normal',
+    heroPosition: 'HJ', villainPosition: 'BB',
+    heroHand: ['Ac', 'Jd'], board: ['Th', '6c', '4s'],
+    potSize: 4, effectiveStack: 96, isHeroIP: true,
+    preflopContext: {
+      fr: 'HJ ouvre à 2.2bb, BB défend. Flop T64 arc-en-ciel.',
+      en: 'HJ opens 2.2bb, BB calls. Flop T64 rainbow.',
+    },
+    boardTexture: { fr: 'Sec, statique, arc-en-ciel', en: 'Dry, static, rainbow' },
+    handDescription: { fr: 'Deux overcards + backdoor tirages — aucune paire', en: 'Two overcards + backdoor draws — no pair' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'small',
+    conceptTag: { fr: 'Range Bet', en: 'Range Bet' },
+    explanation: {
+      fr: 'Sur T64 arc-en-ciel, la range d\'ouverture HJ domine largement celle de défense BB (plus de paires hautes, plus de mains à cartes T+). Un range bet à petit sizing (33%) permet de miser une part énorme de la range HJ à faible risque — AJ avec deux overcards profite pleinement du fold equity et garde de l\'équité si suivi. Pas besoin de miser plus gros sur un board aussi statique.',
+      en: 'On T64 rainbow, HJ\'s opening range dominates BB\'s calling range (more high pairs, more T+ hands). A small-sizing range bet (33%) lets HJ bet a huge chunk of their range cheaply — AJ with two overcards fully benefits from fold equity and keeps live equity if called. No need to size up on such a static board.',
+    },
+  },
+
+  // ── 22. Overpair, board bicolore connecté ───────────────────────────────────
+  {
+    id: 'bs-22', street: 'flop', difficulty: 'normal',
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['9d', '9c'], board: ['Js', '8s', '3d'],
+    potSize: 5, effectiveStack: 95, isHeroIP: true,
+    preflopContext: {
+      fr: 'BTN ouvre, BB défend. Flop J83 bicolore.',
+      en: 'BTN opens, BB calls. Flop J83 two-tone.',
+    },
+    boardTexture: { fr: 'Bicolore, semi-connecté, tirages couleur et quinte possibles', en: 'Two-tone, semi-connected, flush and straight draws live' },
+    handDescription: { fr: 'Surpaire — au-dessus du board mais vulnérable aux tirages', en: 'Overpair — above the board but vulnerable to draws' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'large',
+    conceptTag: { fr: 'Protection', en: 'Protection' },
+    explanation: {
+      fr: 'Avec 99 sur J83 bicolore, on a une surpaire qui bat presque toute la range de défense BB, mais le board offre des tirages couleur et quinte (T9, T7, 76, tirage pique). Une mise grosse (75%) protège la main en donnant un mauvais prix aux tirages tout en extrayant le maximum de valeur des paires plus faibles et des tirages qui suivent quand même. Une petite mise inviterait trop de mains à réaliser leur équité pas cher.',
+      en: 'With 99 on J83 two-tone, we have an overpair that beats most of BB\'s calling range, but the board carries flush and straight draws (T9, T7, 76, spade draw). A large bet (75%) protects the hand by giving draws a bad price while extracting maximum value from weaker pairs and draws that call anyway. A small bet invites too many hands to realize equity cheaply.',
+    },
+  },
+
+  // ── 23. Turn — couleur complétée, set protégé ───────────────────────────────
+  {
+    id: 'bs-23', street: 'turn', difficulty: 'hard',
+    heroPosition: 'CO', villainPosition: 'BB',
+    heroHand: ['Kh', 'Kd'], board: ['Kc', '9h', '5h', '2h'],
+    potSize: 12, effectiveStack: 88, isHeroIP: true,
+    preflopContext: {
+      fr: 'CO ouvre, BB défend. Bet flop, la turn amène un 3ème cœur.',
+      en: 'CO opens, BB calls. Bet flop, turn brings a 3rd heart.',
+    },
+    boardTexture: { fr: 'Tirage couleur complété à la turn — board dangereux', en: 'Flush draw completed on the turn — dangerous board' },
+    handDescription: { fr: 'Brelan de rois — très fort mais la couleur peut être complétée', en: 'Set of kings — very strong, but the flush may be there' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'large',
+    conceptTag: { fr: 'Protection', en: 'Protection' },
+    explanation: {
+      fr: 'Avec un brelan de rois sur un board où la couleur cœur vient de se compléter, on a toujours la meilleure main la grande majorité du temps (peu de mains dans la range BB contiennent deux cœurs). Une mise grosse (75%) extrait le maximum de valeur des mains qui suivent quand même (paires, tirages ratés) et fait payer cher les rares mains de couleur. Ralentir donnerait une carte gratuite dangereuse à la river.',
+      en: 'With a set of kings on a board where the heart flush just completed, we\'re still ahead the vast majority of the time (few BB hands hold two hearts). A large bet (75%) extracts maximum value from hands that call anyway (pairs, busted draws) and charges the rare flush a high price. Slowing down gives a dangerous free river card.',
+    },
+  },
+
+  // ── 24. River — tirage raté, abandon ────────────────────────────────────────
+  {
+    id: 'bs-24', street: 'river', difficulty: 'normal',
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['Qc', 'Jc'], board: ['Ac', '8c', '3d', '9s', 'Kh'],
+    potSize: 10, effectiveStack: 90, isHeroIP: true,
+    preflopContext: {
+      fr: 'BTN ouvre, BB défend. Bet flop sur tirage couleur, la river brique.',
+      en: 'BTN opens, BB calls. Bet flop on a flush draw, river bricks.',
+    },
+    boardTexture: { fr: 'Tirage couleur raté à la river — board complet dangereux (A-K haut)', en: 'Flush draw missed on the river — dangerous complete board (A-K high)' },
+    handDescription: { fr: 'Tirage couleur raté — aucune combinaison, deux cartes hautes non appariées', en: 'Missed flush draw — no made hand, two unpaired high cards' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'check',
+    conceptTag: { fr: 'Abandon', en: 'Give Up' },
+    explanation: {
+      fr: 'Avec QJ, le tirage couleur est raté et la main ne vaut rien face à une range de défense BB qui contient beaucoup de paires d\'as/rois sur ce board. Bluffer ici demanderait un fold equity important sur un board où BB a souvent une paire haute qui ne peut pas se coucher. Sans blocker fort (pas d\'as ni de roi en main), le bluff est -EV. Checker et abandonner la main est la ligne correcte.',
+      en: 'With QJ, the flush draw missed and the hand is worthless against a BB calling range full of ace/king pairs on this board. Bluffing here would need heavy fold equity on a board where BB often has a top pair that can\'t fold. Without a strong blocker (no ace or king in hand), the bluff is -EV. Checking and giving up is correct.',
+    },
+  },
+
+  // ── 25. Range bet, board pairé bas ──────────────────────────────────────────
+  {
+    id: 'bs-25', street: 'flop', difficulty: 'hard',
+    heroPosition: 'UTG', villainPosition: 'BTN',
+    heroHand: ['Ah', 'Kc'], board: ['5s', '5d', '2c'],
+    potSize: 6, effectiveStack: 94, isHeroIP: true,
+    preflopContext: {
+      fr: 'UTG ouvre, BTN appelle. Flop 552 pairé, rainbow.',
+      en: 'UTG opens, BTN calls. Flop 552 paired, rainbow.',
+    },
+    boardTexture: { fr: 'Pairé, bas, statique — aucun tirage', en: 'Paired, low, static — no draws' },
+    handDescription: { fr: 'Deux overcards sans paire — mais range UTG très favorisée ici', en: 'Two overcards no pair — but UTG range heavily favored here' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'small',
+    conceptTag: { fr: 'Range Bet', en: 'Range Bet' },
+    explanation: {
+      fr: 'Sur un board pairé bas comme 552, personne ne touche souvent, mais la range serrée UTG (beaucoup de paires hautes qui restent devant) domine largement celle du BTN. Un board sans tirage ne demande aucune protection : un range bet léger (33%) suffit à extraire de la valeur et à faire fold les mains qui ratent totalement, sans risquer beaucoup de jetons.',
+      en: 'On a low paired board like 552, nobody connects often, but UTG\'s tight range (lots of high pairs still ahead) dominates BTN\'s. A drawless board needs no protection: a light range bet (33%) is enough to extract value and fold out complete misses, without risking many chips.',
+    },
+  },
+
+  // ── 26. River — quinte nuts sur board humide, surenchère ────────────────────
+  {
+    id: 'bs-26', street: 'river', difficulty: 'hard',
+    heroPosition: 'BB', villainPosition: 'BTN',
+    heroHand: ['Th', '9h'], board: ['Jd', '8h', '7c', '6s', '2h'],
+    potSize: 16, effectiveStack: 84, isHeroIP: false,
+    preflopContext: {
+      fr: 'BTN ouvre, BB défend. Check-check flop, BB mise la turn et se fait suivre. Décision river.',
+      en: 'BTN opens, BB calls. Check-check flop, BB bets the turn and gets called. River decision.',
+    },
+    boardTexture: { fr: 'Board très connecté — quinte et couleur possibles pour les deux ranges', en: 'Highly connected board — straights and flushes possible for both ranges' },
+    handDescription: { fr: 'Quinte nuts (T9 + J-8-7 du board = quinte au valet) — main imbattable', en: 'Nut straight (T9 + board\'s J-8-7 = jack-high straight) — unbeatable hand' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'overbet',
+    conceptTag: { fr: 'Surenchère', en: 'Overbet' },
+    explanation: {
+      fr: 'Avec la quinte nuts sur un board aussi connecté, il n\'y a aucune raison de ralentir : la range de call de BTN sur ce board contient encore beaucoup de paires fortes, deux paires et tirages couleur ratés qui doivent continuer face à une mise. Une surenchère (130%) maximise l\'extraction de valeur — avec les nuts, le risque de se faire punir est nul, donc miser gros est toujours correct ici.',
+      en: 'With the nut straight on such a connected board, there\'s no reason to slow down: BTN\'s calling range here still holds plenty of strong pairs, two pairs, and busted flush draws that must continue against a bet. An overbet (130%) maximizes value extraction — with the nuts, the downside risk is zero, so betting big is always correct here.',
+    },
+  },
+
+  // ── 27. OOP air sur board favorable au preflop raiser ───────────────────────
+  {
+    id: 'bs-27', street: 'flop', difficulty: 'normal',
+    heroPosition: 'BB', villainPosition: 'BTN',
+    heroHand: ['Kd', 'Qc'], board: ['Ah', '6s', '4d'],
+    potSize: 5, effectiveStack: 95, isHeroIP: false,
+    preflopContext: {
+      fr: 'BTN ouvre, BB défend. Flop A64 bicolore.',
+      en: 'BTN opens, BB calls. Flop A64 two-tone.',
+    },
+    boardTexture: { fr: 'As haut, sec — favorise fortement la range d\'ouverture BTN', en: 'Ace-high, dry — heavily favors BTN\'s opening range' },
+    handDescription: { fr: 'Deux overcards sans as — aucune combinaison, hors position', en: 'Two overcards, no ace — no made hand, out of position' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'check',
+    conceptTag: { fr: 'Abandon', en: 'Give Up' },
+    explanation: {
+      fr: 'Sur un board A64, le BTN a beaucoup plus d\'as dans sa range d\'ouverture que la BB dans sa range de défense. Avec KQ hors position et sans as, on a peu d\'équité réalisable et aucun fold equity crédible : miser ici reviendrait à bluffer dans le vide face à une range qui nous domine. Checker pour contrôler la taille du pot et voir la suite gratuitement est la ligne standard.',
+      en: 'On an A64 board, BTN has far more aces in their opening range than BB has in their calling range. With KQ out of position and no ace, we have little realizable equity and no credible fold equity: betting here would be bluffing into a range that dominates us. Checking to control pot size and see the next card for free is the standard line.',
+    },
+  },
+
+  // ── 28. Turn — set touché sur board dynamique ───────────────────────────────
+  {
+    id: 'bs-28', street: 'turn', difficulty: 'hard',
+    heroPosition: 'CO', villainPosition: 'BB',
+    heroHand: ['7c', '7d'], board: ['7h', '9s', 'Th', 'Jc'],
+    potSize: 11, effectiveStack: 89, isHeroIP: true,
+    preflopContext: {
+      fr: 'CO ouvre, BB défend. Check-check flop, la turn complète un tirage quinte.',
+      en: 'CO opens, BB calls. Check-check flop, turn completes a straight draw.',
+    },
+    boardTexture: { fr: 'Board très dynamique — quinte et tirages multiples à la turn', en: 'Highly dynamic board — straight made and multiple draws on the turn' },
+    handDescription: { fr: 'Brelan de sept — fort mais le board a beaucoup de quintes possibles', en: 'Set of sevens — strong, but the board has many possible straights' },
+    options: ['check', 'small', 'medium', 'large'],
+    correctKey: 'large',
+    conceptTag: { fr: 'Protection', en: 'Protection' },
+    explanation: {
+      fr: 'Avec un brelan de sept sur 79TJ, on est toujours devant la plupart des mains, mais QK et Q8 complètent déjà la quinte et beaucoup de tirages sont en jeu. Une mise grosse (75%) est nécessaire pour faire payer cher les tirages restants (Q8, 8x, tirages couleur si présents) et pour ne pas donner de carte gratuite à une river qui pourrait compléter une quinte ou une couleur contre nous.',
+      en: 'With a set of sevens on 79TJ, we\'re still ahead of most hands, but QK and Q8 already make the straight and plenty of draws are live. A large bet (75%) is needed to charge the remaining draws (Q8, 8x, flush draws if present) heavily and to avoid giving a free card into a river that could complete a straight or flush against us.',
+    },
+  },
 ];
 
 // ─── Frequency exercises (expert only) ───────────────────────────────────────
@@ -679,6 +847,70 @@ const FREQUENCY_EXERCISES: FrequencyExercise[] = [
     explanation: {
       fr: 'KJ sur A-T-5-2-9 à la river : aucune combinaison. En position, bluffer ici n\'est jamais rentable : la BB a des Ax et Tx facilement, KJ ne bloque pas ces mains. GTO : checker **100% du temps** pour le showdown gratuit. Un bluff ici = perdre le pot vs toutes les mains de valeur que la BB tient.',
       en: 'KJ on A-T-5-2-9 at the river: no made hand. In position, bluffing here is never profitable: BB easily has Ax and Tx, KJ doesn\'t block those hands. GTO: check **100% of the time** for a free showdown. Bluffing here = losing the pot against all the value hands BB holds.',
+    },
+  },
+  // F09: Overpair on dry board, IP (100%)
+  {
+    id: 'bf-09', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['Ah', 'Ad'], board: ['Qs', '7c', '2d'],
+    potSize: 5, effectiveStack: 95, isHeroIP: true,
+    preflopContext: { fr: 'BTN ouvre, BB défend. Flop Q72 arc-en-ciel.', en: 'BTN opens, BB defends. Flop Q72 rainbow.' },
+    boardTexture: { fr: 'Sec, statique, arc-en-ciel', en: 'Dry, static, rainbow' },
+    handDescription: { fr: 'AA — surpaire, quasiment la nuts sur ce board', en: 'AA — overpair, virtually the nuts on this board' },
+    conceptTag: { fr: 'Value', en: 'Value' },
+    correctFrequency: '100%',
+    explanation: {
+      fr: 'AA sur Q72 arc-en-ciel : quasiment la nuts (seul un brelan de dames bat cette main). Le board favorise déjà la range BTN, et une surpaire aussi forte n\'a rien à gagner à checker. GTO : miser **100% du temps** — extraire de la valeur des paires de dames, tirages et paires plus faibles qui suivent, sans jamais donner de carte gratuite.',
+      en: 'AA on Q72 rainbow: virtually the nuts (only a set of queens beats this hand). The board already favors BTN\'s range, and an overpair this strong has nothing to gain by checking. GTO: bet **100% of the time** — extract value from queen pairs, draws, and weaker pairs that call, never giving a free card.',
+    },
+  },
+  // F10: OOP air on wet two-tone board (0%)
+  {
+    id: 'bf-10', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BB', villainPosition: 'BTN',
+    heroHand: ['7c', '2d'], board: ['Jh', 'Ts', '9h'],
+    potSize: 5, effectiveStack: 95, isHeroIP: false,
+    preflopContext: { fr: 'BTN ouvre, BB défend. Flop J-T-9 bicolore.', en: 'BTN opens, BB defends. Flop J-T-9 two-tone.' },
+    boardTexture: { fr: 'Très connecté, bicolore — quintes et tirages couleur multiples', en: 'Highly connected, two-tone — multiple straights and flush draws' },
+    handDescription: { fr: '72 dépareillé — aucune paire, aucun tirage', en: '72 offsuit — no pair, no draw' },
+    conceptTag: { fr: 'Hors position', en: 'Out of Position' },
+    correctFrequency: '0%',
+    explanation: {
+      fr: 'Avec 72 sur J-T-9 bicolore, hors position, on n\'a **aucune équité réalisable** sur le board le plus dangereux possible pour un bluff : BTN a beaucoup de quintes, tirages et paires fortes ici. GTO : checker **100% du temps**. Bluffer sans aucun blocker sur un board qui favorise autant le range du BTN est une des pires erreurs possibles.',
+      en: 'With 72 on J-T-9 two-tone, out of position, we have **zero realizable equity** on about the most dangerous possible board to bluff: BTN has plenty of straights, draws, and strong pairs here. GTO: check **100% of the time**. Bluffing with no blockers on a board that so heavily favors BTN\'s range is one of the worst possible mistakes.',
+    },
+  },
+  // F11: IP weak gutshot, mixed low-frequency semi-bluff (33%)
+  {
+    id: 'bf-11', street: 'flop', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'CO', villainPosition: 'BB',
+    heroHand: ['Qc', 'Jd'], board: ['Kh', 'Th', '4c'],
+    potSize: 5, effectiveStack: 95, isHeroIP: true,
+    preflopContext: { fr: 'CO ouvre, BB défend. Flop K-T-4 bicolore cœur.', en: 'CO opens, BB defends. Flop K-T-4 two-tone hearts.' },
+    boardTexture: { fr: 'Bicolore, semi-connecté — tirage couleur pour BB, quinte possible', en: 'Two-tone, semi-connected — flush draw for BB, straight possible' },
+    handDescription: { fr: 'QJ — tirage quinte par le ventre (un 9) uniquement, aucun tirage couleur', en: 'QJ — gutshot straight draw (a 9) only, no flush draw' },
+    conceptTag: { fr: 'Semi-bluff', en: 'Semi-bluff' },
+    correctFrequency: '33%',
+    explanation: {
+      fr: 'QJ sur K-T-4 : seulement un tirage par le ventre (4 outs), aucun tirage couleur (pas de cœur en main). En position avec une équité de secours modeste, GTO mélange : miser **une minorité du temps (~33%)** en semi-bluff pour garder la range de mise cohérente, checker le reste pour ne pas sur-bluffer une main aussi faible sans autre atout que le gutshot.',
+      en: 'QJ on K-T-4: only a gutshot (4 outs), no flush draw (no heart in hand). In position with modest backup equity, GTO mixes: bet **a minority of the time (~33%)** as a semi-bluff to keep the betting range balanced, checking the rest since a hand this weak with nothing but the gutshot shouldn\'t over-bluff.',
+    },
+  },
+  // F12: River missed draw into a scary top-heavy board (0%)
+  {
+    id: 'bf-12', street: 'river', difficulty: 'hard', frequencyMode: true,
+    heroPosition: 'BTN', villainPosition: 'BB',
+    heroHand: ['Qd', 'Jd'], board: ['Ac', '8d', '4d', '9s', 'Kh'],
+    potSize: 18, effectiveStack: 82, isHeroIP: true,
+    preflopContext: { fr: 'BTN ouvre, BB défend. Tirage couleur carreau raté à la river, board A-K haut.', en: 'BTN opens, BB defends. Missed diamond flush draw on the river, A-K high board.' },
+    boardTexture: { fr: 'River brick — board complet As-Roi, aucun blocker', en: 'River brick — complete Ace-King board, no blockers' },
+    handDescription: { fr: 'QJ — tirage couleur raté, aucun as ni roi en main', en: 'QJ — missed flush draw, no ace or king in hand' },
+    conceptTag: { fr: 'Abandon', en: 'Give Up' },
+    correctFrequency: '0%',
+    explanation: {
+      fr: 'QJ sur A-8-4-9-K : tirage couleur raté, aucune combinaison. Sans as ni roi comme blocker, on ne réduit en rien les combos de mains fortes que la BB peut tenir sur ce board très haut. GTO : checker **100% du temps** — bluffer ici demanderait un fold equity qu\'on ne peut pas obtenir sans bloquer les meilleures mains adverses.',
+      en: 'QJ on A-8-4-9-K: missed flush draw, no made hand. With no ace or king as a blocker, we don\'t reduce any of the strong combos BB can hold on this high board. GTO: check **100% of the time** — bluffing here would need fold equity we simply don\'t have without blocking villain\'s best hands.',
     },
   },
 ];

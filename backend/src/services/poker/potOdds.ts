@@ -1,3 +1,5 @@
+import { randomDrawShape } from './outs';
+
 export interface PotOddsResult {
   potOdds: number;
   potOddsPct: number;
@@ -211,26 +213,43 @@ export function getRandomScenario(difficulty?: 'easy' | 'medium' | 'hard'): PotO
 const ri = (n: number) => Math.floor(Math.random() * n);
 const pick = <T,>(a: T[]): T => a[ri(a.length)];
 
-interface CloseDraw {
-  heroCards: [string, string]; board: string[]; street: 'flop' | 'turn'; outs: number;
-  drawType: { fr: string; en: string };
-}
-const CLOSE_DRAWS: CloseDraw[] = [
-  { heroCards: ['9d', '8c'], board: ['7h', '6s', '2c'], street: 'flop', outs: 8,
-    drawType: { fr: 'un tirage quinte bilatéral — 8 outs (≈32%)', en: 'an open-ended straight draw — 8 outs (≈32%)' } },
-  { heroCards: ['Ah', 'Kh'], board: ['2h', '9h', 'Jc'], street: 'flop', outs: 9,
-    drawType: { fr: 'un tirage couleur — 9 outs (≈36%)', en: 'a flush draw — 9 outs (≈36%)' } },
-  { heroCards: ['As', 'Ks'], board: ['7d', '8c', '2h'], street: 'flop', outs: 6,
-    drawType: { fr: 'deux surcartes — 6 outs (≈24%)', en: 'two overcards — 6 outs (≈24%)' } },
-  { heroCards: ['Ah', 'Qh'], board: ['Kh', 'Jc', '2h'], street: 'flop', outs: 12,
-    drawType: { fr: 'un tirage combiné couleur + ventre — 12 outs (≈48%)', en: 'a combo flush + gutshot draw — 12 outs (≈48%)' } },
-  { heroCards: ['Ad', 'Kd'], board: ['5d', '9d', 'Jc', '2s'], street: 'turn', outs: 9,
-    drawType: { fr: 'un tirage couleur à la turn — 9 outs (≈18%, une carte)', en: 'a flush draw on the turn — 9 outs (≈18%, one card)' } },
-  { heroCards: ['Jc', 'Td'], board: ['9h', '8s', '3c', '2d'], street: 'turn', outs: 8,
-    drawType: { fr: 'un tirage bilatéral à la turn — 8 outs (≈16%, une carte)', en: 'an open-ended draw on the turn — 8 outs (≈16%, one card)' } },
-  { heroCards: ['9d', '8d'], board: ['Qh', 'Jc', '2s'], street: 'flop', outs: 4,
-    drawType: { fr: 'un tirage par le ventre — 4 outs (≈16%)', en: 'a gutshot — 4 outs (≈16%)' } },
+// (outs, street) shapes worth quizzing on — the actual hand/board is drawn
+// fresh each call via outs.ts's generators (real rank/suit variety), instead
+// of reusing a handful of fixed hands with only the pot/bet changing.
+const DRAW_TARGETS: { outs: number; street: 'flop' | 'turn' }[] = [
+  { outs: 8,  street: 'flop' },
+  { outs: 9,  street: 'flop' },
+  { outs: 6,  street: 'flop' },
+  { outs: 12, street: 'flop' },
+  { outs: 9,  street: 'turn' },
+  { outs: 8,  street: 'turn' },
+  { outs: 4,  street: 'flop' },
 ];
+
+const DRAW_NOUN: Record<number, { fr: string; en: string }> = {
+  4:  { fr: 'un tirage par le ventre',            en: 'a gutshot' },
+  6:  { fr: 'deux surcartes',                     en: 'two overcards' },
+  8:  { fr: 'un tirage quinte bilatéral',         en: 'an open-ended straight draw' },
+  9:  { fr: 'un tirage couleur',                  en: 'a flush draw' },
+  12: { fr: 'un tirage combiné couleur + ventre', en: 'a combo flush + gutshot draw' },
+};
+
+/** Short noun-phrase description of a draw, used inline in a sentence
+ *  ("Tu as {drawLabel}, face à..."). Equity shown is computed live (Rule of
+ *  2 & 4) so it stays correct for whichever outs/street combination is drawn. */
+function drawLabel(outs: number, street: 'flop' | 'turn'): { fr: string; en: string } {
+  const noun = DRAW_NOUN[outs] ?? { fr: `un tirage à ${outs} outs`, en: `a ${outs}-out draw` };
+  const equity = outs * (street === 'flop' ? 4 : 2);
+  return street === 'turn'
+    ? { fr: `${noun.fr} à la turn — ${outs} outs (≈${equity}%, une carte)`, en: `${noun.en} on the turn — ${outs} outs (≈${equity}%, one card)` }
+    : { fr: `${noun.fr} — ${outs} outs (≈${equity}%)`, en: `${noun.en} — ${outs} outs (≈${equity}%)` };
+}
+
+function pickCloseDraw(): { heroCards: [string, string]; board: string[]; street: 'flop' | 'turn'; outs: number; drawType: { fr: string; en: string } } {
+  const t = pick(DRAW_TARGETS);
+  const shape = randomDrawShape(t.outs, t.street);
+  return { heroCards: shape.heroCards, board: shape.board, street: shape.street, outs: shape.outs, drawType: drawLabel(shape.outs, shape.street) };
+}
 
 /** Build a clearly-easy call/fold spot: required equity at least ~8 points away
  *  from the hero's equity (not borderline), with clean pot/bet numbers — good
@@ -239,7 +258,7 @@ export function generateEasyPotOddsScenario(lang: 'fr' | 'en' = 'fr'): PotOddsSc
   const CLEAN_POTS = [8, 10, 12, 15, 16, 20, 24, 25, 30];
   const FRACTIONS  = [1 / 4, 1 / 3, 1 / 2, 2 / 3, 1];
   for (let attempts = 0; attempts < 200; attempts++) {
-    const d = pick(CLOSE_DRAWS);
+    const d = pickCloseDraw();
     const E = d.outs * (d.street === 'flop' ? 4 : 2);
     const pot = pick(CLEAN_POTS);
     const bet = Math.max(2, Math.round(pot * pick(FRACTIONS)));
@@ -264,7 +283,7 @@ export function generateEasyPotOddsScenario(lang: 'fr' | 'en' = 'fr'): PotOddsSc
 export function generateClosePotOddsScenario(lang: 'fr' | 'en' = 'fr'): PotOddsScenario {
   const UGLY_POTS = [13, 17, 19, 23, 27, 31];
   for (;;) {
-    const d = pick(CLOSE_DRAWS);
+    const d = pickCloseDraw();
     const E = d.outs * (d.street === 'flop' ? 4 : 2);     // Rule of 2 & 4 (%)
     const pot = pick(UGLY_POTS);
     const target = (E + (Math.random() * 7 - 3.5)) / 100; // aim just around the threshold
@@ -340,81 +359,60 @@ function formatRatio(pot: number, bet: number): string {
 // The correct action is derived from implied odds, not direct pot odds.
 // Most interesting cases: direct=FOLD but implied=CALL (or vice versa).
 
-interface ImpliedDraw {
-  heroCards: [string, string];
-  board: string[];
-  street: 'flop' | 'turn';
+// Curated (outs, street, pot, bet, implied winnings, stack) tuples — each
+// tuned so direct-odds and implied-odds sometimes disagree (the interesting
+// teaching case). The hand/board is drawn fresh each call (real card variety)
+// for the matching outs/street via outs.ts's generators.
+interface ImpliedTarget {
   outs: number;
-  drawType: { fr: string; en: string };
+  street: 'flop' | 'turn';
   potSize: number;
   betSize: number;
   impliedWinnings: number;
   villainStackBehind: number;
 }
 
-const EXPERT_IMPLIED_DRAWS: ImpliedDraw[] = [
+const EXPERT_IMPLIED_TARGETS: ImpliedTarget[] = [
   // A — turn flush draw: direct FOLD (30.8%) → implied CALL (18% > 16.7%)
-  {
-    heroCards: ['Ad', 'Kd'], board: ['5d', '9d', 'Jc', '2s'], street: 'turn',
-    outs: 9, potSize: 10, betSize: 8, impliedWinnings: 22, villainStackBehind: 50,
-    drawType: { fr: 'un tirage couleur à la turn — 9 outs (≈18%)', en: 'a flush draw on the turn — 9 outs (≈18%)' },
-  },
+  { outs: 9, street: 'turn', potSize: 10, betSize: 8,  impliedWinnings: 22, villainStackBehind: 50 },
   // B — flop gutshot: direct FOLD (25%) → implied FOLD (16% < 18.4%)
-  {
-    heroCards: ['9d', '8c'], board: ['Qh', 'Jc', '2s'], street: 'flop',
-    outs: 4, potSize: 14, betSize: 7, impliedWinnings: 10, villainStackBehind: 25,
-    drawType: { fr: 'un tirage par le ventre — 4 outs (≈16%)', en: 'a gutshot — 4 outs (≈16%)' },
-  },
+  { outs: 4, street: 'flop', potSize: 14, betSize: 7,  impliedWinnings: 10, villainStackBehind: 25 },
   // C — turn OESD: direct FOLD (20.8%) → implied CALL (16% > 11.9%)
-  {
-    heroCards: ['Jc', 'Td'], board: ['9h', '8s', '3c', '2d'], street: 'turn',
-    outs: 8, potSize: 14, betSize: 5, impliedWinnings: 18, villainStackBehind: 45,
-    drawType: { fr: 'un tirage bilatéral à la turn — 8 outs (≈16%)', en: 'an open-ended straight draw on the turn — 8 outs (≈16%)' },
-  },
+  { outs: 8, street: 'turn', potSize: 14, betSize: 5,  impliedWinnings: 18, villainStackBehind: 45 },
   // D — flop flush draw: direct CALL (28.2%) confirmed by implied (36% > 20.4%)
-  {
-    heroCards: ['Ah', 'Kh'], board: ['2h', '9h', 'Jc'], street: 'flop',
-    outs: 9, potSize: 17, betSize: 11, impliedWinnings: 15, villainStackBehind: 60,
-    drawType: { fr: 'un tirage couleur au flop — 9 outs (≈36%)', en: 'a flush draw on the flop — 9 outs (≈36%)' },
-  },
+  { outs: 9, street: 'flop', potSize: 17, betSize: 11, impliedWinnings: 15, villainStackBehind: 60 },
   // E — flop overcards: direct FOLD (30%) → implied FOLD (24% < 25.9%)
-  {
-    heroCards: ['As', 'Ks'], board: ['7d', '8c', '2h'], street: 'flop',
-    outs: 6, potSize: 20, betSize: 15, impliedWinnings: 8, villainStackBehind: 35,
-    drawType: { fr: 'deux surcartes — 6 outs (≈24%)', en: 'two overcards — 6 outs (≈24%)' },
-  },
+  { outs: 6, street: 'flop', potSize: 20, betSize: 15, impliedWinnings: 8,  villainStackBehind: 35 },
   // F — turn flush draw, small bet: direct CALL (12.5%) confirmed by implied (18% > 9.6%)
-  {
-    heroCards: ['9c', '8c'], board: ['Ac', '5c', 'Kd', '2h'], street: 'turn',
-    outs: 9, potSize: 30, betSize: 5, impliedWinnings: 12, villainStackBehind: 55,
-    drawType: { fr: 'un tirage couleur à la turn — 9 outs (≈18%)', en: 'a flush draw on the turn — 9 outs (≈18%)' },
-  },
+  { outs: 9, street: 'turn', potSize: 30, betSize: 5,  impliedWinnings: 12, villainStackBehind: 55 },
 ];
 
 export function generateImpliedOddsScenario(lang: 'fr' | 'en' = 'fr'): PotOddsScenario {
-  const d = pick(EXPERT_IMPLIED_DRAWS);
-  const heroEquity = d.outs * (d.street === 'flop' ? 4 : 2);
-  const call = d.betSize;
-  const totalDirect = d.potSize + d.betSize + call;
-  const totalImplied = totalDirect + d.impliedWinnings;
+  const t = pick(EXPERT_IMPLIED_TARGETS);
+  const shape = randomDrawShape(t.outs, t.street);
+  const drawType = drawLabel(shape.outs, shape.street);
+  const heroEquity = shape.outs * (shape.street === 'flop' ? 4 : 2);
+  const call = t.betSize;
+  const totalDirect = t.potSize + t.betSize + call;
+  const totalImplied = totalDirect + t.impliedWinnings;
   const impliedReq = (call / totalImplied) * 100;
   const correctAction: 'call' | 'fold' = heroEquity >= impliedReq ? 'call' : 'fold';
 
   return {
-    potSize: d.potSize,
-    betSize: d.betSize,
+    potSize: t.potSize,
+    betSize: t.betSize,
     heroEquity,
-    outs: d.outs,
+    outs: shape.outs,
     correctAction,
     difficulty: 'hard',
-    street: d.street,
-    heroCards: d.heroCards,
-    board: d.board,
-    impliedWinnings: d.impliedWinnings,
-    villainStackBehind: d.villainStackBehind,
-    drawType: d.drawType,
-    context: `Mode expert — implied odds. Tu as ${d.drawType.fr}, face à une mise de ${d.betSize}bb dans un pot de ${d.potSize}bb. Le villain a ${d.villainStackBehind}bb derrière. Si tu touches, tu peux espérer gagner ${d.impliedWinnings}bb supplémentaires en implied odds.`,
-    contextEn: `Expert mode — implied odds. You have ${d.drawType.en}, facing a ${d.betSize}bb bet into a ${d.potSize}bb pot. Villain has ${d.villainStackBehind}bb behind. If you hit, you can expect to win ${d.impliedWinnings}bb more in implied winnings.`,
+    street: shape.street,
+    heroCards: shape.heroCards,
+    board: shape.board,
+    impliedWinnings: t.impliedWinnings,
+    villainStackBehind: t.villainStackBehind,
+    drawType,
+    context: `Mode expert — implied odds. Tu as ${drawType.fr}, face à une mise de ${t.betSize}bb dans un pot de ${t.potSize}bb. Le villain a ${t.villainStackBehind}bb derrière. Si tu touches, tu peux espérer gagner ${t.impliedWinnings}bb supplémentaires en implied odds.`,
+    contextEn: `Expert mode — implied odds. You have ${drawType.en}, facing a ${t.betSize}bb bet into a ${t.potSize}bb pot. Villain has ${t.villainStackBehind}bb behind. If you hit, you can expect to win ${t.impliedWinnings}bb more in implied winnings.`,
   };
 }
 

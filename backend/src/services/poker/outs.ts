@@ -481,6 +481,55 @@ const EXPERT_OUTS_SCENARIOS: OutsScenario[] = [
   },
 ];
 
+// ─── Reusable (hand, board, outs) shapes for other exercise types ─────────────
+// Pot Odds needs draws with a specific outs count and street, but wants real
+// card variety rather than a handful of fixed hands — reuse these generators
+// instead of maintaining a second, smaller, hand-picked set.
+
+export interface DrawShape {
+  heroCards: [string, string];
+  board: string[];
+  street: 'flop' | 'turn';
+  outs: number;
+  drawType: OutsDraw;
+}
+
+const SHAPE_GENERATORS: Partial<Record<number, Gen>> = {
+  4:  genGutshot,
+  6:  genTwoOver,
+  8:  genOESD,
+  9:  genFlush,
+  12: genComboFlushGut,
+};
+
+/** A blank (non-improving) 4th board card: doesn't push any suit to a 4-flush
+ *  and isn't already used, so a flop scenario becomes an equivalent turn
+ *  scenario with the exact same outs count. */
+function blankTurnCard(scenario: OutsScenario): string {
+  const used = [...scenario.heroCards, ...scenario.board];
+  const usedRanks = new Set(used.map(c => c[0]));
+  const suitCounts: Record<string, number> = {};
+  for (const c of used) suitCounts[c[1]] = (suitCounts[c[1]] || 0) + 1;
+  for (let attempts = 0; attempts < 50; attempts++) {
+    const r = choice(RANK_ORDER.filter(rk => !usedRanks.has(rk)));
+    const s = choice(SUIT_CHARS.filter(sc => (suitCounts[sc] || 0) < 3));
+    if (r && s) return r + s;
+  }
+  return choice(RANK_ORDER.filter(rk => !usedRanks.has(rk))) + choice(SUIT_CHARS);
+}
+
+/** Random (hand, board, outs) shape for a given outs count, on the flop or
+ *  turn. Falls back to any procedural generator if the exact outs count isn't
+ *  mapped (still real card variety, just not that precise count). */
+export function randomDrawShape(outs: number, street: 'flop' | 'turn'): DrawShape {
+  const gen = SHAPE_GENERATORS[outs] ?? choice(GENERATORS);
+  const base = gen();
+  if (street === 'flop' || base.street === 'turn') {
+    return { heroCards: base.heroCards, board: base.board, street: base.street, outs: base.outs, drawType: base.draws[0] };
+  }
+  return { heroCards: base.heroCards, board: [...base.board, blankTurnCard(base)], street: 'turn', outs: base.outs, drawType: base.draws[0] };
+}
+
 export function getRandomOutsScenario(difficulty?: 'expert'): OutsScenario {
   // Expert: hard spots spread across a wide range of outs counts (near-equal
   // parity) so the answer is never predictable — 3/4/6/8/9/12/15, plus a small
