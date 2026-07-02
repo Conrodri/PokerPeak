@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Info, Zap, Target, Lightbulb } from 'lucide-react';
 import { SourcesFooter } from '../ui/SourcesFooter';
 import type { Source } from '../ui/SourcesFooter';
+import { HeroOutsPanel } from '../ui/HeroOutsPanel';
+import { computeDraws } from '../../utils/outsCalc';
 
 const POSTFLOP_SOURCES: Source[] = [
   { authors: 'Janda, M.', title: 'Applications of No-Limit Hold\'em', year: '2013', note: { fr: 'Polarisation, texture de board, continuation bet et théorie post-flop GTO', en: 'Polarization, board texture, continuation betting and post-flop GTO theory' } },
@@ -34,9 +36,6 @@ import { BeginnerGuide } from '../ui/BeginnerGuide';
 import { SpoilableHint } from '../ui/SpoilableHint';
 import { postflopHint } from '../../utils/coachHints';
 import { TrainerIntro } from '../ui/TrainerIntro';
-import { QuotaLockPanel } from '../ui/QuotaLockPanel';
-import { useAuthStore } from '../../store/authStore';
-import { useQuotaStore } from '../../store/quotaStore';
 import { StatChip } from '../ui/StatChip';
 import { PokerTable, SeatInfo } from '../poker/PokerTable';
 import { CardStr, Position } from '../../types/poker';
@@ -103,84 +102,6 @@ const STREET_FILTERS: { key: StreetFilter; labelFr: string; labelEn: string; ico
   { key: 'river',  labelFr: 'River',     labelEn: 'River',  icon: '🔴' },
 ];
 
-// ─── Hero outs panel ─────────────────────────────────────────────────────────
-
-const RANK_LABEL_FR: Record<string, string> = {
-  A: 'As', K: 'Rois', Q: 'Dames', J: 'Valets', T: 'Dix',
-  '9': '9', '8': '8', '7': '7', '6': '6', '5': '5', '4': '4', '3': '3', '2': '2',
-};
-const RANK_LABEL_EN: Record<string, string> = {
-  A: 'Aces', K: 'Kings', Q: 'Queens', J: 'Jacks', T: 'Tens',
-  '9': '9s', '8': '8s', '7': '7s', '6': '6s', '5': '5s', '4': '4s', '3': '3s', '2': '2s',
-};
-
-function computeDraws(hero: string[], board: string[]) {
-  const rankOf = (c: string) => c[0];
-  const suitOf = (c: string) => c[c.length - 1];
-  const all = [...hero, ...board];
-  const rankCount: Record<string, number> = {};
-  for (const c of all) rankCount[rankOf(c)] = (rankCount[rankOf(c)] || 0) + 1;
-
-  // Pair outs: hero rank appears exactly once in all known cards → 3 remaining
-  const pairOuts: Array<{ rank: string; count: number }> = [];
-  const seen = new Set<string>();
-  for (const c of hero) {
-    const r = rankOf(c);
-    if (seen.has(r)) continue;
-    seen.add(r);
-    if (rankCount[r] === 1) pairOuts.push({ rank: r, count: 3 });
-    else if (rankCount[r] === 2 && hero.filter(h => rankOf(h) === r).length === 2) pairOuts.push({ rank: r, count: 2 }); // pocket pair → set
-  }
-
-  // Flush draw / backdoor flush
-  let flushType: 'draw' | 'backdoor' | null = null;
-  let flushOuts = 0;
-  for (const suit of new Set(hero.map(suitOf))) {
-    const heroCount  = hero.filter(c => suitOf(c) === suit).length;
-    const boardCount = board.filter(c => suitOf(c) === suit).length;
-    const total = heroCount + boardCount;
-    if (total >= 4) { flushType = 'draw'; flushOuts = 13 - total; break; }
-    if (total === 3 && board.length <= 3) { flushType = 'backdoor'; flushOuts = 13 - total; }
-  }
-
-  const directOuts = pairOuts.reduce((s, o) => s + o.count, 0) + (flushType === 'draw' ? flushOuts : 0);
-  return { pairOuts, flushType, flushOuts, directOuts };
-}
-
-function HeroOutsPanel({ heroHand, board, isEn }: { heroHand: string[]; board: string[]; isEn: boolean }) {
-  const draws = computeDraws(heroHand, board);
-  const cardsLeft = 5 - board.length; // 2 on flop, 1 on turn
-  const pct = draws.directOuts * (cardsLeft === 2 ? 4 : 2);
-
-  if (draws.pairOuts.length === 0 && !draws.flushType) return null;
-
-  return (
-    <div className="w-full rounded-xl border border-teal-800/40 bg-teal-950/20 px-4 py-3 text-xs">
-      <p className="font-bold text-teal-300 mb-2">
-        🎯 {isEn ? 'Your improvement outs' : 'Tes outs (cartes qui améliorent ta main)'}
-      </p>
-      <ul className="space-y-1 text-gray-300">
-        {draws.pairOuts.map(o => (
-          <li key={o.rank}>
-            • {isEn ? RANK_LABEL_EN[o.rank] : RANK_LABEL_FR[o.rank]} → {isEn ? 'Pair' : 'Paire'} : <span className="text-white font-semibold">{o.count} outs</span>
-          </li>
-        ))}
-        {draws.flushType === 'draw' && (
-          <li>• {isEn ? `Flush draw : ${draws.flushOuts} outs` : `Tirage couleur : ${draws.flushOuts} outs`}</li>
-        )}
-        {draws.flushType === 'backdoor' && (
-          <li className="text-gray-500">• {isEn ? 'Backdoor flush draw (needs 2 running cards)' : 'Tirage couleur backdoor (2 cartes consécutives nécessaires)'}</li>
-        )}
-      </ul>
-      {draws.directOuts > 0 && (
-        <p className="mt-2 text-teal-200 font-semibold">
-          → {draws.directOuts} {isEn ? `direct outs ≈ ${pct}% chance to improve (rule of ${cardsLeft === 2 ? '4' : '2'})` : `outs directs ≈ ${pct}% de chance d'amélioration (règle du ${cardsLeft === 2 ? '4' : '2'})`}
-        </p>
-      )}
-    </div>
-  );
-}
-
 // ─── Equity detail panel ─────────────────────────────────────────────────────
 
 function EquityDetailPanel({ detail, equity, isEn }: {
@@ -235,13 +156,6 @@ export function PostflopTrainer() {
     useShallow(s => ({ sessionStats: s.sessionStats, recordResult: s.recordResult, setTrainerStarted: s.setTrainerStarted }))
   );
 
-  const user      = useAuthStore(s => s.user);
-  const isPremium = true;
-  const loggedIn  = !!user;
-  const quota     = useQuotaStore();
-  const freeRemaining = Infinity;
-  const [quotaBlocked, setQuotaBlocked] = useState(false);
-
   const [showIntro, setShowIntro]   = useState(true);
   const [phase, setPhase]           = useState<Phase>('exercise');
   const [exercise, setExercise]     = useState<PostflopExercise | null>(null);
@@ -249,12 +163,6 @@ export function PostflopTrainer() {
   const [selected, setSelected]     = useState<ActionKey | null>(null);
   const [xpEarned, setXpEarned]     = useState(0);
   const mode = useModeStore(s => s.mode);
-
-  // Refresh free-quota counts when a non-premium user opens the module
-  useEffect(() => {
-    if (loggedIn && !isPremium) quota.refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loggedIn, isPremium]);
 
   // Listen for global back-to-intro event
   useEffect(() => {
@@ -292,18 +200,11 @@ export function PostflopTrainer() {
       const data   = await postflopApi.getExercise(street, difficulty);
       setExercise(data);
       setPhase('exercise');
-      if (!isPremium) quota.decrement('postflop'); // server consumed one credit
-    } catch (e: any) {
-      if (e?.response?.status === 402) {            // daily free allowance used up
-        quota.set('postflop', 0);
-        setQuotaBlocked(true);
-      } /* else: stays on spinner */
-    }
+    } catch { /* network/other error: stays on spinner */ }
     finally  { setIsLoading(false); }
   };
 
   const backToIntro = () => {
-    setQuotaBlocked(false);
     setShowIntro(true);
     setTrainerStarted(false);
   };
@@ -341,7 +242,6 @@ export function PostflopTrainer() {
 
   const handleStartExam = () => {
     startRun();
-    setQuotaBlocked(false);
     setShowIntro(false);
     setTrainerStarted(true);
     hasStarted.current = true;
@@ -412,11 +312,6 @@ export function PostflopTrainer() {
           startLabel={isEn ? 'Start training' : "Commencer l'entraînement"}
           onStart={handleStart}
           mode={mode}
-          locked={!isPremium && (!loggedIn || freeRemaining <= 0)}
-          lockedVariant={!loggedIn ? 'login' : 'quota'}
-          freeInfo={!isPremium && loggedIn && freeRemaining > 0
-            ? { remaining: freeRemaining, limit: quota.limit }
-            : undefined}
           examSlot={<ExamLauncher module="postflop" onStart={handleStartExam} />}
         />
       </div>
@@ -427,14 +322,6 @@ export function PostflopTrainer() {
     return (
       <div className="flex flex-col gap-5 max-w-2xl mx-auto pt-4">
         <ExamResult module="postflop" onRetry={handleStartExam} onQuit={handleQuitExam} />
-      </div>
-    );
-  }
-
-  if (quotaBlocked) {
-    return (
-      <div className="flex flex-col gap-5 max-w-2xl mx-auto">
-        <QuotaLockPanel limit={quota.limit} onBackToIntro={backToIntro} />
       </div>
     );
   }

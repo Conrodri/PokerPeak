@@ -30,11 +30,6 @@ interface TrainingState {
   isExercising: boolean;
   setIsExercising: (v: boolean) => void;
 
-  /** True while the preflop trainer is on its position-selection screen (treated as
-   *  part of the intro — the range toolbar is hidden there). */
-  selectingPosition: boolean;
-  setSelectingPosition: (v: boolean) => void;
-
   /** True once the user has dismissed the trainer intro screen (tabs hidden while active). */
   trainerStarted: boolean;
   setTrainerStarted: (v: boolean) => void;
@@ -78,8 +73,6 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
   isLoading: false,
   isExercising: false,
   setIsExercising: (v) => set({ isExercising: v }),
-  selectingPosition: false,
-  setSelectingPosition: (v) => set({ selectingPosition: v }),
   trainerStarted: false,
   setTrainerStarted: (v) => set({ trainerStarted: v }),
   currentPosition: null,

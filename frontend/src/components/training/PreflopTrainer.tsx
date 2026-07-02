@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ChevronDown, ChevronUp, RotateCcw, Zap, Target, Sliders, Lightbulb, Check, X, BookOpen, Shield, TrendingUp, Crown, Flame } from 'lucide-react';
+import { ChevronRight, RotateCcw, Zap, Target, Sliders, Check, X, BookOpen, Shield, TrendingUp, Crown, Flame } from 'lucide-react';
 import { SourcesFooter } from '../ui/SourcesFooter';
 import type { Source } from '../ui/SourcesFooter';
 
@@ -19,11 +19,12 @@ import { rangesApi, profilesApi, type RangeProfile } from '../../services/api';
 import { useTrainingStore } from '../../store/trainingStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { Position, Position8, TableFormat, ExerciseResult, BBDefenseExercise } from '../../types/poker';
 import { trainingApi } from '../../services/api';
 import { RangeMatrix } from '../poker/RangeMatrix';
-import { ExpertRangeGrid, EXPERT_ACTIONS, EXPERT_DISPLAY } from '../poker/ExpertRangeEditor';
+import { EXPERT_ACTIONS, EXPERT_DISPLAY } from '../poker/ExpertRangeEditor';
 import { PokerTable } from '../poker/PokerTable';
 import { Hand } from '../poker/Card';
 import { CardStr } from '../../types/poker';
@@ -34,15 +35,20 @@ import { ExplanationPanel } from '../ui/ExplanationPanel';
 import { RichLine } from '../ui/RichText';
 import { BeginnerGuide } from '../ui/BeginnerGuide';
 import { SpoilableHint } from '../ui/SpoilableHint';
-import { handHint } from '../../utils/handHints';
 import { TrainerIntro } from '../ui/TrainerIntro';
 import { useModeStore } from '../../store/modeStore';
 import { VerdictBanner } from '../ui/VerdictBanner';
-import { handToDisplay, getMatrixIndices, frequencyBg, bbCellColor } from '../../utils/pokerUtils';
+import { handToDisplay, getMatrixIndices, bbCellColor } from '../../utils/pokerUtils';
 import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 import { useCustomRangeStore } from '../../store/customRangeStore';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { HandHintPanel } from './preflop/HandHintPanel';
+import { RangeSection } from './preflop/RangeSection';
+import { AdvancedRangePicker } from './preflop/AdvancedRangePicker';
+import { ExpertExamProfilePicker } from './preflop/ExpertExamProfilePicker';
+import { PositionInfo } from './preflop/PositionInfo';
+import { ExampleHand } from './preflop/ExampleHand';
 
 type Phase    = 'select_position' | 'exercise' | 'result';
 type BBAction = 'fold' | 'call' | '3bet';
@@ -56,141 +62,6 @@ const BB_ACTION_PILL: Record<BBAction, string> = {
 const BB_ACTION_VARIANT: Record<BBAction, 'danger' | 'secondary' | 'gold'> = {
   fold: 'danger', call: 'secondary', '3bet': 'gold',
 };
-
-// Hand-specific coaching hint panel (revealed via SpoilableHint in advanced).
-function HandHintPanel({ notation, isEn }: { notation: string; isEn: boolean }) {
-  return (
-    <div className="w-full rounded-xl border border-amber-700/40 bg-amber-950/30 px-3 py-2 flex items-start gap-2 text-left">
-      <Lightbulb size={15} className="text-amber-400 mt-0.5 shrink-0" />
-      <div>
-        <span className="font-bold text-amber-300 text-xs">{handToDisplay(notation)}</span>
-        <span className="text-gray-300 text-xs"> — {handHint(notation, isEn)}</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Shared range matrix collapsible section ──────────────────────────────────
-
-interface RangeSectionProps {
-  matrix: number[][] | null;
-  /** When set, the range is an expert profile: render the stacked-bar mix grid. */
-  mix?: number[] | null;
-  highlightNotation: string;
-  position: string;
-  isCustom: boolean;
-  resolvedLabel: string | null;
-  heroStack: number;
-  isEn: boolean;
-  showRange: boolean;
-  setShowRange: (fn: (v: boolean) => boolean) => void;
-  t: ReturnType<typeof useT>;
-}
-
-function RangeSection({ matrix, mix, highlightNotation, position, isCustom, resolvedLabel, heroStack, isEn, showRange, setShowRange, t }: RangeSectionProps) {
-  const sectionRef = useRef<HTMLDivElement>(null);
-
-  // BB-defense legend + tooltip, stabilized (t is a stable per-language object)
-  // so the memoized RangeMatrix isn't re-rendered on every parent update.
-  const bbLegend = useMemo(() => [
-    { color: 'rgba(22,130,60,0.85)', label: t.training.bb_leg_value, tip: { title: t.training.bb_leg_value, text: t.training.bb_tip_value } },
-    { color: 'rgba(202,138,4,0.82)', label: t.training.bb_leg_bluff, tip: { title: t.training.bb_leg_bluff, text: t.training.bb_tip_bluff } },
-    { color: 'rgba(37,99,235,0.70)', label: t.training.bb_leg_call,  tip: { title: t.training.bb_leg_call,  text: t.training.bb_tip_call  } },
-    { color: '#1a202c',              label: t.training.bb_leg_fold,  tip: { title: t.training.bb_leg_fold,  text: t.training.bb_tip_fold  } },
-  ], [t]);
-  const bbTooltipValue = useCallback((code: number) => ({
-    0: t.training.bb_leg_fold, 1: t.training.bb_leg_call,
-    2: t.training.bb_leg_call, 3: t.training.bb_leg_value, 4: t.training.bb_leg_bluff,
-  } as Record<number, string>)[code] ?? '', [t]);
-
-  if (!matrix && !mix) return null;
-  return (
-    <motion.div
-      ref={sectionRef}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15 }}
-      className="w-full"
-    >
-      <button
-        onClick={() => {
-          setShowRange(v => {
-            if (!v) {
-              // Opening: scroll to top of page so the range grid is visible
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            return !v;
-          });
-        }}
-        className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl border transition-colors mb-1
-          border-gray-700 bg-gray-800/50 hover:bg-gray-800 text-sm font-semibold"
-      >
-        <span className="flex items-center gap-1.5 flex-wrap">
-          {isCustom ? (
-            <>
-              <Sliders size={14} className="text-purple-400 shrink-0" />
-              <span className="text-purple-300">
-                {resolvedLabel ?? (isEn ? 'My range' : 'Ma range')}
-              </span>
-              <span className="text-purple-500">— {position}</span>
-              {/* Stack only matters for stack-tiered profiles (resolvedLabel set). */}
-              {resolvedLabel && <span className="text-purple-600 font-normal text-xs">· {heroStack} bb</span>}
-            </>
-          ) : (
-            <>
-              <Target size={14} className="text-felt-400 shrink-0" />
-              <span className="text-felt-300">
-                {position === 'BB'
-                  ? (isEn ? 'GTO BB defense range' : 'Range GTO défense BB')
-                  : `${t.training.full_range_lbl} — ${position}`}
-              </span>
-            </>
-          )}
-        </span>
-        {showRange
-          ? <ChevronUp   size={16} className="text-gray-400 shrink-0" />
-          : <ChevronDown size={16} className="text-gray-400 shrink-0" />
-        }
-      </button>
-      <AnimatePresence initial={false}>
-        {showRange && (
-          <motion.div
-            key="range-matrix"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden flex flex-col items-center gap-3 pt-2"
-          >
-            {mix ? (
-              // Expert profile: render the exact stacked-bar scheme of the editor.
-              <ExpertRangeGrid mix={mix} highlightNotation={highlightNotation} isEn={isEn} />
-            ) : !matrix ? null
-            : position === 'BB' && !isCustom ? (
-              // GTO BB-defense grid uses action CODES (0-4), not raise frequencies,
-              // so it needs the BB-specific colouring/legend (call ≠ raise).
-              <RangeMatrix
-                matrix={matrix}
-                highlightNotation={highlightNotation}
-                size="sm"
-                cellColor={bbCellColor}
-                legend={bbLegend}
-                tooltipValue={bbTooltipValue}
-              />
-            ) : (
-              <RangeMatrix
-                matrix={matrix}
-                highlightNotation={highlightNotation}
-                size="sm"
-                cellColor={frequencyBg}
-              />
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
 
 /** Convert a resolved range into a flat 169 play-frequency array.
  *  - 169-cell ranges (standard) are returned as-is.
@@ -227,62 +98,6 @@ function nearestChip(pct: number): number {
   return EXPERT_FREQ_CHIPS.reduce((a, b) => (Math.abs(b - pct) < Math.abs(a - pct) ? b : a), EXPERT_FREQ_CHIPS[0]);
 }
 
-// ─── Advanced range picker (GTO vs simple custom ranges) ─────────────────────
-
-function AdvancedRangePicker({
-  isEn,
-  onPick,
-  onClose,
-}: {
-  isEn: boolean;
-  onPick: (useCustom: boolean) => void;
-  onClose: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full rounded-2xl border border-gray-700 bg-gray-900/95 backdrop-blur-sm p-5 flex flex-col gap-4"
-    >
-      <h3 className="text-white font-bold text-base text-center">
-        {isEn ? 'Train with which range?' : "S'entraîner avec quelle range ?"}
-      </h3>
-      <div className="flex flex-col gap-3">
-        <button
-          onClick={() => onPick(false)}
-          className="flex items-center gap-4 px-5 py-4 rounded-xl border-2 border-felt-700 bg-felt-900/30 hover:bg-felt-800/50 text-left transition-colors"
-        >
-          <Target size={22} className="text-felt-400 shrink-0" />
-          <div>
-            <p className="text-felt-200 font-bold text-sm">GTO</p>
-            <p className="text-felt-400/70 text-xs mt-0.5">
-              {isEn ? 'Solver-calibrated reference ranges' : 'Ranges de référence calibrées sur solveur'}
-            </p>
-          </div>
-        </button>
-        <button
-          onClick={() => onPick(true)}
-          className="flex items-center gap-4 px-5 py-4 rounded-xl border-2 border-purple-700 bg-purple-900/30 hover:bg-purple-800/50 text-left transition-colors"
-        >
-          <Sliders size={22} className="text-purple-400 shrink-0" />
-          <div>
-            <p className="text-purple-200 font-bold text-sm">{isEn ? 'My Ranges' : 'Mes ranges'}</p>
-            <p className="text-purple-400/70 text-xs mt-0.5">
-              {isEn ? 'Train on your own custom ranges' : 'Entraîne-toi sur tes propres ranges'}
-            </p>
-          </div>
-        </button>
-      </div>
-      <button
-        onClick={onClose}
-        className="text-xs text-gray-500 hover:text-gray-300 text-center transition-colors"
-      >
-        {isEn ? 'Cancel' : 'Annuler'}
-      </button>
-    </motion.div>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function PreflopTrainer() {
@@ -306,11 +121,11 @@ export function PreflopTrainer() {
   const {
     preflopExercise, lastResult, sessionStats, isLoading, storeError,
     fetchPreflopExercise, checkPreflopAnswer, recordResult,
-    setIsExercising, setCurrentPosition, setTrainerStarted, setSelectingPosition,
+    setCurrentPosition, setTrainerStarted,
   } = useTrainingStore(useShallow(s => ({
     preflopExercise: s.preflopExercise, lastResult: s.lastResult, sessionStats: s.sessionStats, isLoading: s.isLoading, storeError: s.error,
     fetchPreflopExercise: s.fetchPreflopExercise, checkPreflopAnswer: s.checkPreflopAnswer, recordResult: s.recordResult,
-    setIsExercising: s.setIsExercising, setCurrentPosition: s.setCurrentPosition, setTrainerStarted: s.setTrainerStarted, setSelectingPosition: s.setSelectingPosition,
+    setCurrentPosition: s.setCurrentPosition, setTrainerStarted: s.setTrainerStarted,
   })));
 
   const [showIntro,        setShowIntro]        = useState(true);
@@ -358,7 +173,6 @@ export function PreflopTrainer() {
   // all-fold tier can never lock the trainer in an infinite skip loop.
   const foldSkipRef = useRef(0);
   const mode = useModeStore(s => s.mode);
-  const isPremium = true;
   const preflopEnabled = useCustomRangeStore(s => s.preflopEnabled);
   const setPreflopEnabled = useCustomRangeStore(s => s.setPreflopEnabled);
 
@@ -371,20 +185,20 @@ export function PreflopTrainer() {
   const [rangePickerOpen,   setRangePickerOpen]   = useState(false);
 
   // ─── Sync phase/exercise → store ─────────────────────────────────────────────
+  useExerciseLock(isBBSession
+    ? phase === 'exercise' && !!bbExercise && !bbIsLoading
+    : phase === 'exercise' && !!preflopExercise && !isLoading);
+
   useEffect(() => {
     if (phase === 'result') window.scrollTo({ top: 0, behavior: 'smooth' });
-    // The position-selection screen is part of the intro → hide the range toolbar there.
-    setSelectingPosition(phase === 'select_position');
 
     if (isBBSession) {
       if (phase === 'exercise' && bbExercise && !bbIsLoading) startTime.current = Date.now();
-      setIsExercising(phase === 'exercise' && !!bbExercise && !bbIsLoading);
       if (bbExercise && (phase === 'exercise' || phase === 'result')) {
         setCurrentPosition('BB');
       }
     } else {
       if (phase === 'exercise' && preflopExercise) startTime.current = Date.now();
-      setIsExercising(phase === 'exercise' && !!preflopExercise && !isLoading);
       if (preflopExercise && (phase === 'exercise' || phase === 'result')) {
         setCurrentPosition(preflopExercise.position);
       }
@@ -485,8 +299,8 @@ export function PreflopTrainer() {
     return () => { cancelled = true; };
   }, [phase, isBBSession, mode, preflopEnabled, preflopExercise, heroStack]);
 
-  // Reset on unmount (module change)
-  useEffect(() => () => { setIsExercising(false); setCurrentPosition(null); setSelectingPosition(false); }, []);
+  // Reset on unmount (module change) — setIsExercising cleanup handled by useExerciseLock
+  useEffect(() => () => { setCurrentPosition(null); }, []);
 
   // Fixed back bar (from TrainingPage) dispatches 'training:back' while exercising
   useEffect(() => {
@@ -608,6 +422,28 @@ export function PreflopTrainer() {
 
   // ─── handleAnswer (preflop open) ──────────────────────────────────────────────
 
+  // Resolves the active custom range profile for `position` into a flat 169-cell
+  // play-frequency array (or null if none is active) — shared by handleAnswer
+  // and handleAnswerBB, which both need it to override the GTO verdict.
+  const resolveCustomRangeFlat = async (position: string): Promise<number[] | null> => {
+    let flat: number[] | null = null;
+    let label: string | null = null;
+    try {
+      const resolved = await profilesApi.resolve(rangeKey(position), heroStack, mode !== 'expert');
+      const cells = resolved?.cells;
+      const play = cells ? toPlayFrequencies(cells) : null;
+      if (play && cells) {
+        flat = play;
+        setCustomMix(cells.length === 676 ? cells : null);
+        label = resolved.profileName
+          ? `${resolved.profileName}${resolved.stackRangeLabel ? ` · ${resolved.stackRangeLabel}` : ''}`
+          : null;
+      }
+    } catch { /* ignore */ }
+    setResolvedLabel(label);
+    return flat;
+  };
+
   const handleAnswer = async (action: 'raise' | 'call' | 'fold') => {
     if (!preflopExercise) return;
     const timeTaken = Date.now() - startTime.current;
@@ -616,23 +452,7 @@ export function PreflopTrainer() {
 
     // Beginner = GTO only. Custom ranges apply from Advanced upward.
     if (preflopEnabled && mode !== 'basic') {
-      let flat: number[] | null = null;
-      let rangeLabel: string | undefined;
-
-      try {
-        const resolved = await profilesApi.resolve(rangeKey(preflopExercise.position), heroStack, mode !== 'expert');
-        const cells = resolved?.cells;
-        const play = cells ? toPlayFrequencies(cells) : null;
-        if (play && cells) {
-          flat = play;
-          setCustomMix(cells.length === 676 ? cells : null);
-          rangeLabel = resolved.profileName
-            ? `${resolved.profileName}${resolved.stackRangeLabel ? ` · ${resolved.stackRangeLabel}` : ''}`
-            : undefined;
-        }
-      } catch { /* ignore */ }
-
-      setResolvedLabel(rangeLabel ?? null);
+      const flat = await resolveCustomRangeFlat(preflopExercise.position);
 
       if (flat) {
         const grid: number[][] = [];
@@ -729,23 +549,7 @@ export function PreflopTrainer() {
 
     // Beginner = GTO only. Custom ranges apply from Advanced upward.
     if (preflopEnabled && mode !== 'basic') {
-      let flat: number[] | null = null;
-      let label: string | null = null;
-
-      try {
-        const resolved = await profilesApi.resolve(rangeKey('BB'), heroStack, mode !== 'expert');
-        const cells = resolved?.cells;
-        const play = cells ? toPlayFrequencies(cells) : null;
-        if (play && cells) {
-          flat = play;
-          setCustomMix(cells.length === 676 ? cells : null);
-          label = resolved.profileName
-            ? `${resolved.profileName}${resolved.stackRangeLabel ? ` · ${resolved.stackRangeLabel}` : ''}`
-            : null;
-        }
-      } catch { /* ignore */ }
-
-      setResolvedLabel(label);
+      const flat = await resolveCustomRangeFlat('BB');
 
       if (flat) {
         const grid: number[][] = [];
@@ -1036,8 +840,8 @@ export function PreflopTrainer() {
   if (showIntro) {
     const startTraining = () => { setShowIntro(false); setTrainerStarted(true); };
     const handleStartClick = () => {
-      // Advanced + premium: pick GTO vs custom ranges before starting (both formats).
-      if (mode === 'advanced' && isPremium) {
+      // Advanced: pick GTO vs custom ranges before starting (both formats).
+      if (mode === 'advanced') {
         setRangePickerOpen(true);
       } else {
         startTraining();
@@ -1871,124 +1675,5 @@ export function PreflopTrainer() {
 
       <SourcesFooter isEn={isEn} sources={PREFLOP_SOURCES} methodology={PREFLOP_METHODOLOGY} />
     </div>
-  );
-}
-
-// ─── Example hand (card icons + notation label) ────────────────────────────────
-function ExampleHand({ cards, label }: { cards: CardStr[]; label: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <Hand cards={cards} size="xs" gap="gap-0.5" animate={false} />
-      <span className="text-[10px] font-mono font-bold text-gray-300">{label}</span>
-    </div>
-  );
-}
-
-// ─── Expert exam: complex-range profile picker ────────────────────────────────
-// Expert exams quiz the user on one of THEIR complex ranges — they must choose
-// which profile before the run can start (a GTO-only expert exam is pointless).
-function ExpertExamProfilePicker({ profiles, isEn, onPick, onClose, onCreate }: {
-  profiles: RangeProfile[] | null;
-  isEn: boolean;
-  onPick: (id: string) => void;
-  onClose: () => void;
-  onCreate: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }}
-        onClick={e => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl border border-gray-700 bg-gray-900 p-5 flex flex-col gap-4 max-h-[85vh]"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Sliders size={18} className="text-purple-400 shrink-0" />
-            <div>
-              <h3 className="text-base font-bold text-white">
-                {isEn ? 'Choose your complex range' : 'Choisis ta range complexe'}
-              </h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {isEn
-                  ? 'The expert exam quizzes you on this range.'
-                  : 'Le sprint expert t’interroge sur cette range.'}
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors p-1 shrink-0">
-            <X size={18} />
-          </button>
-        </div>
-
-        {profiles === null ? (
-          <div className="flex items-center justify-center py-10">
-            <div className="animate-spin h-6 w-6 border-2 border-purple-500 border-t-transparent rounded-full" />
-          </div>
-        ) : profiles.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <p className="text-sm text-gray-300">
-              {isEn
-                ? 'You have no complex range yet. Create one in My Ranges (Complex ranges) to start an expert exam.'
-                : 'Tu n’as pas encore de range complexe. Crée-en une dans Mes Ranges (Ranges complexes) pour lancer un sprint expert.'}
-            </p>
-            <Button variant="gold" size="md" onClick={onCreate} className="flex items-center gap-2">
-              <Sliders size={15} />
-              {isEn ? 'Open My Ranges' : 'Ouvrir Mes Ranges'}
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2 overflow-y-auto">
-            {profiles.map(p => (
-              <button
-                key={p.id}
-                onClick={() => onPick(p.id)}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-gray-700 bg-gray-800/50 px-4 py-3 hover:border-purple-600/70 hover:bg-gray-800 transition-colors text-left"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white text-sm truncate">{p.name}</span>
-                    {p.isActive && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-900/40 text-green-300 border border-green-700/50 shrink-0">
-                        {isEn ? 'Active' : 'Active'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
-                    {p.stackRanges.length} {isEn
-                      ? `stack range${p.stackRanges.length > 1 ? 's' : ''}`
-                      : `plage${p.stackRanges.length > 1 ? 's' : ''} de stack`}
-                  </p>
-                </div>
-                <span className="flex items-center gap-1 text-xs font-bold text-purple-300 group-hover:text-purple-200 shrink-0">
-                  <Target size={14} /> {isEn ? 'Start' : 'Lancer'}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// ─── Position info badge ───────────────────────────────────────────────────────
-function PositionInfo({ position, format = '6max' }: { position: Position8; format?: TableFormat }) {
-  const isEn = useLangStore(s => s.lang) === 'en';
-  const def = isEn ? 'Defend' : 'Défend';
-  const ranges: Record<string, Partial<Record<Position8, string>>> = {
-    '6max': { UTG: '~12%', HJ: '~20%', CO: '~26%', BTN: '~45%', SB: '~35%', BB: def },
-    '8max': { UTG: '~11%', UTG1: '~13%', LJ: '~16%', HJ: '~18%', CO: '~26%', BTN: '~45%', SB: '~35%', BB: def },
-    '3max': { BTN: '~75%', SB: '~58%', BB: def },
-    'hu':   { BTN: '~83%', BB: def },
-  };
-  const label = ranges[format]?.[position] ?? '';
-  return (
-    <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">
-      {label}
-    </span>
   );
 }

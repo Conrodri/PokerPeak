@@ -5,15 +5,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
 import { useModeStore } from '../../store/modeStore';
 import { useLangStore } from '../../store/langStore';
-import { useAuthStore } from '../../store/authStore';
-import { useQuotaStore } from '../../store/quotaStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
 import { Button } from '../ui/Button';
 import { SessionStatsBar } from '../ui/SessionStatsBar';
 import { VerdictBanner } from '../ui/VerdictBanner';
 import { TrainerIntro } from '../ui/TrainerIntro';
-import { QuotaLockPanel } from '../ui/QuotaLockPanel';
 import { ExplanationPanel } from '../ui/ExplanationPanel';
 import { SpoilableHint } from '../ui/SpoilableHint';
 import { BeginnerGuide } from '../ui/BeginnerGuide';
@@ -23,7 +20,6 @@ import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { PokerTable, SeatInfo } from '../poker/PokerTable';
 import { Hand } from '../poker/Card';
-import { quotaApi } from '../../services/api';
 import type { BluffAction, BluffExercise, BluffFactorScore, Position } from '../../types/poker';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -94,11 +90,8 @@ function actionButtonVariant(action: BluffAction, selected: BluffAction | null, 
 
 // ─── Intro ────────────────────────────────────────────────────────────────────
 
-function BluffIntro({ onStart, locked, lockedVariant, freeInfo, examSlot }: {
+function BluffIntro({ onStart, examSlot }: {
   onStart: () => void;
-  locked?: boolean;
-  lockedVariant?: 'login' | 'quota';
-  freeInfo?: { remaining: number; limit: number };
   examSlot?: React.ReactNode;
 }) {
   const isEn  = useLangStore(s => s.lang) === 'en';
@@ -159,9 +152,6 @@ function BluffIntro({ onStart, locked, lockedVariant, freeInfo, examSlot }: {
       startLabel={isEn ? 'Start Bluffing' : 'Commencer'}
       onStart={onStart}
       mode={mode}
-      locked={locked}
-      lockedVariant={lockedVariant}
-      freeInfo={freeInfo}
       examSlot={examSlot}
     />
   );
@@ -248,24 +238,11 @@ export function BluffTrainer() {
       setTrainerStarted:  s.setTrainerStarted,
     })));
 
-  const user      = useAuthStore(s => s.user);
-  const isPremium = true;
-  const loggedIn  = !!user;
-  const quota     = useQuotaStore();
-  const freeRemaining = Infinity;
-  const [quotaBlocked, setQuotaBlocked] = useState(false);
-
   const [showIntro, setShowIntro]       = useState(true);
   const [phase, setPhase]               = useState<Phase>('exercise');
   const [selected, setSelected]         = useState<BluffAction | null>(null);
   const [startTime, setStartTime]       = useState(Date.now());
   const [xpEarned, setXpEarned]         = useState(0);
-
-  // Refresh free-quota counts when a non-premium user opens the module
-  useEffect(() => {
-    if (loggedIn && !isPremium) quota.refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loggedIn, isPremium]);
 
   // Lock mode switching while a question is on screen
   useExerciseLock(!showIntro && phase === 'exercise' && !!bluffExercise);
@@ -273,21 +250,11 @@ export function BluffTrainer() {
   // Exam mode (advanced/expert)
   const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('bluff');
 
-  const nextExercise = async () => {
-    if (!isPremium) {
-      try {
-        const r = await quotaApi.consume('bluff');
-        if (r && !r.unlimited && typeof r.remaining === 'number') quota.set('bluff', r.remaining);
-      } catch (e: any) {
-        if (e?.response?.status === 402) { quota.set('bluff', 0); setQuotaBlocked(true); }
-        return;
-      }
-    }
+  const nextExercise = () => {
     fetchBluffExercise();
   };
 
   const backToIntro = () => {
-    setQuotaBlocked(false);
     setShowIntro(true);
     setTrainerStarted(false);
   };
@@ -357,11 +324,6 @@ export function BluffTrainer() {
   if (showIntro) return (
     <BluffIntro
       onStart={handleStart}
-      locked={!isPremium && (!loggedIn || freeRemaining <= 0)}
-      lockedVariant={!loggedIn ? 'login' : 'quota'}
-      freeInfo={!isPremium && loggedIn && freeRemaining > 0
-        ? { remaining: freeRemaining, limit: quota.limit }
-        : undefined}
       examSlot={<ExamLauncher module="bluff" onStart={handleStartExam} />}
     />
   );
@@ -370,14 +332,6 @@ export function BluffTrainer() {
     return (
       <div className="flex flex-col gap-5 max-w-2xl mx-auto pt-4">
         <ExamResult module="bluff" onRetry={handleStartExam} onQuit={handleQuitExam} />
-      </div>
-    );
-  }
-
-  if (quotaBlocked) {
-    return (
-      <div className="flex flex-col gap-5 max-w-2xl mx-auto">
-        <QuotaLockPanel limit={quota.limit} onBackToIntro={backToIntro} />
       </div>
     );
   }
