@@ -20,6 +20,7 @@ type ModuleDetail = {
   borderClass: string;
   label: { fr: string; en: string };
   desc: { fr: string; en: string };
+  essence: { fr: string; en: string };
   modes: { basic: ModuleModeTexts; advanced: ModuleModeTexts; expert: ModuleModeTexts };
 };
 
@@ -28,7 +29,11 @@ const MODULE_DETAILS: ModuleDetail[] = [
     id: 'preflop', icon: '🎯',
     accentClass: 'text-green-400', borderClass: 'border-green-700/50',
     label: { fr: 'Préflop', en: 'Preflop' },
-    desc: { fr: 'Choisir la bonne action pré-flop selon ta main et ta position (4 formats × CG/MTT).', en: 'Choose the right pre-flop action based on your hand and position (4 formats × CG/MTT).' },
+    desc: { fr: 'Décider fold/raise (ou fold/call/3-bet en BB) selon ta main, ta position et le format de table. Ranges calibrées GTO (solveurs), sur 4 formats (6-max/8-max/3-max/HU) × Cash Game/MTT — 8 variantes de sprint indépendantes.', en: 'Choose fold/raise (or fold/call/3-bet from BB) based on your hand, position and table format. GTO-calibrated ranges (solvers), across 4 formats (6-max/8-max/3-max/HU) × Cash Game/MTT — 8 independent sprint variants.' },
+    essence: {
+      fr: 'Le pré-flop est la toute première décision de la main : avant même de voir un flop, tu juges si tes 2 cartes valent le coup depuis ta position. Une main jouée depuis la mauvaise position, ou trop souvent, perd de l\'argent sur la durée — même si le poker "se joue après le flop" en apparence. Ce module t\'apprend les ranges GTO : la fréquence à laquelle chaque main doit être jouée pour rester imbattable sur le long terme.',
+      en: 'Preflop is the very first decision of the hand: before you even see a flop, you judge whether your 2 cards are worth playing from your position. A hand played from the wrong position, or too often, loses money over time — even though poker seems to be "played after the flop". This module teaches you GTO ranges: the frequency at which each hand should be played to stay unexploitable long-term.',
+    },
     modes: {
       basic:    { fr: 'Range GTO affichée. La fréquence de la main et son contexte sont expliqués. Action : Fold ou Raise.', en: 'GTO range displayed. Hand frequency and context explained. Action: Fold or Raise.' },
       advanced: { fr: 'Range masquée. Tes ranges simples de "Mes Ranges" sont utilisées si activées. Jouez à l\'intuition.', en: 'Range hidden. Your simple ranges from "My Ranges" are used if enabled. Play by intuition.' },
@@ -39,7 +44,11 @@ const MODULE_DETAILS: ModuleDetail[] = [
     id: 'outs', icon: '🎲',
     accentClass: 'text-blue-400', borderClass: 'border-blue-700/50',
     label: { fr: 'Outs', en: 'Outs' },
-    desc: { fr: 'Identifier les cartes qui améliorent ta main et estimer ta probabilité de gagner.', en: 'Identify the cards that improve your hand and estimate your winning probability.' },
+    desc: { fr: 'Compter les cartes qui améliorent ta main (tirage couleur, quinte, etc.) à partir de tes cartes et du board. Applique ensuite la règle du 2 & 4 pour estimer ton équité sur la prochaine carte.', en: 'Count the cards that improve your hand (flush draw, straight draw, etc.) from your hole cards and the board. Then apply the rule of 2 & 4 to estimate your equity on the next card.' },
+    essence: {
+      fr: 'Un "out" est une carte encore dans le paquet qui transforme ta main en main gagnante — par exemple, avec un tirage couleur (4 cartes de la même couleur), il reste 9 cartes de cette couleur = 9 outs. Savoir les compter vite, puis appliquer la règle du 2 & 4 (outs × 4 au flop, outs × 2 au turn) pour convertir ce nombre en pourcentage de chances de gagner, est la base de toute décision d\'appel ou de mise sur un tirage.',
+      en: 'An "out" is a card still in the deck that turns your hand into a winner — for example, with a flush draw (4 cards of the same suit), 9 cards of that suit remain = 9 outs. Learning to count them fast, then applying the rule of 2 & 4 (outs × 4 on the flop, outs × 2 on the turn) to convert that count into a winning percentage, is the foundation of every call or bet decision on a draw.',
+    },
     modes: {
       basic:    { fr: 'Type de tirage indiqué, règle ×2/×4 expliquée. Tu saisis le nombre d\'outs.', en: 'Draw type shown, ×2/×4 rule explained. You enter the number of outs.' },
       advanced: { fr: 'Aucun indice — compte de tête. Réponse en nombre d\'outs. Timer 30 s en sprint.', en: 'No hints — count from scratch. Answer in number of outs. 30 s timer in sprint.' },
@@ -50,7 +59,11 @@ const MODULE_DETAILS: ModuleDetail[] = [
     id: 'equity', icon: '⚖️',
     accentClass: 'text-purple-400', borderClass: 'border-purple-700/50',
     label: { fr: 'Équité', en: 'Equity' },
-    desc: { fr: 'Calculer l\'équité requise pour appeler et décider si le call est rentable.', en: 'Calculate the required equity to call and decide whether calling is profitable.' },
+    desc: { fr: 'Calculer l\'équité minimale nécessaire pour rentabiliser un call, à partir du pot et de la mise adverse (Équité = Appel ÷ (Pot + Mise + Appel)). En expert, un bounty de tournoi vient abaisser ce seuil.', en: 'Calculate the minimum equity needed to profitably call, from the pot and villain\'s bet (Equity = Call ÷ (Pot + Bet + Call)). In expert mode, a tournament bounty lowers that threshold.' },
+    essence: {
+      fr: 'Quand vilain mise, appeler n\'est rentable que si ta chance de gagner (ton équité) dépasse le seuil mathématique imposé par le pot. L\'équité est ta probabilité de remporter la main si elle allait jusqu\'au bout. Ce module t\'apprend à calculer ce seuil minimum — la base mathématique de toute décision de call face à une mise, avant même de parler de pot odds.',
+      en: 'When villain bets, calling is only profitable if your chance of winning (your equity) exceeds the mathematical threshold imposed by the pot. Equity is your probability of winning the hand if it went to showdown. This module teaches you to calculate that minimum threshold — the mathematical backbone of every call decision facing a bet, even before talking about pot odds.',
+    },
     modes: {
       basic:    { fr: 'Formule d\'équité affichée étape par étape. Explication complète de la décision.', en: 'Equity formula shown step by step. Full explanation of the decision.' },
       advanced: { fr: 'Aucune formule — calculez de tête. Timer 30 s en sprint.', en: 'No formula — calculate mentally. 30 s timer in sprint.' },
@@ -61,7 +74,11 @@ const MODULE_DETAILS: ModuleDetail[] = [
     id: 'potodds', icon: '💰',
     accentClass: 'text-cyan-400', borderClass: 'border-cyan-700/50',
     label: { fr: 'Pot Odds', en: 'Pot Odds' },
-    desc: { fr: 'Décider si un call est rentable en comparant le prix payé à l\'équité requise.', en: 'Decide if a call is profitable by comparing the price paid to the required equity.' },
+    desc: { fr: 'Comparer ton équité réelle aux pot odds pour décider call ou fold, avec le calcul d\'EV exact à la clé. En expert, l\'équité n\'est plus donnée — il faut la déduire de tes outs, parfois avec des implied odds.', en: 'Compare your real equity to the pot odds to decide call or fold, with the exact EV calculation behind it. In expert mode equity isn\'t given — you must derive it from your outs, sometimes with implied odds.' },
+    essence: {
+      fr: 'Les pot odds comparent ce que tu dois payer (l\'appel) à la taille totale du pot : Pot Odds = Mise ÷ (Pot + Mise). En comparant ce ratio à ton équité réelle, tu sais si un call est rentable (+EV) ou perdant (-EV) sur la durée. C\'est l\'outil mathématique le plus utilisé au poker pour arrêter de décider "au feeling" et raisonner en valeur espérée.',
+      en: 'Pot odds compare what you must pay (the call) to the total pot size: Pot Odds = Call ÷ (Pot + Call). Comparing this ratio to your real equity tells you whether a call is profitable (+EV) or losing (-EV) over time. It\'s the most-used mathematical tool in poker to stop deciding "on feel" and reason in expected value.',
+    },
     modes: {
       basic:    { fr: 'Formule, équité et décomposition EV affichées. Calcul guidé pas à pas.', en: 'Formula, equity and EV breakdown displayed. Guided step-by-step calculation.' },
       advanced: { fr: 'Aucun indice — calculez vous-même. Timer 30 s en sprint.', en: 'No hints — calculate on your own. 30 s timer in sprint.' },
@@ -72,7 +89,11 @@ const MODULE_DETAILS: ModuleDetail[] = [
     id: 'postflop', icon: '🃏',
     accentClass: 'text-rose-400', borderClass: 'border-rose-700/50',
     label: { fr: 'Post-flop', en: 'Post-flop' },
-    desc: { fr: 'Analyser la texture du board et choisir la bonne action après le flop (Premium).', en: 'Analyse board texture and choose the right action after the flop (Premium).' },
+    desc: { fr: 'Analyser la texture du board (sec, mouillé, monotone) et la force de ta main pour choisir entre fold/check/call/bet parmi plusieurs tailles. Scénarios calibrés GTO 6-max 100bb cash game (Premium).', en: 'Analyse board texture (dry, wet, monotone) and your hand strength to choose between fold/check/call/bet across several sizes. Scenarios calibrated on GTO 6-max 100bb cash game (Premium).' },
+    essence: {
+      fr: 'Après l\'action pré-flop, le donneur place des cartes communes sur la table : c\'est le board. Ta main forte sur un board peut devenir faible sur un autre, et inversement. Ce module t\'apprend à lire la texture (sec, mouillé, dangereux) et à choisir l\'action qui maximise ton gain espéré — plutôt que de jouer uniquement la force brute de tes 2 cartes.',
+      en: 'After the preflop action, the dealer places community cards on the table — the board. Your strong hand on one board can become weak on another, and vice versa. This module teaches you to read texture (dry, wet, dangerous) and pick the action that maximises your expected value, rather than just playing the raw strength of your 2 cards.',
+    },
     modes: {
       basic:    { fr: 'Force de main, équité et texture du board affichées. Situations lisibles.', en: 'Hand strength, equity and board texture shown. Readable situations.' },
       advanced: { fr: 'Aucun indice. Timer 30 s en sprint.', en: 'No hints. 30 s timer in sprint.' },
@@ -83,7 +104,11 @@ const MODULE_DETAILS: ModuleDetail[] = [
     id: 'betsizing', icon: '📐',
     accentClass: 'text-orange-400', borderClass: 'border-orange-700/50',
     label: { fr: 'Bet Sizing', en: 'Bet Sizing' },
-    desc: { fr: 'Choisir le sizing optimal (25 % / 50 % / 75 % / 125 % / jam) pour maximiser ton EV.', en: 'Pick the optimal sizing (25% / 50% / 75% / 125% / jam) to maximise your EV.' },
+    desc: { fr: 'Choisir le sizing optimal (33% / 55% / 75% / overbet) selon la texture du board et l\'objectif du coup (value, protection, polarisation). Basé sur les mêmes concepts que le module Post-flop.', en: 'Pick the optimal sizing (33% / 55% / 75% / overbet) based on board texture and the goal of the bet (value, protection, polarisation). Built on the same concepts as the Post-flop module.' },
+    essence: {
+      fr: 'Miser trop petit laisse de la valeur sur la table face à une main forte ; miser trop gros fait fold les mains faibles adverses ou te fait surpayer le risque en cas de bluff raté. Ce module t\'apprend à choisir la bonne taille (25-33% petite, 50-60% médiane, 75-100% grande, 130%+ surenchère) selon ta range, la texture du board et l\'objectif du coup.',
+      en: 'Betting too small leaves value on the table against a strong hand; betting too big folds out weaker hands or overpays for the risk on a failed bluff. This module teaches you to pick the right size (25-33% small, 50-60% medium, 75-100% large, 130%+ overbet) based on your range, board texture and the goal of the bet.',
+    },
     modes: {
       basic:    { fr: 'Texture du board, type de main et indices clés affichés. Panneau de calcul du sizing fourni.', en: 'Board texture, hand type and key hints shown. Sizing calculation panel provided.' },
       advanced: { fr: 'Aucun indice, décision brute. Timer 30 s en sprint.', en: 'No hints, raw decision. 30 s timer in sprint.' },
@@ -94,7 +119,11 @@ const MODULE_DETAILS: ModuleDetail[] = [
     id: 'fullhand', icon: '🎰',
     accentClass: 'text-indigo-400', borderClass: 'border-indigo-700/50',
     label: { fr: 'Main complète', en: 'Full Hand' },
-    desc: { fr: 'Jouer une main entière de A (préflop) à Z (river), décision à chaque street (Premium).', en: 'Play a full hand from start (preflop) to end (river), one decision per street (Premium).' },
+    desc: { fr: 'Jouer une main entière du pré-flop à la river, avec jusqu\'à 4 décisions enchaînées dans un même scénario cohérent. Équité et texture du board affichées à chaque street (Premium).', en: 'Play a full hand from preflop to the river, with up to 4 chained decisions in one coherent scenario. Equity and board texture shown at each street (Premium).' },
+    essence: {
+      fr: 'Une vraie main de poker s\'étend sur plusieurs rues (pré-flop → flop → turn → river) et chaque décision influence la suivante — impossible de bien jouer la river si le pré-flop était mauvais. Ce module recompose l\'ensemble : tu enchaînes 2 à 4 décisions dans le même scénario cohérent, pour apprendre à raisonner sur toute la main plutôt que street par street isolément.',
+      en: 'A real poker hand spans several streets (preflop → flop → turn → river) and every decision shapes the next — you can\'t play the river well if the preflop decision was wrong. This module recreates the whole thing: you chain 2 to 4 decisions in the same coherent scenario, learning to reason across the entire hand rather than street by street in isolation.',
+    },
     modes: {
       basic:    { fr: 'Équité et indices de texture affichés à chaque street. Mains favorables (90% in-range).', en: 'Equity and texture hints shown at each street. Favourable hands (90% in-range).' },
       advanced: { fr: 'Aucun indice — immersion totale. Timer 30 s en sprint.', en: 'No hints — full immersion. 30 s timer in sprint.' },
@@ -105,7 +134,11 @@ const MODULE_DETAILS: ModuleDetail[] = [
     id: 'bluff', icon: '🎭',
     accentClass: 'text-pink-400', borderClass: 'border-pink-700/50',
     label: { fr: 'Bluff', en: 'Bluff' },
-    desc: { fr: 'Évaluer si un bluff est rentable en analysant position, texture et équité.', en: 'Evaluate whether a bluff is profitable by analysing position, texture and equity.' },
+    desc: { fr: 'Décider de bluffer ou de checker-fold en croisant 4 facteurs : position, texture du board, range adverse estimée et blockers de ta main. Objectif : une fréquence de bluff non-exploitable.', en: 'Decide whether to bluff or check-fold by weighing 4 factors: position, board texture, estimated villain range and your hand\'s blockers. Goal: an unexploitable bluffing frequency.' },
+    essence: {
+      fr: 'Bluffer, c\'est miser avec une main faible pour faire abandonner une main adverse plus forte. Ce module t\'apprend à juger si un bluff a de bonnes chances de marcher en croisant 4 facteurs concrets — ta position (l\'IP donne plus de fold equity), la texture du board (menaçante = plus de folds), la range estimée du vilain (faible = bonne cible) et tes blockers (un semi-bluff vaut mieux qu\'un bluff pur) — plutôt qu\'à l\'instinct.',
+      en: 'Bluffing means betting a weak hand to make a stronger opponent hand fold. This module teaches you to judge whether a bluff is likely to work by weighing 4 concrete factors — your position (IP gives more fold equity), board texture (scarier boards mean more folds), villain\'s estimated range (weak range = good target) and your blockers (a semi-bluff beats pure air) — instead of pure instinct.',
+    },
     modes: {
       basic:    { fr: 'Analyse détaillée de chaque facteur (position, texture du board, range adverse, équité) affichée avant de répondre.', en: 'Detailed breakdown of each factor (position, board texture, opponent range, equity) shown before answering.' },
       advanced: { fr: 'Les facteurs s\'affichent seulement après ta réponse — lis le board et le contexte seul. Timer 30 s en sprint.', en: 'Factors only shown after your answer — read the board and context alone. 30 s timer in sprint.' },
@@ -584,6 +617,14 @@ export function PokerRulesPage() {
                         <p className="text-[11px] text-gray-400 leading-snug">
                           {isEn ? m.desc.en : m.desc.fr}
                         </p>
+                        <div className="bg-gray-800/40 rounded-lg px-2.5 py-2 border border-gray-700/50">
+                          <p className="text-[10px] font-bold text-gray-300 mb-1 flex items-center gap-1">
+                            🎯 {isEn ? 'The goal' : 'Le but'}
+                          </p>
+                          <p className="text-[11px] text-gray-400 leading-snug">
+                            {isEn ? m.essence.en : m.essence.fr}
+                          </p>
+                        </div>
                         <div className="flex flex-col gap-1.5">
                           {LEVEL_CONFIGS.map(lvl => (
                             <div key={lvl.key} className={`rounded-lg px-2.5 py-1.5 border ${lvl.cls}`}>
