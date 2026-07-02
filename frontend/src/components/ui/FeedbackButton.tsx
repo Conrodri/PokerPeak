@@ -40,14 +40,16 @@ export function FeedbackButton() {
 
   return (
     <>
-      {/* Floating trigger */}
+      {/* Floating trigger — icon-only FAB on mobile (smaller footprint, less
+          overlap with page content above the bottom nav bar); full pill with
+          label from 560px up where there's room to spare. */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-5 min-[560px]:bottom-5 z-50 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg shadow-blue-900/40 transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-20 right-5 min-[560px]:bottom-5 z-50 flex items-center justify-center gap-2 w-11 h-11 min-[560px]:w-auto min-[560px]:h-auto bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium min-[560px]:px-4 min-[560px]:py-2.5 rounded-full shadow-lg shadow-blue-900/40 transition-all hover:scale-105 active:scale-95"
         aria-label="Donner un retour"
       >
         <MessageSquarePlus size={16} />
-        <span>Retour</span>
+        <span className="hidden min-[560px]:inline">Retour</span>
       </button>
 
       {/* Backdrop */}

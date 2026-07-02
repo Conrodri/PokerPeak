@@ -1130,7 +1130,7 @@ export function PreflopTrainer() {
                 </div>
                 <div className={gridCls}>
                   {cards.map(p => (
-                    <div key={p.label} className={`rounded-lg border px-1.5 py-1 overflow-hidden flex flex-col justify-between ${p.border} ${p.bg}`} style={{ height: '52px' }}>
+                    <div key={p.label} className={`rounded-lg border px-1.5 py-1 overflow-hidden flex flex-col justify-between min-w-0 ${p.border} ${p.bg}`} style={{ height: '52px' }}>
                       <div className="flex items-center gap-1">
                         <span className={`grid place-items-center w-4 h-4 rounded ${p.iconBg} shrink-0`}>{p.icon}</span>
                         <div className="min-w-0">
@@ -1138,7 +1138,7 @@ export function PreflopTrainer() {
                           <div className="text-gray-500 text-[9px] leading-none mt-0.5 truncate">{p.sub}</div>
                         </div>
                       </div>
-                      <div className="text-[9px] text-gray-400 leading-none truncate">{p.desc}</div>
+                      <div className="text-[9px] text-gray-400 leading-none truncate min-w-0">{p.desc}</div>
                       <div className="h-0.5 bg-gray-800 rounded-full overflow-hidden">
                         <div className={`h-full ${p.bar} rounded-full opacity-80`} style={{ width: `${Math.min(p.pct, 100)}%` }} />
                       </div>

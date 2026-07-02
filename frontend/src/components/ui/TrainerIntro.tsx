@@ -42,14 +42,14 @@ export function TrainerIntro({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-1.5 max-w-xl mx-auto"
+      className="flex flex-col gap-1.5 w-full max-w-xl mx-auto"
     >
       {/* Header */}
-      <div className="flex flex-col items-center text-center gap-0.5">
+      <div className="flex flex-col items-center text-center gap-0.5 w-full min-w-0">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 flex items-center justify-center text-base shadow-lg shadow-black/30">
           {emoji}
         </div>
-        <h2 className="text-base sm:text-lg font-black text-white">{title}</h2>
+        <h2 className="text-base sm:text-lg font-black text-white max-w-full">{title}</h2>
         {locked && (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-600/40 text-yellow-400 text-[10px] font-bold uppercase tracking-wide">
             <Crown size={11} fill="currentColor" />
@@ -66,8 +66,8 @@ export function TrainerIntro({
         {/* What is X? */}
         <section className="bg-gray-900/50 rounded-xl px-2.5 py-1.5 border border-gray-800">
           <h3 className="text-gray-200 font-bold text-xs mb-1 flex items-center gap-1.5">
-            <span className="grid place-items-center w-4 h-4 rounded bg-blue-900/40 text-blue-300 text-[10px]">📖</span>
-            {whatTitle}
+            <span className="grid place-items-center w-4 h-4 rounded bg-blue-900/40 text-blue-300 text-[10px] shrink-0">📖</span>
+            <span className="min-w-0">{whatTitle}</span>
           </h3>
           {whatContent}
         </section>
@@ -75,8 +75,8 @@ export function TrainerIntro({
         {/* How it works */}
         <section className="bg-gray-900/50 rounded-xl px-2.5 py-1.5 border border-gray-800">
           <h3 className="text-gray-200 font-bold text-xs mb-1 flex items-center gap-1.5">
-            <span className="grid place-items-center w-4 h-4 rounded bg-gold-900/40 text-gold-300 text-[10px]">⚡</span>
-            {isEn ? 'How the exercises work' : 'Comment ça marche ?'}
+            <span className="grid place-items-center w-4 h-4 rounded bg-gold-900/40 text-gold-300 text-[10px] shrink-0">⚡</span>
+            <span className="min-w-0">{isEn ? 'How the exercises work' : 'Comment ça marche ?'}</span>
           </h3>
           <ul className="space-y-0.5 text-xs text-gray-400">
             {steps.map((item, i) => {
@@ -86,7 +86,7 @@ export function TrainerIntro({
                   <span className="grid place-items-center w-3.5 h-3.5 rounded bg-gray-800 text-[9px] shrink-0 mt-px">
                     {item.slice(0, spaceIdx)}
                   </span>
-                  <div className="flex-1 leading-snug"><RichText text={item.slice(spaceIdx + 1)} /></div>
+                  <div className="flex-1 min-w-0 leading-snug"><RichText text={item.slice(spaceIdx + 1)} /></div>
                 </li>
               );
             })}
