@@ -6,6 +6,7 @@ import prisma from '../config/database';
 import { ApiResponse, JwtPayload } from '../types';
 import { JWT_SECRET, JWT_EXPIRES } from '../config/secrets';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/emailService';
+import { uid } from '../middleware/auth';
 
 function makeVerifyToken(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -114,7 +115,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
 export async function dismissTutorial(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) {
       res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse);
       return;
@@ -131,7 +132,7 @@ export async function dismissTutorial(req: Request, res: Response): Promise<void
 
 export async function changePassword(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) {
       res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse);
       return;
@@ -167,7 +168,8 @@ export async function changePassword(req: Request, res: Response): Promise<void>
     await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
 
     res.json({ success: true, data: { message: 'Password updated' } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[authController]', error);
     res.status(500).json({ success: false, error: 'Failed to update password' } as ApiResponse);
   }
 }
@@ -213,7 +215,8 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
         },
       },
     } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[authController]', error);
     res.status(500).json({ success: false, error: 'Verification failed' } as ApiResponse);
   }
 }
@@ -246,14 +249,15 @@ export async function resendVerification(req: Request, res: Response): Promise<v
     );
 
     res.json({ success: true, data: { message: 'E-mail de vérification renvoyé.' } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[authController]', error);
     res.status(500).json({ success: false, error: 'Failed to resend verification' } as ApiResponse);
   }
 }
 
 export async function deleteAccount(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) {
       res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse);
       return;
@@ -284,7 +288,8 @@ export async function deleteAccount(req: Request, res: Response): Promise<void> 
     await prisma.user.delete({ where: { id: userId } });
 
     res.json({ success: true, data: { message: 'Account deleted' } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[authController]', error);
     res.status(500).json({ success: false, error: 'Failed to delete account' } as ApiResponse);
   }
 }
@@ -317,7 +322,8 @@ export async function forgotPassword(req: Request, res: Response): Promise<void>
     );
 
     res.json({ success: true, data: { message: 'Si ce compte existe, un e-mail a été envoyé.' } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[authController]', error);
     res.status(500).json({ success: false, error: 'Failed to process request' } as ApiResponse);
   }
 }
@@ -363,14 +369,15 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
         user: { id: user.id, username: user.username, email: user.email, isPremium: user.isPremium, isPremiumExpert: user.isPremiumExpert },
       },
     } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[authController]', error);
     res.status(500).json({ success: false, error: 'Failed to reset password' } as ApiResponse);
   }
 }
 
 export async function getMe(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) {
       res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse);
       return;

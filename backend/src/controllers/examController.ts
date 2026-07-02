@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
+import { uid } from '../middleware/auth';
 
 const MODULES = [
   'preflop', 'preflop-mtt',
@@ -9,10 +10,6 @@ const MODULES = [
   'potodds', 'equity', 'outs', 'postflop', 'fullhand', 'betsizing',
 ];
 const MODES   = ['beginner', 'advanced', 'expert'];
-
-function uid(req: Request): string {
-  return (req as any).user?.userId as string;
-}
 
 // GET /exam/records  →  { success, data: { [module]: { advanced: best, expert: best } } }
 export async function getExamRecords(req: Request, res: Response): Promise<void> {
@@ -26,7 +23,8 @@ export async function getExamRecords(req: Request, res: Response): Promise<void>
       else                       data[r.module].advanced = r.best;
     }
     res.json({ success: true, data });
-  } catch {
+  } catch (error) {
+    console.error('[examController]', error);
     res.status(500).json({ success: false, error: 'Failed to get exam records' });
   }
 }
@@ -70,7 +68,8 @@ export async function saveExamScore(req: Request, res: Response): Promise<void> 
     });
     const history = runs.map(r => ({ score: r.score, createdAt: r.createdAt }));
     res.json({ success: true, data: { best, isNewRecord, history } });
-  } catch {
+  } catch (error) {
+    console.error('[examController]', error);
     res.status(500).json({ success: false, error: 'Failed to save exam score' });
   }
 }

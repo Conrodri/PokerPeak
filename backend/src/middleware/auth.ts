@@ -14,10 +14,15 @@ function isActive(flag: boolean, until: Date | null): boolean {
   return until > new Date();
 }
 
+/** Extract the authenticated user's id from a request (set by requireAuth/optionalAuth). */
+export function uid(req: Request): string {
+  return (req as any).user?.userId as string;
+}
+
 /** Resolve whether the authenticated request belongs to a premium-expert user. */
 export async function isRequestPremiumExpert(req: Request): Promise<boolean> {
   if ((req as any).user?.isPremiumExpert === true) return true;
-  const userId: string | undefined = (req as any).user?.userId;
+  const userId = uid(req);
   if (!userId) return false;
   try {
     const user = await prisma.user.findUnique({

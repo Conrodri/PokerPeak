@@ -2,12 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { getRangeMatrix } from '../services/poker/ranges';
 import { Position } from '../types';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function uid(req: Request): string {
-  return (req as any).user?.userId as string;
-}
+import { uid } from '../middleware/auth';
 
 const ALL_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
@@ -26,7 +21,8 @@ export async function getCustomRange(req: Request, res: Response): Promise<void>
       where: { userId_position: { userId, position } },
     });
     res.json({ success: true, data: range ? JSON.parse(range.cells) : null });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to get range' });
   }
 }
@@ -55,7 +51,8 @@ export async function saveCustomRange(req: Request, res: Response): Promise<void
       update: { cells: JSON.stringify(cells) },
     });
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to save range' });
   }
 }
@@ -67,7 +64,8 @@ export async function deleteCustomRange(req: Request, res: Response): Promise<vo
     const { position } = req.params;
     await prisma.customRange.deleteMany({ where: { userId, position } });
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to delete range' });
   }
 }
@@ -82,7 +80,8 @@ export async function getDefaultRanges(_req: Request, res: Response): Promise<vo
       data[pos] = getRangeMatrix(pos as Position);
     }
     res.json({ success: true, data });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to fetch defaults' });
   }
 }
@@ -97,7 +96,8 @@ export async function listPresets(req: Request, res: Response): Promise<void> {
       orderBy: { createdAt: 'asc' },
     });
     res.json({ success: true, data: presets.map(parsePreset) });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to list presets' });
   }
 }
@@ -128,7 +128,8 @@ export async function createPreset(req: Request, res: Response): Promise<void> {
       },
     });
     res.json({ success: true, data: parsePreset(preset) });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to create preset' });
   }
 }
@@ -157,7 +158,8 @@ export async function updatePreset(req: Request, res: Response): Promise<void> {
       },
     });
     res.json({ success: true, data: parsePreset(updated) });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to update preset' });
   }
 }
@@ -169,7 +171,8 @@ export async function deletePreset(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     await prisma.rangePreset.deleteMany({ where: { id, userId } });
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to delete preset' });
   }
 }
@@ -194,7 +197,8 @@ export async function activatePreset(req: Request, res: Response): Promise<void>
       }
     }
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to activate preset' });
   }
 }
@@ -206,7 +210,8 @@ export async function getActivePreset(req: Request, res: Response): Promise<void
       where: { userId: uid(req), isActive: true },
     });
     res.json({ success: true, data: preset ? parsePreset(preset) : null });
-  } catch {
+  } catch (error) {
+    console.error('[rangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to get active preset' });
   }
 }

@@ -6,6 +6,7 @@ import { createDeck, shuffleDeck, removeCards, toHandNotation, RANK_VALUE, SUIT_
 import { calculateEquity, EquityResult } from '../services/poker/equity';
 import { evaluateBestHand } from '../services/poker/handEvaluator';
 import { OPEN_RAISE } from '../services/poker/ranges';
+import { createExercisePool } from '../utils/exercisePool';
 
 const PREGEN_FILE = path.resolve(__dirname, '../../data/pregenerated.json');
 
@@ -13,7 +14,8 @@ function loadPregen(): { flop: object[]; expertFlop: object[]; fullHand: object[
   try {
     const raw = JSON.parse(fs.readFileSync(PREGEN_FILE, 'utf8'));
     return { flop: raw.flop ?? [], expertFlop: raw.expertFlop ?? [], fullHand: raw.fullHand ?? [] };
-  } catch {
+  } catch (error) {
+    console.error('[postflopController]', error);
     return { flop: [], expertFlop: [], fullHand: [] };
   }
 }
@@ -424,6 +426,20 @@ function equityVsVillain(hero: [Card, Card], villain: [Card, Card], board: Card[
 //
 // When villain bets:  pot-odds math decides fold / call / raise.
 
+/** Recommended bet size (% of pot) when villain checks, by hand-strength tier. */
+function computeBetSizePct(
+  isMonster: boolean, isTwoPair: boolean, isPair: boolean,
+  textureScore: number, heroEquity: number, isHeroIP: boolean,
+): number {
+  return isMonster
+    ? (textureScore >= 1 || heroEquity >= 78 ? 100 : 67)
+    : isTwoPair
+      ? (textureScore >= 1 && heroEquity >= 68 ? 100 : heroEquity >= 55 ? 67 : 33)
+      : isPair
+        ? (heroEquity >= 70 && isHeroIP ? 67 : 33)
+        : 33; // high card / semi-bluff
+}
+
 function buildDecision(
   heroEquity: number,
   isHeroIP: boolean,
@@ -446,6 +462,8 @@ function buildDecision(
   const textureScore = texture?.score ?? 0;
   const textureCtxFr = texture?.context.fr ?? '';
   const textureCtxEn = texture?.context.en ?? '';
+
+  const recPct = computeBetSizePct(isMonster, isTwoPair, isPair, textureScore, heroEquity, isHeroIP);
 
   let correct: ActionKey;
   let options: { key: ActionKey; labelFr: string; labelEn: string }[];
@@ -504,13 +522,6 @@ function buildDecision(
     ];
 
     // Taille recommandée (pédagogique — mentionnée dans l'explication)
-    const recPct    = isMonster
-                        ? (textureScore >= 1 || heroEquity >= 78 ? 100 : 67)
-                        : isTwoPair
-                          ? (textureScore >= 1 && heroEquity >= 68 ? 100 : heroEquity >= 55 ? 67 : 33)
-                          : isPair
-                            ? (heroEquity >= 70 && isHeroIP ? 67 : 33)
-                            : 33; // high card / semi-bluff
     const recSize   = Math.max(1, Math.round(potSize * recPct / 100));
 
     // ── MONSTER ────────────────────────────────────────────────────────────────
@@ -584,13 +595,6 @@ function buildDecision(
   // Expert mode: when villain checked and correct is 'bet', replace the 2-option
   // Check/Bet with 4 sizing choices so the player must pick the right bet size.
   if (expert && villainAction === 'check' && correct === 'bet') {
-    const recPct = isMonster
-      ? (textureScore >= 1 || heroEquity >= 78 ? 100 : 67)
-      : isTwoPair
-        ? (textureScore >= 1 && heroEquity >= 68 ? 100 : heroEquity >= 55 ? 67 : 33)
-        : isPair
-          ? (heroEquity >= 70 && isHeroIP ? 67 : 33)
-          : 33;
     const sz33  = Math.max(1, Math.round(potSize * 0.33));
     const sz67  = Math.max(1, Math.round(potSize * 0.67));
     const sz100 = Math.max(1, potSize);
@@ -684,24 +688,19 @@ function buildStreetDecision(
   };
 }
 
-// ─── Flop exercise pool ───────────────────────────────────────────────────────
-// Pre-generates non-expert flop exercises at startup so requests are served
-// instantly instead of waiting ~40ms for the Monte Carlo equity calculation.
+// ─── Shared flop/turn/river exercise generation ────────────────────────────────
+// buildFlopExercise (non-expert) and buildExpertFlopExercise only differ by
+// equity-sampling precision and whether buildDecision offers 4 bet-sizing
+// options; getPostflopExercise's on-demand path is the same pipeline again
+// with a variable board size (turn/river). All three now share one generator.
 
-const POOL_TARGET            = 20;
-const POOL_REFILL_THRESHOLD  = 5;
-const flopPool: object[]     = [];
-let   poolRefilling          = false;
-
-export function buildFlopExercise(): object {
-  const eqSamples = 4;
-  const eqRuns    = 150;
-
-  const matchup      = MATCHUPS[Math.floor(Math.random() * MATCHUPS.length)];
-  const fullDeck     = shuffleDeck(createDeck());
+function generateStreetExercise(street: typeof STREETS[number], eqSamples: number, eqRuns: number, expert: boolean): object {
+  const matchup   = MATCHUPS[Math.floor(Math.random() * MATCHUPS.length)];
+  const fullDeck  = shuffleDeck(createDeck());
   const heroHand: [Card, Card] = [fullDeck[0], fullDeck[1]];
-  const remaining    = shuffleDeck(removeCards(createDeck(), [...heroHand]));
-  const board        = remaining.slice(0, 3) as Card[];
+  const boardCount = street === 'flop' ? 3 : street === 'turn' ? 4 : 5;
+  const remaining = shuffleDeck(removeCards(createDeck(), [...heroHand]));
+  const board     = remaining.slice(0, boardCount) as Card[];
 
   const evalResult   = evaluateBestHand([...heroHand, ...board]);
   const equityResult = estimateEquityVsRange(heroHand, board, eqSamples, eqRuns);
@@ -718,14 +717,20 @@ export function buildFlopExercise(): object {
   const decision = buildDecision(
     heroEquity, matchup.heroIP, matchup.potBB,
     villainAction, villainBetSize, evalResult.rank,
-    texture, equityResult, false,
+    texture, equityResult, expert,
   );
   const threat   = buildThreatAnalysis(heroHand, board, evalResult.rank);
   const notation = toHandNotation(heroHand[0], heroHand[1]);
 
+  const streetLabels: Record<string, { fr: string; en: string }> = {
+    flop:  { fr: 'Flop',  en: 'Flop' },
+    turn:  { fr: 'Turn',  en: 'Turn' },
+    river: { fr: 'River', en: 'River' },
+  };
+
   return {
-    street:      'flop',
-    streetLabel: { fr: 'Flop', en: 'Flop' },
+    street,
+    streetLabel: streetLabels[street],
     heroPosition:    matchup.hero,
     villainPosition: matchup.villain,
     heroHand,
@@ -760,30 +765,21 @@ export function buildFlopExercise(): object {
   };
 }
 
-async function refillFlopPool(): Promise<void> {
-  if (poolRefilling) return;
-  poolRefilling = true;
-  try {
-    while (flopPool.length < POOL_TARGET) {
-      flopPool.push(buildFlopExercise());
-      // Yield to the event loop between each ~40ms CPU burst so requests aren't blocked
-      await new Promise(resolve => setImmediate(resolve));
-    }
-  } finally {
-    poolRefilling = false;
-  }
+// ─── Flop exercise pool ───────────────────────────────────────────────────────
+// Pre-generates non-expert flop exercises at startup so requests are served
+// instantly instead of waiting ~40ms for the Monte Carlo equity calculation.
+
+export function buildFlopExercise(): object {
+  return generateStreetExercise('flop', 4, 150, false);
 }
+
+const flopPool = createExercisePool<object>({
+  target: 20, threshold: 5, build: buildFlopExercise, label: 'flopPool',
+});
 
 /** Call once from server.ts after startup to warm the flop exercise pool. */
 export function initFlopPool(): void {
-  const { flop } = loadPregen();
-  if (flop.length > 0) {
-    flopPool.push(...flop.slice(0, POOL_TARGET));
-    console.log(`[flopPool] loaded ${flopPool.length} pre-generated exercises from file`);
-  }
-  if (flopPool.length < POOL_TARGET) {
-    refillFlopPool().catch(err => console.error('[flopPool] init error:', err));
-  }
+  flopPool.init(loadPregen().flop);
 }
 
 // ─── Expert flop pool ─────────────────────────────────────────────────────────
@@ -793,115 +789,28 @@ export function initFlopPool(): void {
 // headroom for rapid-fire sprint sessions before falling back to on-demand
 // generation. Mostly backed by data/pregenerated.json at startup (near-zero
 // cost); only the shortfall (if any) is generated live.
-const EXPERT_POOL_TARGET    = 30;
-const EXPERT_POOL_THRESHOLD = 10;
-const expertFlopPool: object[] = [];
-let   expertPoolRefilling    = false;
-
 export function buildExpertFlopExercise(): object {
-  const eqSamples = 8;
-  const eqRuns    = 300;
-
-  const matchup      = MATCHUPS[Math.floor(Math.random() * MATCHUPS.length)];
-  const fullDeck     = shuffleDeck(createDeck());
-  const heroHand: [Card, Card] = [fullDeck[0], fullDeck[1]];
-  const remaining    = shuffleDeck(removeCards(createDeck(), [...heroHand]));
-  const board        = remaining.slice(0, 3) as Card[];
-
-  const evalResult   = evaluateBestHand([...heroHand, ...board]);
-  const equityResult = estimateEquityVsRange(heroHand, board, eqSamples, eqRuns);
-  const heroEquity   = equityResult.equity;
-
-  const villainBets    = matchup.heroIP ? (Math.random() < 0.3) : (Math.random() < 0.5);
-  const villainAction: 'check' | 'bet' = villainBets ? 'bet' : 'check';
-  const villainBetPct  = [0.33, 0.50, 0.67][Math.floor(Math.random() * 3)];
-  const villainBetSize = villainAction === 'bet'
-    ? Math.max(1, Math.round(matchup.potBB * villainBetPct))
-    : 0;
-
-  const texture  = getBoardTexture(board);
-  const decision = buildDecision(
-    heroEquity, matchup.heroIP, matchup.potBB,
-    villainAction, villainBetSize, evalResult.rank,
-    texture, equityResult, true,
-  );
-  const threat   = buildThreatAnalysis(heroHand, board, evalResult.rank);
-  const notation = toHandNotation(heroHand[0], heroHand[1]);
-
-  return {
-    street:      'flop',
-    streetLabel: { fr: 'Flop', en: 'Flop' },
-    heroPosition:    matchup.hero,
-    villainPosition: matchup.villain,
-    heroHand,
-    heroNotation: notation,
-    board,
-    potSize:        matchup.potBB,
-    effectiveStack: 100 - matchup.potBB,
-    heroEquity,
-    equityDetail: {
-      wins:             equityResult.wins,
-      ties:             equityResult.ties,
-      samples:          equityResult.total,
-      runsPerSample:    eqRuns,
-      totalSimulations: equityResult.total * eqRuns,
-      example:          equityResult.example,
-    },
-    heroHandRank:        evalResult.rank,
-    heroHandLabel:       handRankLabel(evalResult.rank).fr,
-    heroHandLabelI18n:   handRankLabel(evalResult.rank),
-    heroHandDescription: evalResult.description,
-    boardTexture:   texture.label,
-    isHeroIP:       matchup.heroIP,
-    preflopContext: { fr: matchup.descFr, en: matchup.descEn },
-    villainAction,
-    villainBetSize,
-    correctAction: decision.correct,
-    options:       decision.options,
-    explanation: {
-      fr: decision.reasonFr + threat.fr,
-      en: decision.reasonEn + threat.en,
-    },
-  };
+  return generateStreetExercise('flop', 8, 300, true);
 }
 
-async function refillExpertFlopPool(): Promise<void> {
-  if (expertPoolRefilling) return;
-  expertPoolRefilling = true;
-  try {
-    while (expertFlopPool.length < EXPERT_POOL_TARGET) {
-      expertFlopPool.push(buildExpertFlopExercise());
-      await new Promise(resolve => setImmediate(resolve));
-    }
-  } finally {
-    expertPoolRefilling = false;
-  }
-}
+const expertFlopPool = createExercisePool<object>({
+  target: 30, threshold: 10, build: buildExpertFlopExercise, label: 'expertFlopPool',
+});
 
 /** Call once from server.ts after startup to warm the expert flop pool. */
 export function initExpertFlopPool(): void {
-  const { expertFlop } = loadPregen();
-  if (expertFlop.length > 0) {
-    expertFlopPool.push(...expertFlop.slice(0, EXPERT_POOL_TARGET));
-    console.log(`[expertFlopPool] loaded ${expertFlopPool.length} pre-generated exercises from file`);
-  }
-  if (expertFlopPool.length < EXPERT_POOL_TARGET) {
-    refillExpertFlopPool().catch(err => console.error('[expertFlopPool] init error:', err));
-  }
+  expertFlopPool.init(loadPregen().expertFlop);
 }
 
 // ─── Full hand pool ───────────────────────────────────────────────────────────
 // Full-hand exercises use deterministic equity (no Monte Carlo) so they're only
 // ~11ms each, but we still pool them for zero-latency responses.
 
-const FULLHAND_POOL_TARGET    = 20;
-const FULLHAND_POOL_THRESHOLD = 5;
-const fullHandPool: object[]  = [];
-let   fullHandRefilling       = false;
-
-export function buildFullHandExercise(): object {
+/** Shared by the pool builder (fixed 80% in-range) and the on-demand handler
+ *  (variable in-range probability per difficulty level). */
+function generateFullHandScenario(inRangeProb: number): object {
   const matchup     = RFI_MATCHUPS[Math.floor(Math.random() * RFI_MATCHUPS.length)];
-  const wantInRange = Math.random() < 0.80;
+  const wantInRange = Math.random() < inRangeProb;
   let deck          = shuffleDeck(createDeck());
   let heroHand: [Card, Card] = [deck[0], deck[1]];
   let rangeFreq     = getHandRangeFreq(heroHand, matchup.hero);
@@ -993,29 +902,17 @@ export function buildFullHandExercise(): object {
   };
 }
 
-async function refillFullHandPool(): Promise<void> {
-  if (fullHandRefilling) return;
-  fullHandRefilling = true;
-  try {
-    while (fullHandPool.length < FULLHAND_POOL_TARGET) {
-      fullHandPool.push(buildFullHandExercise());
-      await new Promise(resolve => setImmediate(resolve));
-    }
-  } finally {
-    fullHandRefilling = false;
-  }
+export function buildFullHandExercise(): object {
+  return generateFullHandScenario(0.80);
 }
+
+const fullHandPool = createExercisePool<object>({
+  target: 20, threshold: 5, build: buildFullHandExercise, label: 'fullHandPool',
+});
 
 /** Call once from server.ts after startup to warm the full hand pool. */
 export function initFullHandPool(): void {
-  const { fullHand } = loadPregen();
-  if (fullHand.length > 0) {
-    fullHandPool.push(...fullHand.slice(0, FULLHAND_POOL_TARGET));
-    console.log(`[fullHandPool] loaded ${fullHandPool.length} pre-generated exercises from file`);
-  }
-  if (fullHandPool.length < FULLHAND_POOL_TARGET) {
-    refillFullHandPool().catch(err => console.error('[fullHandPool] init error:', err));
-  }
+  fullHandPool.init(loadPregen().fullHand);
 }
 
 // ─── Single-street exercise ───────────────────────────────────────────────────
@@ -1035,94 +932,18 @@ export async function getPostflopExercise(req: Request, res: Response): Promise<
         : STREETS[Math.floor(Math.random() * STREETS.length)];
 
     // Serve from pool for flop requests (avoids Monte Carlo wait)
-    if (street === 'flop' && !isExpert && flopPool.length > 0) {
-      const data = flopPool.shift()!;
-      if (flopPool.length < POOL_REFILL_THRESHOLD) {
-        refillFlopPool().catch(err => console.error('[flopPool] refill error:', err));
-      }
-      return void res.json({ success: true, data });
+    if (street === 'flop' && !isExpert) {
+      const data = flopPool.take();
+      if (data) return void res.json({ success: true, data });
     }
-    if (street === 'flop' && isExpert && expertFlopPool.length > 0) {
-      const data = expertFlopPool.shift()!;
-      if (expertFlopPool.length < EXPERT_POOL_THRESHOLD) {
-        refillExpertFlopPool().catch(err => console.error('[expertFlopPool] refill error:', err));
-      }
-      return void res.json({ success: true, data });
+    if (street === 'flop' && isExpert) {
+      const data = expertFlopPool.take();
+      if (data) return void res.json({ success: true, data });
     }
 
     // On-demand generation (turn, river, expert flop, or empty pool fallback)
-    const matchup = MATCHUPS[Math.floor(Math.random() * MATCHUPS.length)];
-
-    const fullDeck = shuffleDeck(createDeck());
-    const heroHand: [Card, Card] = [fullDeck[0], fullDeck[1]];
-    const boardCount = street === 'flop' ? 3 : street === 'turn' ? 4 : 5;
-    const remaining = shuffleDeck(removeCards(createDeck(), [...heroHand]));
-    const board = remaining.slice(0, boardCount) as Card[];
-
-    const evalResult    = evaluateBestHand([...heroHand, ...board]);
-    const equityResult  = estimateEquityVsRange(heroHand, board, eqSamples, eqRuns);
-    const heroEquity    = equityResult.equity;
-
-    const villainBets = matchup.heroIP ? (Math.random() < 0.3) : (Math.random() < 0.5);
-    const villainAction: 'check' | 'bet' = villainBets ? 'bet' : 'check';
-    const villainBetPct = [0.33, 0.50, 0.67][Math.floor(Math.random() * 3)];
-    const villainBetSize = villainAction === 'bet'
-      ? Math.max(1, Math.round(matchup.potBB * villainBetPct))
-      : 0;
-
-    const texture  = getBoardTexture(board);
-    const decision = buildDecision(
-      heroEquity, matchup.heroIP, matchup.potBB,
-      villainAction, villainBetSize, evalResult.rank,
-      texture, equityResult, isExpert,
-    );
-    const threat   = buildThreatAnalysis(heroHand, board, evalResult.rank);
-    const notation = toHandNotation(heroHand[0], heroHand[1]);
-
-    const streetLabels: Record<string, { fr: string; en: string }> = {
-      flop:  { fr: 'Flop',  en: 'Flop' },
-      turn:  { fr: 'Turn',  en: 'Turn' },
-      river: { fr: 'River', en: 'River' },
-    };
-
-    res.json({
-      success: true,
-      data: {
-        street,
-        streetLabel: streetLabels[street],
-        heroPosition: matchup.hero,
-        villainPosition: matchup.villain,
-        heroHand,
-        heroNotation: notation,
-        board,
-        potSize: matchup.potBB,
-        effectiveStack: 100 - matchup.potBB,
-        heroEquity,
-        equityDetail: {
-          wins:             equityResult.wins,
-          ties:             equityResult.ties,
-          samples:          equityResult.total,
-          runsPerSample:    eqRuns,
-          totalSimulations: equityResult.total * eqRuns,
-          example:          equityResult.example,
-        },
-        heroHandRank: evalResult.rank,
-        heroHandLabel: handRankLabel(evalResult.rank).fr, // kept for backward compat
-        heroHandLabelI18n: handRankLabel(evalResult.rank),
-        heroHandDescription: evalResult.description,
-        boardTexture: texture.label,
-        isHeroIP: matchup.heroIP,
-        preflopContext: { fr: matchup.descFr, en: matchup.descEn },
-        villainAction,
-        villainBetSize,
-        correctAction: decision.correct,
-        options: decision.options,
-        explanation: {
-          fr: decision.reasonFr + threat.fr,
-          en: decision.reasonEn + threat.en,
-        },
-      },
-    });
+    const data = generateStreetExercise(street, eqSamples, eqRuns, isExpert);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('postflop error', error);
     res.status(500).json({ success: false, error: 'Failed to generate exercise' });
@@ -1138,118 +959,18 @@ export async function getFullHandScenario(req: Request, res: Response): Promise<
     const isBasic  = level === 'basic';
 
     // Serve from pool when available — skip pool for expert to ensure harder scenarios
-    if (fullHandPool.length > 0 && !isExpert) {
-      const data = fullHandPool.shift()!;
-      if (fullHandPool.length < FULLHAND_POOL_THRESHOLD) {
-        refillFullHandPool().catch(err => console.error('[fullHandPool] refill error:', err));
-      }
-      return void res.json({ success: true, data });
+    if (!isExpert) {
+      const data = fullHandPool.take();
+      if (data) return void res.json({ success: true, data });
     }
 
     // On-demand generation
-    const matchup = RFI_MATCHUPS[Math.floor(Math.random() * RFI_MATCHUPS.length)];
-
     // Expert: 50/50 in-range vs fold (more decision variety)
     // Basic: 90% in-range (more action, easier practice)
     // Advanced: 80% in-range (original default)
     const inRangeProb = isExpert ? 0.50 : isBasic ? 0.90 : 0.80;
-    const wantInRange = Math.random() < inRangeProb;
-    let deck = shuffleDeck(createDeck());
-    let heroHand: [Card, Card] = [deck[0], deck[1]];
-    let rangeFreq = getHandRangeFreq(heroHand, matchup.hero);
-
-    if (wantInRange && rangeFreq < 0.3) {
-      for (let attempt = 0; attempt < 8 && rangeFreq < 0.3; attempt++) {
-        deck = shuffleDeck(createDeck());
-        heroHand = [deck[0], deck[1]];
-        rangeFreq = getHandRangeFreq(heroHand, matchup.hero);
-      }
-    }
-
-    const villainHand: [Card, Card]          = [deck[2], deck[3]];
-    const flop:        [Card, Card, Card]    = [deck[4], deck[5], deck[6]];
-    const turn:        Card                  = deck[7];
-    const river:       Card                  = deck[8];
-
-    // ── Preflop ────────────────────────────────────────────────────────────────
-    const isInRange   = rangeFreq >= 0.3;
-    const preflopCorrect: 'fold' | 'raise' = isInRange ? 'raise' : 'fold';
-    const notation = toHandNotation(heroHand[0], heroHand[1]);
-
-    const preflopDecision = {
-      correctAction: preflopCorrect,
-      rangeFreq,
-      isInRange,
-      options: [
-        { key: 'fold',  labelFr: 'Fold',          labelEn: 'Fold' },
-        { key: 'raise', labelFr: 'Open raise 3bb', labelEn: 'Open raise 3bb' },
-      ],
-      explanation: {
-        fr: isInRange
-          ? `**${notation}** est dans la range ${matchup.hero} (fréquence ${Math.round(rangeFreq * 100)}%). L'open raise est la bonne action ici.`
-          : `**${notation}** n'est pas dans la range ${matchup.hero} (fréquence ${Math.round(rangeFreq * 100)}%). Le fold est correct — cette main n'est pas assez forte pour ouvrir depuis cette position.`,
-        en: isInRange
-          ? `**${notation}** is in the ${matchup.hero} opening range (${Math.round(rangeFreq * 100)}% frequency). Open raising is correct here.`
-          : `**${notation}** is not in the ${matchup.hero} opening range (${Math.round(rangeFreq * 100)}% frequency). Fold is correct — this hand isn't strong enough to open from this position.`,
-      },
-    };
-
-    // ── Post-flop streets ──────────────────────────────────────────────────────
-    let pot = matchup.potBB;
-
-    // Flop is ALWAYS computed
-    const flopDecision = buildStreetDecision(heroHand, villainHand, flop, pot, matchup.heroIP, matchup.villain);
-    pot = nextPot(pot, flopDecision.correctAction, flopDecision.villainAction, flopDecision.villainBetSize);
-
-    let turnDecision: ReturnType<typeof buildStreetDecision> | null = null;
-    let riverDecision: ReturnType<typeof buildStreetDecision> | null = null;
-    let lastStreet: 'flop' | 'turn' | 'river' = 'flop';
-
-    if (flopDecision.correctAction !== 'fold') {
-      lastStreet = 'turn';
-      turnDecision = buildStreetDecision(heroHand, villainHand, [...flop, turn], pot, matchup.heroIP, matchup.villain);
-      pot = nextPot(pot, turnDecision.correctAction, turnDecision.villainAction, turnDecision.villainBetSize);
-
-      if (turnDecision.correctAction !== 'fold') {
-        lastStreet = 'river';
-        riverDecision = buildStreetDecision(heroHand, villainHand, [...flop, turn, river], pot, matchup.heroIP, matchup.villain);
-      }
-    }
-
-    // ── Showdown ───────────────────────────────────────────────────────────────
-    const community = [flop[0], flop[1], flop[2], turn, river];
-    const heroFinal    = evaluateBestHand([...heroHand, ...community]);
-    const villainFinal = evaluateBestHand([...villainHand, ...community]);
-    const heroWins = heroFinal.score > villainFinal.score;
-    const isTie    = heroFinal.score === villainFinal.score;
-
-    res.json({
-      success: true,
-      data: {
-        heroPosition: matchup.hero,
-        villainPosition: matchup.villain,
-        heroHand,
-        heroNotation: notation,
-        villainHand,
-        villainNotation: toHandNotation(villainHand[0], villainHand[1]),
-        flop,
-        turn,
-        river,
-        isHeroIP: matchup.heroIP,
-        preflopContext: { fr: matchup.descFr, en: matchup.descEn },
-        lastStreet,
-        preflopDecision,
-        flopDecision,
-        turnDecision,
-        riverDecision,
-        showdown: {
-          heroWins,
-          isTie,
-          heroHandDescription:    heroFinal.description,
-          villainHandDescription: villainFinal.description,
-        },
-      },
-    });
+    const data = generateFullHandScenario(inRangeProb);
+    res.json({ success: true, data });
   } catch (error) {
     console.error('full hand error', error);
     res.status(500).json({ success: false, error: 'Failed to generate full hand scenario' });

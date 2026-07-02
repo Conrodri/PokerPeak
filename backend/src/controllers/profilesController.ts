@@ -3,7 +3,7 @@ import prisma from '../config/database';
 import { getRangeMatrix } from '../services/poker/ranges';
 import { buildBBDefenseGrid } from '../services/poker/bbDefense';
 import { Position } from '../types';
-import { isRequestPremiumExpert } from '../middleware/auth';
+import { isRequestPremiumExpert, uid } from '../middleware/auth';
 
 const ALL_POSITIONS: Position[] = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
@@ -105,12 +105,6 @@ async function seedDefaultProfile(userId: string): Promise<void> {
   });
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function uid(req: Request): string {
-  return (req as any).user?.userId as string;
-}
-
 type StackRangeRow = {
   id: string; profileId: string; label: string;
   stackMin: number; stackMax: number | null;
@@ -154,7 +148,8 @@ export async function listProfiles(req: Request, res: Response): Promise<void> {
       } catch { /* ignore seeding failure, return empty */ }
     }
     res.json({ success: true, data: profiles.map(parseProfile) });
-  } catch {
+  } catch (error) {
+    console.error('[profilesController]', error);
     res.status(500).json({ success: false, error: 'Failed to list profiles' });
   }
 }
@@ -180,7 +175,8 @@ export async function createProfile(req: Request, res: Response): Promise<void> 
       include: { stackRanges: true },
     });
     res.json({ success: true, data: parseProfile(profile) });
-  } catch {
+  } catch (error) {
+    console.error('[profilesController]', error);
     res.status(500).json({ success: false, error: 'Failed to create profile' });
   }
 }
@@ -202,7 +198,8 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
       include: { stackRanges: true },
     });
     res.json({ success: true, data: parseProfile(updated) });
-  } catch {
+  } catch (error) {
+    console.error('[profilesController]', error);
     res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
 }
@@ -214,7 +211,8 @@ export async function deleteProfile(req: Request, res: Response): Promise<void> 
     const { id } = req.params;
     await prisma.rangeProfile.deleteMany({ where: { id, userId } });
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[profilesController]', error);
     res.status(500).json({ success: false, error: 'Failed to delete profile' });
   }
 }
@@ -235,7 +233,8 @@ export async function activateProfile(req: Request, res: Response): Promise<void
       }
     }
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[profilesController]', error);
     res.status(500).json({ success: false, error: 'Failed to activate profile' });
   }
 }
@@ -270,7 +269,8 @@ export async function createStackRange(req: Request, res: Response): Promise<voi
       },
     });
     res.json({ success: true, data: { ...sr, data: JSON.parse(sr.data) } });
-  } catch {
+  } catch (error) {
+    console.error('[profilesController]', error);
     res.status(500).json({ success: false, error: 'Failed to create stack range' });
   }
 }
@@ -310,7 +310,8 @@ export async function updateStackRange(req: Request, res: Response): Promise<voi
       },
     });
     res.json({ success: true, data: { ...updated, data: JSON.parse(updated.data) } });
-  } catch {
+  } catch (error) {
+    console.error('[profilesController]', error);
     res.status(500).json({ success: false, error: 'Failed to update stack range' });
   }
 }
@@ -324,7 +325,8 @@ export async function deleteStackRange(req: Request, res: Response): Promise<voi
     if (!profile) { res.status(404).json({ success: false, error: 'Profile not found' }); return; }
     await prisma.rangeStackRange.deleteMany({ where: { id: rangeId, profileId } });
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[profilesController]', error);
     res.status(500).json({ success: false, error: 'Failed to delete stack range' });
   }
 }
@@ -388,7 +390,8 @@ export async function resolveRange(req: Request, res: Response): Promise<void> {
         includeFolds: activeProfile.includeFolds,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error('[profilesController]', error);
     res.status(500).json({ success: false, error: 'Failed to resolve range' });
   }
 }

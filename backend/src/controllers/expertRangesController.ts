@@ -1,14 +1,11 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
+import { uid } from '../middleware/auth';
 
 // Expert ranges: per (user, position), a flat 169×4 float array.
 // Each hand cell = [fold, call, raise3x, allin], summing to ~1.0.
 
 const EXPERT_CELLS = 169 * 4; // 676
-
-function uid(req: Request): string {
-  return (req as any).user?.userId as string;
-}
 
 function validateMix(mix: unknown): { ok: true; value: number[] } | { ok: false; error: string } {
   if (!Array.isArray(mix) || mix.length !== EXPERT_CELLS) {
@@ -39,7 +36,8 @@ export async function getExpertRange(req: Request, res: Response): Promise<void>
       where: { userId_position: { userId, position } },
     });
     res.json({ success: true, data: row ? JSON.parse(row.mix) : null });
-  } catch {
+  } catch (error) {
+    console.error('[expertRangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to get expert range' });
   }
 }
@@ -60,7 +58,8 @@ export async function saveExpertRange(req: Request, res: Response): Promise<void
       update: { mix: JSON.stringify(check.value) },
     });
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[expertRangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to save expert range' });
   }
 }
@@ -72,7 +71,8 @@ export async function deleteExpertRange(req: Request, res: Response): Promise<vo
     const { position } = req.params;
     await prisma.expertRange.deleteMany({ where: { userId, position } });
     res.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error('[expertRangesController]', error);
     res.status(500).json({ success: false, error: 'Failed to delete expert range' });
   }
 }

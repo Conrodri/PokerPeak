@@ -4,10 +4,11 @@ import { ApiResponse } from '../types';
 import {
   computeAchievements, getBestTitle, getBestAchievement, buildLeaderboardInput, AchievementInput, ACHIEVEMENTS,
 } from '../utils/achievements';
+import { uid } from '../middleware/auth';
 
 export async function getMyStats(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) {
       res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse);
       return;
@@ -184,7 +185,7 @@ export async function getUserStats(req: Request, res: Response): Promise<void> {
 
 export async function updateTitle(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
 
     const { titleId } = req.body as { titleId: string | null };
@@ -209,7 +210,7 @@ export async function updateTitle(req: Request, res: Response): Promise<void> {
 
 export async function getProgressHistory(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) {
       res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse);
       return;

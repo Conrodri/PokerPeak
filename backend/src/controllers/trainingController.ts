@@ -8,26 +8,18 @@ import { getRangeMatrix, getRangeFrequency, getRangePercentage, getCorrectAction
 import { buildBBDefenseGrid } from '../services/poker/bbDefense';
 import { Position, Position8, TableFormat, GameType, ApiResponse } from '../types';
 import prisma from '../config/database';
+import { createExercisePool } from '../utils/exercisePool';
+import { uid } from '../middleware/auth';
 
 const PREGEN_FILE = path.resolve(__dirname, '../../data/pregenerated.json');
 
-function loadPregenTraining(): {
-  equityFr: object[]; equityEn: object[];
-  equityAdvancedFr: object[]; equityAdvancedEn: object[];
-  preflopFr: object[]; preflopEn: object[];
-} {
+function loadPregenTraining(): { preflopFr: object[]; preflopEn: object[] } {
   try {
     const raw = JSON.parse(fs.readFileSync(PREGEN_FILE, 'utf8'));
-    return {
-      equityFr:         raw.equityFr          ?? [],
-      equityEn:         raw.equityEn          ?? [],
-      equityAdvancedFr: raw.equityAdvancedFr  ?? [],
-      equityAdvancedEn: raw.equityAdvancedEn  ?? [],
-      preflopFr:        raw.preflopFr         ?? [],
-      preflopEn:        raw.preflopEn         ?? [],
-    };
-  } catch {
-    return { equityFr: [], equityEn: [], equityAdvancedFr: [], equityAdvancedEn: [], preflopFr: [], preflopEn: [] };
+    return { preflopFr: raw.preflopFr ?? [], preflopEn: raw.preflopEn ?? [] };
+  } catch (error) {
+    console.error('[trainingController]', error);
+    return { preflopFr: [], preflopEn: [] };
   }
 }
 
@@ -35,46 +27,21 @@ type Lang = 'fr' | 'en';
 
 // Equity exercises are now O(1) pure-math — no pool needed.
 
-// ─── Preflop pool ─────────────────────────────────────────────────────────────
+// ─── Preflop pool (FR + EN) ───────────────────────────────────────────────────
 
-const PREFLOP_POOL_TARGET    = 30;
-const PREFLOP_POOL_THRESHOLD = 8;
-const preflopPoolFr: object[] = [];
-const preflopPoolEn: object[] = [];
-let   preflopRefilling        = false;
-
-async function refillPreflopPool(): Promise<void> {
-  if (preflopRefilling) return;
-  preflopRefilling = true;
-  try {
-    while (preflopPoolFr.length < PREFLOP_POOL_TARGET || preflopPoolEn.length < PREFLOP_POOL_TARGET) {
-      if (preflopPoolFr.length < PREFLOP_POOL_TARGET) {
-        preflopPoolFr.push(generatePreflopExercise(undefined, 'fr'));
-        await new Promise(resolve => setImmediate(resolve));
-      }
-      if (preflopPoolEn.length < PREFLOP_POOL_TARGET) {
-        preflopPoolEn.push(generatePreflopExercise(undefined, 'en'));
-        await new Promise(resolve => setImmediate(resolve));
-      }
-    }
-  } finally {
-    preflopRefilling = false;
-  }
-}
+const preflopPoolFr = createExercisePool<object>({
+  target: 30, threshold: 8, build: () => generatePreflopExercise(undefined, 'fr'), label: 'preflopPoolFr',
+});
+const preflopPoolEn = createExercisePool<object>({
+  target: 30, threshold: 8, build: () => generatePreflopExercise(undefined, 'en'), label: 'preflopPoolEn',
+});
 
 // ─── Init (called from server.ts) ────────────────────────────────────────────
 
 export function initEquityPool(): void {
   const { preflopFr, preflopEn } = loadPregenTraining();
-
-  preflopPoolFr.push(...preflopFr.slice(0, PREFLOP_POOL_TARGET));
-  preflopPoolEn.push(...preflopEn.slice(0, PREFLOP_POOL_TARGET));
-
-  console.log(`[preflopPool]   ${preflopPoolFr.length} FR + ${preflopPoolEn.length} EN`);
-  // Equity exercises are now pure-math — generated on-demand, no pool.
-
-  if (preflopPoolFr.length < PREFLOP_POOL_TARGET || preflopPoolEn.length < PREFLOP_POOL_TARGET)
-    refillPreflopPool().catch(err => console.error('[preflopPool] init error:', err));
+  preflopPoolFr.init(preflopFr);
+  preflopPoolEn.init(preflopEn);
 }
 
 function getLang(req: Request): Lang {
@@ -99,17 +66,14 @@ export async function getPreflopExercise(req: Request, res: Response): Promise<v
     // Serve from the prebuilt pool only for CG 6-max random mode. Other combos are generated on demand.
     if (!position && format === '6max' && gameType === 'cashgame') {
       const pool = lang === 'en' ? preflopPoolEn : preflopPoolFr;
-      if (pool.length > 0) {
-        const data = pool.shift()!;
-        if (preflopPoolFr.length < PREFLOP_POOL_THRESHOLD || preflopPoolEn.length < PREFLOP_POOL_THRESHOLD)
-          refillPreflopPool().catch(err => console.error('[preflopPool] refill error:', err));
-        return void res.json({ success: true, data } as ApiResponse);
-      }
+      const data = pool.take();
+      if (data) return void res.json({ success: true, data } as ApiResponse);
     }
 
     const exercise = generatePreflopExercise(position, lang, format, gameType);
     res.json({ success: true, data: exercise } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to generate exercise' } as ApiResponse);
   }
 }
@@ -130,13 +94,14 @@ export async function checkPreflopAnswer(req: Request, res: Response): Promise<v
     const isCorrect = userAction === correctAction;
     const xpEarned = calculateExerciseXP(isCorrect, timeTaken || 10000, false);
 
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (userId && sessionId) {
       await recordExercise(sessionId, 'preflop', JSON.stringify({ notation, position }), userAction, correctAction, isCorrect, timeTaken || 0, xpEarned, userId, position);
     }
 
     res.json({ success: true, data: { isCorrect, correctAction, frequency, isMixed: false, xpEarned } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to check answer' } as ApiResponse);
   }
 }
@@ -148,7 +113,8 @@ export async function getPotOddsExercise(req: Request, res: Response): Promise<v
     const level = raw === 'expert' ? 'expert' : raw === 'advanced' ? 'advanced' : 'basic';
     const exercise = generatePotOddsExercise(lang, level);
     res.json({ success: true, data: exercise } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to generate exercise' } as ApiResponse);
   }
 }
@@ -168,7 +134,7 @@ export async function checkPotOddsAnswer(req: Request, res: Response): Promise<v
     const isCorrect = userAction === correctAction;
     const xpEarned = calculateExerciseXP(isCorrect, timeTaken || 10000, false);
 
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (userId && sessionId) {
       await recordExercise(sessionId, 'potodds', JSON.stringify({ potSize, betSize, heroEquity }), userAction, correctAction, isCorrect, timeTaken || 0, xpEarned, userId);
     }
@@ -182,7 +148,8 @@ export async function checkPotOddsAnswer(req: Request, res: Response): Promise<v
         reasoning: result.reasoning, xpEarned,
       },
     } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to check answer' } as ApiResponse);
   }
 }
@@ -194,7 +161,8 @@ export function getEquityExercise(req: Request, res: Response): void {
     const level = raw === 'expert' ? 'expert' : raw === 'advanced' ? 'advanced' : 'basic';
     const exercise = generateEquityExercise(lang, level);
     res.json({ success: true, data: exercise } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to generate exercise' } as ApiResponse);
   }
 }
@@ -205,7 +173,8 @@ export async function getOutsExercise(req: Request, res: Response): Promise<void
     const difficulty = req.query.level === 'expert' ? 'expert' : undefined;
     const exercise = generateOutsExercise(lang, difficulty);
     res.json({ success: true, data: exercise } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to generate exercise' } as ApiResponse);
   }
 }
@@ -215,7 +184,8 @@ export async function getBBDefenseExercise(req: Request, res: Response): Promise
     const lang = getLang(req);
     const exercise = generateBBDefenseExercise(lang);
     res.json({ success: true, data: exercise } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to generate exercise' } as ApiResponse);
   }
 }
@@ -224,7 +194,8 @@ export async function getBBDefenseRange(_req: Request, res: Response): Promise<v
   try {
     const grid = buildBBDefenseGrid();
     res.json({ success: true, data: { grid } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to build range' } as ApiResponse);
   }
 }
@@ -235,7 +206,8 @@ export async function getBluffExercise(req: Request, res: Response): Promise<voi
     const avoid = req.query.avoid as string | undefined;
     const exercise = generateBluffExercise(level, avoid);
     res.json({ success: true, data: exercise } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to generate bluff exercise' } as ApiResponse);
   }
 }
@@ -248,7 +220,8 @@ export async function getRangeData(req: Request, res: Response): Promise<void> {
     const matrix = getRangeMatrix(position as Position8, format, gameType);
     const percentage = getRangePercentage(position as Position8, format, gameType);
     res.json({ success: true, data: { matrix, percentage, position } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to get range data' } as ApiResponse);
   }
 }
@@ -256,20 +229,21 @@ export async function getRangeData(req: Request, res: Response): Promise<void> {
 export async function recordClientResult(req: Request, res: Response): Promise<void> {
   try {
     const { module, isCorrect, xpEarned, timeTaken, sessionId } = req.body;
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (userId && sessionId) {
       const xp = typeof xpEarned === 'number' ? xpEarned : (isCorrect ? 15 : 5);
       await recordExercise(sessionId, module, '{}', isCorrect ? 'correct' : 'incorrect', 'correct', isCorrect, timeTaken || 0, xp, userId);
     }
     res.json({ success: true, data: { recorded: !!userId } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to record result' } as ApiResponse);
   }
 }
 
 export async function startSession(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     const { module } = req.body;
 
     if (!userId) {
@@ -281,7 +255,8 @@ export async function startSession(req: Request, res: Response): Promise<void> {
       data: { userId, module: module || 'preflop' },
     });
     res.json({ success: true, data: { sessionId: session.id } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[trainingController]', error);
     res.status(500).json({ success: false, error: 'Failed to start session' } as ApiResponse);
   }
 }
@@ -313,6 +288,18 @@ function computeLevelFromXp(xp: number): number {
     else break;
   }
   return level;
+}
+
+/** Increment a total/correct counter pair (+ optional accuracy field) into `data`. */
+function bumpCounter(
+  data: Record<string, any>, stats: Record<string, any>,
+  totalKey: string, correctKey: string, isCorrect: boolean, accKey?: string | null,
+): void {
+  const newT = (stats[totalKey] ?? 0) + 1;
+  const newC = (stats[correctKey] ?? 0) + (isCorrect ? 1 : 0);
+  data[totalKey] = newT;
+  data[correctKey] = newC;
+  if (accKey) data[accKey] = newC / newT;
 }
 
 async function updatePlayerStats(
@@ -349,20 +336,12 @@ async function updatePlayerStats(
   const mFields = moduleMap[module];
   if (mFields) {
     const [tKey, cKey, aKey] = mFields;
-    const newT = ((stats as any)[tKey] ?? 0) + 1;
-    const newC = ((stats as any)[cKey] ?? 0) + (isCorrect ? 1 : 0);
-    data[tKey] = newT;
-    data[cKey] = newC;
-    if (aKey) data[aKey] = newC / newT;
+    bumpCounter(data, stats as any, tKey, cKey, isCorrect, aKey);
   }
 
   // Post-flop — overall counter + per-street counter
   if (module.startsWith('postflop_')) {
-    const newPFT = ((stats as any).postflopTotal   ?? 0) + 1;
-    const newPFC = ((stats as any).postflopCorrect ?? 0) + (isCorrect ? 1 : 0);
-    data.postflopTotal   = newPFT;
-    data.postflopCorrect = newPFC;
-    data.postflopAccuracy = newPFC / newPFT;
+    bumpCounter(data, stats as any, 'postflopTotal', 'postflopCorrect', isCorrect, 'postflopAccuracy');
 
     const pfStreetMap: Record<string, [string, string]> = {
       postflop_flop:  ['postflopFlopTotal',  'postflopFlopCorrect'],
@@ -370,19 +349,12 @@ async function updatePlayerStats(
       postflop_river: ['postflopRiverTotal', 'postflopRiverCorrect'],
     };
     const pfFields = pfStreetMap[module];
-    if (pfFields) {
-      const [tKey, cKey] = pfFields;
-      data[tKey] = ((stats as any)[tKey] ?? 0) + 1;
-      data[cKey] = ((stats as any)[cKey] ?? 0) + (isCorrect ? 1 : 0);
-    }
+    if (pfFields) bumpCounter(data, stats as any, pfFields[0], pfFields[1], isCorrect);
   }
 
   // Full hand — overall counter + per-street counter
   if (module.startsWith('fullhand')) {
-    const newFHT = ((stats as any).fullhandTotal  ?? 0) + 1;
-    const newFHC = ((stats as any).fullhandCorrect ?? 0) + (isCorrect ? 1 : 0);
-    data.fullhandTotal   = newFHT;
-    data.fullhandCorrect = newFHC;
+    bumpCounter(data, stats as any, 'fullhandTotal', 'fullhandCorrect', isCorrect);
 
     const streetMap: Record<string, [string, string]> = {
       fullhand_preflop: ['fullhandPreflopTotal', 'fullhandPreflopCorrect'],
@@ -391,11 +363,7 @@ async function updatePlayerStats(
       fullhand_river:   ['fullhandRiverTotal',   'fullhandRiverCorrect'],
     };
     const sFields = streetMap[module];
-    if (sFields) {
-      const [tKey, cKey] = sFields;
-      data[tKey] = ((stats as any)[tKey] ?? 0) + 1;
-      data[cKey] = ((stats as any)[cKey] ?? 0) + (isCorrect ? 1 : 0);
-    }
+    if (sFields) bumpCounter(data, stats as any, sFields[0], sFields[1], isCorrect);
   }
 
   // Per-module streak tracking
@@ -434,14 +402,7 @@ async function updatePlayerStats(
       SB:  ['sbTotal',  'sbCorrect',  'sbAccuracy'],
     };
     const pFields = posMap[position.toUpperCase()];
-    if (pFields) {
-      const [tKey, cKey, aKey] = pFields;
-      const newT = ((stats as any)[tKey] ?? 0) + 1;
-      const newC = ((stats as any)[cKey] ?? 0) + (isCorrect ? 1 : 0);
-      data[tKey] = newT;
-      data[cKey] = newC;
-      data[aKey] = newC / newT;
-    }
+    if (pFields) bumpCounter(data, stats as any, pFields[0], pFields[1], isCorrect, pFields[2]);
   }
 
   await prisma.playerStats.update({ where: { userId }, data });

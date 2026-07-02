@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { ApiResponse } from '../types';
+import { uid } from '../middleware/auth';
 
 function subTier(isPremium: boolean, isPremiumExpert: boolean, premiumUntil: Date | null, premiumExpertUntil: Date | null) {
   const now = new Date();
@@ -13,7 +14,7 @@ function subTier(isPremium: boolean, isPremiumExpert: boolean, premiumUntil: Dat
 
 export async function getSubscription(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) { res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse); return; }
 
     const user = await prisma.user.findUnique({
@@ -40,15 +41,16 @@ export async function getSubscription(req: Request, res: Response): Promise<void
         premiumExpertUntil: user.premiumExpertUntil,
       },
     } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[subscriptionController]', error);
     res.status(500).json({ success: false, error: 'Failed to fetch subscription' } as ApiResponse);
   }
 }
 
 /** Downgrade expert → premium (keeps premiumSince/Until, clears expert fields). */
-export async function downgradeToPremiun(req: Request, res: Response): Promise<void> {
+export async function downgradeToPremium(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) { res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse); return; }
 
     await prisma.user.update({
@@ -56,7 +58,8 @@ export async function downgradeToPremiun(req: Request, res: Response): Promise<v
       data: { isPremiumExpert: false, premiumExpertUntil: new Date(), premiumExpertSince: null },
     });
     res.json({ success: true, data: { tier: 'premium' } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[subscriptionController]', error);
     res.status(500).json({ success: false, error: 'Failed to downgrade' } as ApiResponse);
   }
 }
@@ -64,7 +67,7 @@ export async function downgradeToPremiun(req: Request, res: Response): Promise<v
 /** Cancel all subscriptions (sets both Until dates to now). */
 export async function cancelSubscription(req: Request, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = uid(req);
     if (!userId) { res.status(401).json({ success: false, error: 'Unauthorized' } as ApiResponse); return; }
 
     const now = new Date();
@@ -76,7 +79,8 @@ export async function cancelSubscription(req: Request, res: Response): Promise<v
       },
     });
     res.json({ success: true, data: { tier: 'free' } } as ApiResponse);
-  } catch {
+  } catch (error) {
+    console.error('[subscriptionController]', error);
     res.status(500).json({ success: false, error: 'Failed to cancel subscription' } as ApiResponse);
   }
 }
