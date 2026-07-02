@@ -165,7 +165,8 @@ function RangeSection({ matrix, mix, highlightNotation, position, isCustom, reso
             {mix ? (
               // Expert profile: render the exact stacked-bar scheme of the editor.
               <ExpertRangeGrid mix={mix} highlightNotation={highlightNotation} isEn={isEn} />
-            ) : position === 'BB' && !isCustom ? (
+            ) : !matrix ? null
+            : position === 'BB' && !isCustom ? (
               // GTO BB-defense grid uses action CODES (0-4), not raise frequencies,
               // so it needs the BB-specific colouring/legend (call ≠ raise).
               <RangeMatrix
@@ -620,10 +621,11 @@ export function PreflopTrainer() {
 
       try {
         const resolved = await profilesApi.resolve(rangeKey(preflopExercise.position), heroStack, mode !== 'expert');
-        const play = resolved?.cells ? toPlayFrequencies(resolved.cells) : null;
-        if (play) {
+        const cells = resolved?.cells;
+        const play = cells ? toPlayFrequencies(cells) : null;
+        if (play && cells) {
           flat = play;
-          setCustomMix(resolved.cells.length === 676 ? resolved.cells : null);
+          setCustomMix(cells.length === 676 ? cells : null);
           rangeLabel = resolved.profileName
             ? `${resolved.profileName}${resolved.stackRangeLabel ? ` · ${resolved.stackRangeLabel}` : ''}`
             : undefined;
@@ -732,10 +734,11 @@ export function PreflopTrainer() {
 
       try {
         const resolved = await profilesApi.resolve(rangeKey('BB'), heroStack, mode !== 'expert');
-        const play = resolved?.cells ? toPlayFrequencies(resolved.cells) : null;
-        if (play) {
+        const cells = resolved?.cells;
+        const play = cells ? toPlayFrequencies(cells) : null;
+        if (play && cells) {
           flat = play;
-          setCustomMix(resolved.cells.length === 676 ? resolved.cells : null);
+          setCustomMix(cells.length === 676 ? cells : null);
           label = resolved.profileName
             ? `${resolved.profileName}${resolved.stackRangeLabel ? ` · ${resolved.stackRangeLabel}` : ''}`
             : null;

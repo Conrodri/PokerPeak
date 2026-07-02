@@ -268,4 +268,15 @@ export const fr = {
   },
 } as const;
 
-export type Translations = typeof fr;
+// `fr` is `as const` so every leaf is a literal string type (e.g. "Connexion").
+// Widen leaves to `string` so other locales (en.ts) only need to match the
+// shape, not the literal French text.
+type Widen<T> = T extends string
+  ? string
+  : T extends readonly (infer U)[]
+    ? readonly Widen<U>[]
+    : T extends object
+      ? { [K in keyof T]: Widen<T[K]> }
+      : T;
+
+export type Translations = Widen<typeof fr>;
