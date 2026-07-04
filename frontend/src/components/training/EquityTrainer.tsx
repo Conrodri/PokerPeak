@@ -277,9 +277,9 @@ export function EquityTrainer() {
                     : (isEn ? 'What minimum equity do you need to call?' : 'Quelle équité minimale pour appeler ?')}
                 </p>
 
-                {/* 4 option buttons */}
+                {/* 4 option buttons — sorted ascending (top-left → bottom-right) */}
                 <div className="grid grid-cols-2 gap-3">
-                  {ex.options.map(opt => (
+                  {[...ex.options].sort((a, b) => a - b).map(opt => (
                     <motion.button
                       key={opt}
                       onClick={() => handleAnswer(opt)}

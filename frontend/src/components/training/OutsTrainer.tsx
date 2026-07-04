@@ -37,28 +37,23 @@ import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 
 type Phase = 'exercise' | 'result';
 
-/** Build 4 equity-% options around the correct value.
+/** Build 4 equity-% options around the correct value, sorted ascending
+ *  (top-left → bottom-right reading order in the 2-col grid).
  *  Step = rule increment (4 on flop, 2 on turn) to keep distractors plausible. */
 function buildEquityOptions(correct: number, street: 'flop' | 'turn'): number[] {
   const step = street === 'flop' ? 4 : 2;
-  const candidates = new Set<number>([correct]);
+  const distractors = new Set<number>();
   for (const delta of [-step * 2, -step, step, step * 2]) {
     const v = correct + delta;
-    if (v > 0 && v <= 68) candidates.add(v);
+    if (v > 0 && v <= 68) distractors.add(v);
   }
   // Pad with more values if needed
   for (const delta of [-step * 3, step * 3]) {
-    if (candidates.size >= 4) break;
+    if (distractors.size >= 3) break;
     const v = correct + delta;
-    if (v > 0 && v <= 68) candidates.add(v);
+    if (v > 0 && v <= 68 && v !== correct) distractors.add(v);
   }
-  // Shuffle
-  const arr = [...candidates];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr.slice(0, 4);
+  return [correct, ...[...distractors].slice(0, 3)].sort((a, b) => a - b);
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -294,9 +289,9 @@ export function OutsTrainer() {
                         : "Compte les cartes qui te donnent une main probablement gagnante — ton tirage qui rentre ET passer top paire comptent ; les petites paires qui ne gagneraient pas, non.")}
                 </p>
 
-                {/* Options */}
+                {/* Options — sorted ascending (top-left → bottom-right) */}
                 <div className="grid grid-cols-2 gap-3">
-                  {(isExpert ? equityOptions : ex.options).map(opt => (
+                  {(isExpert ? equityOptions : [...ex.options].sort((a, b) => a - b)).map(opt => (
                     <motion.button
                       key={opt}
                       onClick={() => handleAnswer(opt)}
