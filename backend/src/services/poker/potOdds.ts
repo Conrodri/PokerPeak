@@ -354,6 +354,37 @@ function formatRatio(pot: number, bet: number): string {
   return Number.isInteger(r) ? `${r}:1` : `${r.toFixed(1)}:1`;
 }
 
+// ─── Mnemonic: bet-as-%-of-pot → required equity (scale-invariant) ───────────
+// The required-equity threshold only depends on the bet's size relative to the
+// pot (call ÷ total pot), never on the actual chip amounts — so a handful of
+// "clean" ratios are worth memorizing outright instead of recomputing them
+// every time. Values: required% = f / (1 + 2f) with f = bet/pot.
+const EQUITY_MNEMONICS: { fraction: number; equity: number }[] = [
+  { fraction: 25,  equity: 16.7 },
+  { fraction: 33,  equity: 20   },
+  { fraction: 50,  equity: 25   },
+  { fraction: 66,  equity: 28.5 },
+  { fraction: 75,  equity: 30   },
+  { fraction: 100, equity: 33.3 },
+  { fraction: 150, equity: 37.5 },
+  { fraction: 200, equity: 40   },
+];
+
+/** Returns a short memorable line when the bet lands close to a "clean" pot
+ *  fraction (25/33/50/66/75/100/150/200% pot), null otherwise. */
+export function buildEquityMnemonic(betAmount: number, potAmount: number, lang: 'fr' | 'en' = 'fr'): string | null {
+  if (potAmount <= 0) return null;
+  const fractionPct = (betAmount / potAmount) * 100;
+  const closest = EQUITY_MNEMONICS.reduce((best, m) =>
+    Math.abs(m.fraction - fractionPct) < Math.abs(best.fraction - fractionPct) ? m : best
+  );
+  if (Math.abs(closest.fraction - fractionPct) > 4) return null;
+  const eq = Number.isInteger(closest.equity) ? `${closest.equity}` : closest.equity.toFixed(1);
+  return lang === 'en'
+    ? `💡 Mnemonic: whatever the stakes, a **${closest.fraction}% pot** bet always requires **≈${eq}%** equity to call — only the ratio matters, never the actual chip amounts.`
+    : `💡 Astuce mnémotechnique : peu importe la taille du pot, une mise de **${closest.fraction}% du pot** demande toujours **≈${eq}%** d'équité pour suivre — seul le ratio compte, jamais les jetons en jeu.`;
+}
+
 // ─── Expert: implied odds scenarios ──────────────────────────────────────────
 // Each scenario states an implied winnings figure (told to the user).
 // The correct action is derived from implied odds, not direct pot odds.
@@ -470,6 +501,7 @@ export function buildThresholdExplanation(
   const req = requiredEquity.toFixed(1).replace(/\.0$/, '');
   const ratio = formatRatio(pot, bet);
   const profitable = heroEquity >= requiredEquity;
+  const mnemonic = buildEquityMnemonic(bet, pot, lang);
 
   if (lang === 'en') {
     if (mode === 'advanced') {
@@ -477,7 +509,8 @@ export function buildThresholdExplanation(
         `Break-even threshold = amount to call ÷ final pot = ${call} ÷ (${pot}+${bet}+${call}) = **${req}%**.`,
         `As odds: you are getting **${ratio}** on your call. Continue whenever your equity (${heroEquity}%) beats ${req}%.`,
         `⚠️ This is **direct odds** only. With **implied odds** (extra money won when you hit) the real threshold drops; with **reverse implied odds** it rises. Also factor in **fold equity** if you can raise instead.`,
-      ].join('\n\n');
+        mnemonic,
+      ].filter(Boolean).join('\n\n');
     }
     return [
       `The **minimum threshold** (the "pot odds") is the smallest equity that makes calling profitable in the long run.`,
@@ -485,7 +518,8 @@ export function buildThresholdExplanation(
       `• Step 2 — **total pot if you call**: existing pot (${pot}bb) + villain's bet (${bet}bb) + your call (${call}bb) = **${total}bb**.`,
       `• Step 3 — formula:\n**( amount to pay / total pot if call ) × 100 = ( ${call} / ${total} ) × 100 = ${req}%**`,
       `In plain words: you must win at least **${req}%** of the time. Your equity is **${heroEquity}%** → ${profitable ? `that is **above** the threshold, so **calling is profitable** ✅` : `that is **below** the threshold, so you should **fold** ❌`}.`,
-    ].join('\n\n');
+      mnemonic,
+    ].filter(Boolean).join('\n\n');
   }
 
   if (mode === 'advanced') {
@@ -493,7 +527,8 @@ export function buildThresholdExplanation(
       `Seuil break-even = mise à payer ÷ pot final = ${call} ÷ (${pot}+${bet}+${call}) = **${req}%**.`,
       `En cote : tu reçois **${ratio}** sur ton call. Tu continues dès que ton équité (${heroEquity}%) dépasse ${req}%.`,
       `⚠️ Ce ne sont que les **cotes directes**. Avec des **implied odds** (gains futurs quand tu touches) le seuil réel baisse ; avec des **reverse implied odds** il monte. Pense aussi à ta **fold equity** si tu peux relancer.`,
-    ].join('\n\n');
+      mnemonic,
+    ].filter(Boolean).join('\n\n');
   }
   return [
     `Le **seuil minimum** (les « pot odds ») est l'équité la plus basse qui rend le call rentable sur le long terme.`,
@@ -501,5 +536,6 @@ export function buildThresholdExplanation(
     `• Étape 2 — **pot total si tu suis** : pot existant (${pot}bb) + mise adverse (${bet}bb) + ta mise (${call}bb) = **${total}bb**.`,
     `• Étape 3 — formule :\n**( montant à payer / pot total si call ) × 100 = ( ${call} / ${total} ) × 100 = ${req}%**`,
     `En clair : il faut gagner au moins **${req}%** du temps. Ton équité est de **${heroEquity}%** → ${profitable ? `c'est **au-dessus** du seuil, donc **suivre est rentable** ✅` : `c'est **en-dessous** du seuil, donc il faut **se coucher** ❌`}.`,
-  ].join('\n\n');
+    mnemonic,
+  ].filter(Boolean).join('\n\n');
 }

@@ -1,7 +1,7 @@
 import { Position, Position8, TableFormat, GameType, PreflopExercise, EquityExercise } from '../types';
 import { dealHand, toHandNotation } from './poker/cards';
 import { getCorrectAction } from './poker/ranges';
-import { getRandomScenario, generateEasyPotOddsScenario, generateClosePotOddsScenario, generateImpliedOddsScenario, calculatePotOdds, buildEquityExplanation, buildThresholdExplanation, buildImpliedOddsExplanation } from './poker/potOdds';
+import { getRandomScenario, generateEasyPotOddsScenario, generateClosePotOddsScenario, generateImpliedOddsScenario, calculatePotOdds, buildEquityExplanation, buildThresholdExplanation, buildImpliedOddsExplanation, buildEquityMnemonic } from './poker/potOdds';
 import { getRandomOutsScenario, buildOutsOptions, buildOutsExplanation, estimateEquityFromOuts } from './poker/outs';
 import { getBBDefenseAction, buildBBDefenseExplanation } from './poker/bbDefense';
 
@@ -252,14 +252,21 @@ export function generateEquityExercise(
     const totalPot = potBB + 2 * betBB;
     const options = buildLevelOptions(targetEquity, optPool);
     const betLabel = `${Math.round((betBB / potBB) * 100)}% pot`;
+    const mnemonic = buildEquityMnemonic(betBB, potBB, lang);
 
-    const explanation = lang === 'en'
-      ? `**Required equity = call ÷ total pot** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${targetEquity}%**.\n\nWith at least ${targetEquity}% equity you break even in the long run. Below that, folding is the better mathematical play.`
-      : `**Équité requise = appel ÷ pot total** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${targetEquity}%**.\n\nAvec au moins ${targetEquity}% d'équité vous êtes break-even sur le long terme. En dessous, coucher est le meilleur choix mathématique.`;
+    const explanation = [
+      lang === 'en'
+        ? `**Required equity = call ÷ total pot** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${targetEquity}%**.\n\nWith at least ${targetEquity}% equity you break even in the long run. Below that, folding is the better mathematical play.`
+        : `**Équité requise = appel ÷ pot total** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB}) = ${betBB}/${totalPot} ≈ **${targetEquity}%**.\n\nAvec au moins ${targetEquity}% d'équité vous êtes break-even sur le long terme. En dessous, coucher est le meilleur choix mathématique.`,
+      mnemonic,
+    ].filter(Boolean).join('\n\n');
 
-    const explanationAdvanced = lang === 'en'
-      ? `Pot odds formula: **call / (pot + bet + call)** → ${betBB}/${totalPot} = **${targetEquity}%**.\n\nVillain bet on the ${street}. Any time you have more than ${targetEquity}% equity, calling has positive expected value.`
-      : `Formule des cotes du pot : **appel / (pot + mise + appel)** → ${betBB}/${totalPot} = **${targetEquity}%**.\n\nVilain a misé au ${streetFr}. Dès lors que votre équité dépasse ${targetEquity}%, appeler a une espérance positive.`;
+    const explanationAdvanced = [
+      lang === 'en'
+        ? `Pot odds formula: **call / (pot + bet + call)** → ${betBB}/${totalPot} = **${targetEquity}%**.\n\nVillain bet on the ${street}. Any time you have more than ${targetEquity}% equity, calling has positive expected value.`
+        : `Formule des cotes du pot : **appel / (pot + mise + appel)** → ${betBB}/${totalPot} = **${targetEquity}%**.\n\nVilain a misé au ${streetFr}. Dès lors que votre équité dépasse ${targetEquity}%, appeler a une espérance positive.`,
+      mnemonic,
+    ].filter(Boolean).join('\n\n');
 
     return {
       street, potBB, betBB, villainPosition, heroPosition,
@@ -281,10 +288,14 @@ export function generateEquityExercise(
   const totalPot = potBB + 2 * betBB;
   const totalPotBounty = potBB + 2 * betBB + bountyBB;
   const pct = requiredEquityBounty;
+  const mnemonic = buildEquityMnemonic(betBB, potBB, lang);
 
-  const explanation = lang === 'en'
-    ? `**Required equity with bounty** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB} + ${bountyBB}) = ${betBB}/${totalPotBounty} ≈ **${pct}%**.\n\nThe bounty (${bountyBB} BB) is added to the total pot, reducing the equity needed to call.`
-    : `**Équité requise avec bounty** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB} + ${bountyBB}) = ${betBB}/${totalPotBounty} ≈ **${pct}%**.\n\nLe bounty (${bountyBB} BB) s'ajoute au pot total, ce qui réduit l'équité nécessaire pour suivre.`;
+  const explanation = [
+    lang === 'en'
+      ? `**Required equity with bounty** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB} + ${bountyBB}) = ${betBB}/${totalPotBounty} ≈ **${pct}%**.\n\nThe bounty (${bountyBB} BB) is added to the total pot, reducing the equity needed to call.`
+      : `**Équité requise avec bounty** = ${betBB} ÷ (${potBB} + ${betBB} + ${betBB} + ${bountyBB}) = ${betBB}/${totalPotBounty} ≈ **${pct}%**.\n\nLe bounty (${bountyBB} BB) s'ajoute au pot total, ce qui réduit l'équité nécessaire pour suivre.`,
+    mnemonic,
+  ].filter(Boolean).join('\n\n');
 
   const explanationAdvanced = lang === 'en'
     ? `Without bounty: ${betBB}/${totalPot} = ${requiredEquity}%. With bounty: ${betBB}/${totalPotBounty} = **${pct}%**.`
