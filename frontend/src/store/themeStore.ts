@@ -101,8 +101,8 @@ export const useThemeStore = create<ThemeState>()(
     (set) => ({
       bgTheme:           'classic',
       tableColor:        'green',
-      trainingCardStyle: 'classic',
-      displayCardStyle:  'classic',
+      trainingCardStyle: 'fourcolor',
+      displayCardStyle:  'fourcolor',
 
       setBgTheme:             (bgTheme)           => set({ bgTheme }),
       setTableColor:          (tableColor)        => set({ tableColor }),
