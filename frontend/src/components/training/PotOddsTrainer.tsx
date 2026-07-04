@@ -212,8 +212,8 @@ export function PotOddsTrainer() {
                 {/* Cards display */}
                 <CardDisplay heroCards={ex.heroCards as [CardStr, CardStr]} board={ex.board as CardStr[]} street={ex.street} isEn={isEn} />
 
-                {/* Numbers — expert hides equity to force mental outs calculation */}
-                {mode === 'expert' ? (
+                {/* Numbers — advanced & expert hide equity to force mental outs calculation */}
+                {mode !== 'basic' ? (
                   <div className="flex flex-col gap-2">
                     <div className="grid grid-cols-2 gap-2">
                       <NumberCard label={t.training.pot_lbl} value={`${ex.potSize}bb`} color="text-white"   icon="🏆" />

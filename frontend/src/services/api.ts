@@ -89,7 +89,7 @@ export const trainingApi = {
     api.get('/training/potodds/exercise', { params: level ? { level } : {} }).then(r => r.data.data),
   checkPotOddsAnswer: (payload: {
     potSize: number; betSize: number; heroEquity: number;
-    userAction: string; timeTaken: number; sessionId: string;
+    userAction: string; timeTaken: number; sessionId: string; impliedWinnings?: number;
   }) => api.post('/training/potodds/check', payload).then(r => r.data.data),
 
   getEquityExercise: (level?: string) =>

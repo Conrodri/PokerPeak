@@ -121,7 +121,7 @@ export async function getPotOddsExercise(req: Request, res: Response): Promise<v
 
 export async function checkPotOddsAnswer(req: Request, res: Response): Promise<void> {
   try {
-    const { potSize, betSize, heroEquity, userAction, timeTaken, sessionId } = req.body;
+    const { potSize, betSize, heroEquity, userAction, timeTaken, sessionId, impliedWinnings } = req.body;
     const lang = getLang(req);
 
     if (potSize === undefined || betSize === undefined || heroEquity === undefined || !userAction) {
@@ -130,8 +130,23 @@ export async function checkPotOddsAnswer(req: Request, res: Response): Promise<v
     }
 
     const result = calculatePotOdds(potSize, betSize, heroEquity, lang);
-    const correctAction = result.isProfitable ? 'call' : 'fold';
-    const isCorrect = userAction === correctAction;
+    const directCorrectAction = result.isProfitable ? 'call' : 'fold';
+
+    // Expert (implied odds): direct pot odds and implied pot odds can disagree
+    // on borderline draws (implied winnings lower the required equity). When
+    // they disagree, either action is a defensible read of the spot — only
+    // when they agree does the answer have a single correct action.
+    let correctAction = directCorrectAction;
+    let isCorrect = userAction === directCorrectAction;
+    if (impliedWinnings !== undefined) {
+      const call = betSize;
+      const totalDirect = potSize + betSize + call;
+      const impliedRequiredEquity = (call / (totalDirect + impliedWinnings)) * 100;
+      const impliedCorrectAction = heroEquity >= impliedRequiredEquity ? 'call' : 'fold';
+      correctAction = impliedCorrectAction;
+      isCorrect = userAction === directCorrectAction || userAction === impliedCorrectAction;
+    }
+
     const xpEarned = calculateExerciseXP(isCorrect, timeTaken || 10000, false);
 
     const userId = uid(req);

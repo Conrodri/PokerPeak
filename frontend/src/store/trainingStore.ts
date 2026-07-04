@@ -168,6 +168,7 @@ export const useTrainingStore = create<TrainingState>((set, get) => ({
       userAction,
       timeTaken,
       sessionId: sessionId || `guest_${Date.now()}`,
+      impliedWinnings: potOddsExercise.impliedWinnings,
     });
 
     const exerciseResult: ExerciseResult = {
