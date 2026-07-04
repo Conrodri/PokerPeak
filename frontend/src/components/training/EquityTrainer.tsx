@@ -99,6 +99,9 @@ export function EquityTrainer() {
     quitRun();
     setShowIntro(false);
     setTrainerStarted(true);
+    setPicked(null);
+    setIsCorrect(false);
+    setPhase('exercise');
     await fetchEquityExercise();
   };
 

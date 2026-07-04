@@ -123,6 +123,8 @@ export function OutsTrainer() {
     quitRun();              // clear any leftover exam state — normal mode never shows the lives HUD / auto-advance
     setShowIntro(false);
     setTrainerStarted(true);
+    setSelected(null);
+    setPhase('exercise');
     await fetchOutsExercise();
   };
 

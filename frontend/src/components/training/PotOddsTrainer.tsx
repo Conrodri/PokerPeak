@@ -87,6 +87,9 @@ export function PotOddsTrainer() {
     quitRun();              // clear any leftover exam state — normal mode never shows the lives HUD / auto-advance
     setShowIntro(false);
     setTrainerStarted(true);
+    setShowFormula(false);
+    setShowEv(false);
+    setPhase('exercise');
     await fetchPotOddsExercise();
   };
 

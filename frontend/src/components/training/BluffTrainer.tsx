@@ -263,6 +263,8 @@ export function BluffTrainer() {
     quitRun();
     setShowIntro(false);
     setTrainerStarted(true);
+    setSelected(null);
+    setPhase('exercise');
     nextExercise();
     setStartTime(Date.now());
   };
