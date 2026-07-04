@@ -355,22 +355,22 @@ export function PotOddsTrainer() {
             </div>
           )}
 
-          {/* Step 1 — Equity (beginner only) */}
-          {mode === 'basic' && (
+          {/* Step 1 — Equity (basic: simple text, advanced: detailed variant) */}
+          {mode !== 'expert' && (
             <StepPanel icon={<Target size={14} className="text-blue-400" />} title={t.training.equity_calc_how} accent="blue">
               <RichText text={equityText} />
             </StepPanel>
           )}
 
-          {/* Step 2 — Threshold (beginner only) */}
-          {mode === 'basic' && (
+          {/* Step 2 — Threshold (basic: simple text, advanced: detailed variant) */}
+          {mode !== 'expert' && (
             <StepPanel icon={<Scale size={14} className="text-yellow-400" />} title={t.training.threshold_how} accent="yellow">
               <RichText text={thresholdText} />
             </StepPanel>
           )}
 
-          {/* Step 3 — Decision — beginner only */}
-          {mode === 'basic' && <StepPanel icon={<Info size={14} className="text-green-400" />} title={t.training.decision_how} accent="green">
+          {/* Step 3 — Decision breakdown (basic + advanced; expert has its own compact panel below) */}
+          {mode !== 'expert' && <StepPanel icon={<Info size={14} className="text-green-400" />} title={t.training.decision_how} accent="green">
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gray-900/60 rounded-xl p-3 text-center">
                 <p className="text-xs text-gray-500 mb-1">{t.training.req_equity}</p>
