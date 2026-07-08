@@ -122,12 +122,16 @@ function HistoryRow({ icon, badgeClass, text, isLast }: {
 
 const ALL_ACTIONS: BluffAction[] = ['check-fold', 'bluff-small', 'bluff-medium', 'bluff-large'];
 
-function actionButtonVariant(action: BluffAction, selected: BluffAction | null, correct: BluffAction): string {
-  if (!selected) return 'secondary';
-  if (action === correct)  return 'gold';
-  if (action === selected && action !== correct) return 'danger';
-  return 'secondary';
-}
+// Fixed per-action color, same convention as Preflop's Fold/Call/Raise —
+// not state-driven: handleAnswer flips `phase` to 'result' in the same
+// batch as setSelected, so these buttons never actually re-render with a
+// selection — a dynamic post-answer color would be dead code here.
+const ACTION_VARIANT: Record<BluffAction, 'danger' | 'secondary' | 'primary' | 'gold'> = {
+  'check-fold':   'danger',
+  'bluff-small':  'secondary',
+  'bluff-medium': 'primary',
+  'bluff-large':  'gold',
+};
 
 // ─── Intro ────────────────────────────────────────────────────────────────────
 
@@ -230,28 +234,21 @@ function FactorGrid({ factors, isEn }: {
 // ─── Action button row ────────────────────────────────────────────────────────
 
 function ActionButton({
-  action, pot, isEn, selected, correct, onClick,
+  action, pot, isEn, onClick,
 }: {
   action:   BluffAction;
   pot:      number;
   isEn:     boolean;
-  selected: BluffAction | null;
-  correct:  BluffAction;
   onClick:  (a: BluffAction) => void;
 }) {
-  const labels  = isEn ? ACTION_LABELS_EN : ACTION_LABELS_FR;
-  const label   = labels[action](pot);
-  const variant = actionButtonVariant(action, selected, correct);
-  const isThis  = selected === action;
+  const labels = isEn ? ACTION_LABELS_EN : ACTION_LABELS_FR;
+  const label  = labels[action](pot);
 
   return (
     <Button
       size="xl"
-      variant={variant as any}
-      className={`w-full ${
-        selected && action !== correct && action !== selected ? 'opacity-40' : ''
-      } ${isThis && action !== correct ? 'ring-2 ring-red-500' : ''}`}
-      disabled={!!selected}
+      variant={ACTION_VARIANT[action]}
+      className="w-full"
       onClick={() => onClick(action)}
     >
       {label}
@@ -509,8 +506,6 @@ export function BluffTrainer() {
                   action={action}
                   pot={ex.potBB}
                   isEn={isEn}
-                  selected={selected}
-                  correct={correct}
                   onClick={handleAnswer}
                 />
               ))}

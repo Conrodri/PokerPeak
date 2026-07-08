@@ -46,10 +46,12 @@ function sizingBb(pot: number, key: SizingKey) {
   return Math.round(pot * SIZING[key].pct / 100 * 10) / 10;
 }
 
-const SIZING_VARIANT: Record<SizingKey, 'secondary' | 'gold' | 'danger'> = {
-  check:   'secondary',
+// Distinct color per size — matches Preflop's "one fixed color per action"
+// convention. Escalating from neutral (check) to most aggressive (overbet).
+const SIZING_VARIANT: Record<SizingKey, 'ghost' | 'secondary' | 'primary' | 'gold' | 'danger'> = {
+  check:   'ghost',
   small:   'secondary',
-  medium:  'secondary',
+  medium:  'primary',
   large:   'gold',
   overbet: 'danger',
 };
@@ -60,6 +62,14 @@ const FREQ_OPTIONS: { key: FreqKey; labelFr: string; labelEn: string }[] = [
   { key: '67%',  labelFr: 'Souvent (67%)',    labelEn: 'Often (67%)' },
   { key: '100%', labelFr: 'Toujours (100%)',  labelEn: 'Always (100%)' },
 ];
+
+// Distinct color per frequency, same escalating logic as SIZING_VARIANT.
+const FREQ_VARIANT: Record<FreqKey, 'ghost' | 'secondary' | 'primary' | 'gold'> = {
+  '0%':   'ghost',
+  '33%':  'secondary',
+  '67%':  'primary',
+  '100%': 'gold',
+};
 
 const CONCEPT_COLOR: Record<string, string> = {
   'Range Bet':       'bg-blue-900/30 text-blue-300 border-blue-700',
@@ -425,7 +435,7 @@ export function BetSizingTrainer() {
                   <Button
                     key={opt.key}
                     size="xl"
-                    variant="secondary"
+                    variant={FREQ_VARIANT[opt.key]}
                     onClick={() => handleAnswer(opt.key)}
                     className="min-w-[150px]"
                   >
