@@ -62,35 +62,40 @@ const SEAT_LAYOUT_8 = [
 // caps left/right, seats sitting directly on the outline. Hero is always at
 // slot 0 = bottom-right (same "hero fixed, others rotate" convention as the
 // felt oval layouts above — just a different fixed slot).
+// cx/cy blend 55% of the way toward the table's true center (50,51) — used
+// as the bet-chip position directly in flat mode (see SeatNode) and as the
+// base point for the outward-pointing D chip. Needs to clear the (fairly
+// large) stadium seat circles with margin, hence the stronger blend than the
+// felt/oval layouts above.
 const SEAT_LAYOUT_STADIUM = [
-  { sx: 64, sy: 87, cx: 59, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-right)
-  { sx: 31, sy: 87, cx: 38, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S1: bottom-left
-  { sx: 6,  sy: 51, cx: 21, cy: 51, side: 'left',   cardX: null, cardY: null },  // S2: left cap
-  { sx: 31, sy: 15, cx: 38, cy: 28, side: 'top',    cardX: null, cardY: null },  // S3: top-left
-  { sx: 65, sy: 15, cx: 60, cy: 28, side: 'top',    cardX: null, cardY: null },  // S4: top-right
-  { sx: 89, sy: 51, cx: 75, cy: 51, side: 'right',  cardX: null, cardY: null },  // S5: right cap
+  { sx: 64, sy: 87, cx: 56, cy: 67, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-right)
+  { sx: 31, sy: 87, cx: 41, cy: 67, side: 'bottom', cardX: null, cardY: null },  // S1: bottom-left
+  { sx: 6,  sy: 51, cx: 30, cy: 51, side: 'left',   cardX: null, cardY: null },  // S2: left cap
+  { sx: 31, sy: 15, cx: 41, cy: 35, side: 'top',    cardX: null, cardY: null },  // S3: top-left
+  { sx: 65, sy: 15, cx: 57, cy: 35, side: 'top',    cardX: null, cardY: null },  // S4: top-right
+  { sx: 89, sy: 51, cx: 68, cy: 51, side: 'right',  cardX: null, cardY: null },  // S5: right cap
 ] as const;
 
 const SEAT_LAYOUT_STADIUM_8 = [
-  { sx: 70, sy: 87, cx: 63, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-right)
-  { sx: 50, sy: 87, cx: 50, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S1: bottom-mid
-  { sx: 30, sy: 87, cx: 37, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S2: bottom-left
-  { sx: 6,  sy: 51, cx: 21, cy: 51, side: 'left',   cardX: null, cardY: null },  // S3: left cap
-  { sx: 30, sy: 15, cx: 37, cy: 28, side: 'top',    cardX: null, cardY: null },  // S4: top-left
-  { sx: 50, sy: 15, cx: 50, cy: 28, side: 'top',    cardX: null, cardY: null },  // S5: top-mid
-  { sx: 70, sy: 15, cx: 63, cy: 28, side: 'top',    cardX: null, cardY: null },  // S6: top-right
-  { sx: 89, sy: 51, cx: 75, cy: 51, side: 'right',  cardX: null, cardY: null },  // S7: right cap
+  { sx: 70, sy: 87, cx: 59, cy: 67, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-right)
+  { sx: 50, sy: 87, cx: 50, cy: 67, side: 'bottom', cardX: null, cardY: null },  // S1: bottom-mid
+  { sx: 30, sy: 87, cx: 41, cy: 67, side: 'bottom', cardX: null, cardY: null },  // S2: bottom-left
+  { sx: 6,  sy: 51, cx: 30, cy: 51, side: 'left',   cardX: null, cardY: null },  // S3: left cap
+  { sx: 30, sy: 15, cx: 41, cy: 35, side: 'top',    cardX: null, cardY: null },  // S4: top-left
+  { sx: 50, sy: 15, cx: 50, cy: 35, side: 'top',    cardX: null, cardY: null },  // S5: top-mid
+  { sx: 70, sy: 15, cx: 59, cy: 35, side: 'top',    cardX: null, cardY: null },  // S6: top-right
+  { sx: 89, sy: 51, cx: 68, cy: 51, side: 'right',  cardX: null, cardY: null },  // S7: right cap
 ] as const;
 
 const SEAT_LAYOUT_STADIUM_3 = [
-  { sx: 50, sy: 87, cx: 50, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-center)
-  { sx: 6,  sy: 51, cx: 21, cy: 51, side: 'left',   cardX: null, cardY: null },  // S1: left cap
-  { sx: 89, sy: 51, cx: 75, cy: 51, side: 'right',  cardX: null, cardY: null },  // S2: right cap
+  { sx: 50, sy: 87, cx: 50, cy: 67, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-center)
+  { sx: 6,  sy: 51, cx: 30, cy: 51, side: 'left',   cardX: null, cardY: null },  // S1: left cap
+  { sx: 89, sy: 51, cx: 68, cy: 51, side: 'right',  cardX: null, cardY: null },  // S2: right cap
 ] as const;
 
 const SEAT_LAYOUT_STADIUM_HU = [
-  { sx: 50, sy: 87, cx: 50, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-center)
-  { sx: 50, sy: 15, cx: 50, cy: 28, side: 'top',    cardX: null, cardY: null },  // S1: villain (top-center)
+  { sx: 50, sy: 87, cx: 50, cy: 67, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-center)
+  { sx: 50, sy: 15, cx: 50, cy: 35, side: 'top',    cardX: null, cardY: null },  // S1: villain (top-center)
 ] as const;
 
 export const POSITION_COLORS: Record<Position8, string> = {
@@ -272,7 +277,7 @@ export function PokerTable({
   const hasHeroCards = !!heroCards?.length; // eslint-disable-line @typescript-eslint/no-unused-vars
 
   return (
-    <div className={`select-none w-full relative ${className}`} style={{ paddingTop: flat ? '3%' : '10%' }}>
+    <div className={`select-none w-full relative ${className}`} style={{ paddingTop: flat ? '9%' : '10%' }}>
       {/* Quick table-style toggle next to the table — no need to open Settings. */}
       <button
         onClick={() => setTableStyle(flat ? 'felt' : 'flat')}
@@ -463,14 +468,13 @@ export function PokerTable({
           <div
             className="absolute flex items-center justify-center pointer-events-none"
             style={{
-              // Push the D chip OUTWARD from the seat (opposite direction from
-              // cx/cy, which points toward the pot/center — used by the bet
-              // chip). Fixed sx-8/sy+8 offsets only worked when BTN happened
-              // to sit at the bottom-right slot; on any other stadium slot
-              // (BTN rotates with hero) that landed on top of the bet chip or
-              // an adjacent seat. This scales with each slot's own geometry.
-              left: `${layout[btnSeat].sx + (layout[btnSeat].sx - layout[btnSeat].cx) * 0.7}%`,
-              top: `${layout[btnSeat].sy + (layout[btnSeat].sy - layout[btnSeat].cy) * 0.7}%`,
+              // Push the D chip toward the table CENTER, partway between the
+              // seat and its cx/cy point (which is also where the bet chip
+              // sits) — close enough to the seat to read as "belonging" to
+              // it, but stopping well short of cx/cy so it never touches the
+              // bet dot/text when that same seat has posted a bet.
+              left: `${layout[btnSeat].sx + (layout[btnSeat].cx - layout[btnSeat].sx) * 0.35}%`,
+              top: `${layout[btnSeat].sy + (layout[btnSeat].cy - layout[btnSeat].sy) * 0.35}%`,
               width: compact ? 15 : 19,
               height: compact ? 15 : 19,
               transform: 'translate(-50%, -50%)',
@@ -544,9 +548,12 @@ interface SeatNodeProps {
 function SeatNode({ seat, position, color, isHero, isClickable, isActive, compact, flat, seatSize, heroLabel, onClick, info, showHeroStack }: SeatNodeProps) {
   const posFontSize = compact ? 9 : 12;
 
-  // Bet chips: midpoint between seat and chip-token position (chips pushed toward pot)
-  const betX = (seat.sx + seat.cx) / 2;
-  const betY = (seat.sy + seat.cy) / 2;
+  // Bet chip position. Felt style: midpoint between seat and its (small,
+  // felt-tuned) cx/cy. Flat style: cx/cy directly — the stadium seat circles
+  // are bigger and cx/cy already blend 55% toward center, so halving it
+  // again (like felt) left the bet label sitting on top of the seat circle.
+  const betX = flat ? seat.cx : (seat.sx + seat.cx) / 2;
+  const betY = flat ? seat.cy : (seat.sy + seat.cy) / 2;
 
   // When the bet chip is vertically aligned with the stack badge (same x-axis),
   // the stack badge must be pushed below the bet chip to avoid overlap.
