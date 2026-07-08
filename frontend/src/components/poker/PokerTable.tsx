@@ -272,7 +272,7 @@ export function PokerTable({
   const hasHeroCards = !!heroCards?.length; // eslint-disable-line @typescript-eslint/no-unused-vars
 
   return (
-    <div className={`select-none w-full relative ${className}`} style={{ paddingTop: '10%' }}>
+    <div className={`select-none w-full relative ${className}`} style={{ paddingTop: flat ? '3%' : '10%' }}>
       {/* Quick table-style toggle next to the table — no need to open Settings. */}
       <button
         onClick={() => setTableStyle(flat ? 'felt' : 'flat')}
@@ -281,8 +281,10 @@ export function PokerTable({
       >
         {flat ? '🪵' : '▱'} {flat ? 'Feutre' : 'Plat'}
       </button>
-      {/* 10% horizontal margin creates space for villain cards outside the oval */}
-      <div style={{ margin: '0 10%' }}>
+      {/* 10% horizontal margin creates space for felt-style villain cards outside
+          the oval — flat/stadium seats don't use that zone, so give them the
+          width back instead (a real "widen the table" ask, not just cosmetic). */}
+      <div style={{ margin: flat ? '0 1%' : '0 10%' }}>
       {/* ── Table oval — taller in compact mode so md-sized board cards
            (used by exercise trainers) don't collide with the hero seat /
            dealer / blind tokens sitting below the felt center. ── */}
@@ -461,8 +463,14 @@ export function PokerTable({
           <div
             className="absolute flex items-center justify-center pointer-events-none"
             style={{
-              left: `${layout[btnSeat].sx - 8}%`,
-              top: `${layout[btnSeat].sy + 8}%`,
+              // Push the D chip OUTWARD from the seat (opposite direction from
+              // cx/cy, which points toward the pot/center — used by the bet
+              // chip). Fixed sx-8/sy+8 offsets only worked when BTN happened
+              // to sit at the bottom-right slot; on any other stadium slot
+              // (BTN rotates with hero) that landed on top of the bet chip or
+              // an adjacent seat. This scales with each slot's own geometry.
+              left: `${layout[btnSeat].sx + (layout[btnSeat].sx - layout[btnSeat].cx) * 0.7}%`,
+              top: `${layout[btnSeat].sy + (layout[btnSeat].sy - layout[btnSeat].cy) * 0.7}%`,
               width: compact ? 15 : 19,
               height: compact ? 15 : 19,
               transform: 'translate(-50%, -50%)',
