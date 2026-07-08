@@ -273,16 +273,14 @@ export function PokerTable({
 
   return (
     <div className={`select-none w-full relative ${className}`} style={{ paddingTop: '10%' }}>
-      {/* DEV-only: quick table-style toggle next to the table, no need to open Settings. */}
-      {import.meta.env.DEV && (
-        <button
-          onClick={() => setTableStyle(flat ? 'felt' : 'flat')}
-          className="absolute top-0 right-0 z-30 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-black/70 border border-amber-500/40 text-amber-300/90 hover:text-amber-200 hover:border-amber-400/70 transition-colors"
-          title="DEV — switch table style (felt / flat)"
-        >
-          {flat ? '🪵' : '▱'} {flat ? 'Feutre' : 'Plat'}
-        </button>
-      )}
+      {/* Quick table-style toggle next to the table — no need to open Settings. */}
+      <button
+        onClick={() => setTableStyle(flat ? 'felt' : 'flat')}
+        className="absolute top-0 right-0 z-30 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-black/70 border border-amber-500/40 text-amber-300/90 hover:text-amber-200 hover:border-amber-400/70 transition-colors"
+        title="Changer le style de table (feutre / plat)"
+      >
+        {flat ? '🪵' : '▱'} {flat ? 'Feutre' : 'Plat'}
+      </button>
       {/* 10% horizontal margin creates space for villain cards outside the oval */}
       <div style={{ margin: '0 10%' }}>
       {/* ── Table oval — taller in compact mode so md-sized board cards
@@ -481,36 +479,6 @@ export function PokerTable({
           </div>
         )}
 
-        {/* ── Rotation arrows — felt style only (one between each pair of
-             consecutive seats, showing the clockwise action order
-             BTN → SB → BB → ... → BTN). The flat/stadium style skips these,
-             matching the reference table it copies. ── */}
-        {!flat && layout.map((seatA, idx) => {
-          const seatB = layout[(idx + 1) % layout.length];
-          const dx = seatB.sx - seatA.sx;
-          const dy = seatB.sy - seatA.sy;
-          // Correct for the table's non-square aspect ratio so the arrow/line
-          // actually points at seatB once rendered (sx/sy % are independently
-          // relative to width/height, which differ here).
-          const angleDeg = Math.atan2(dy * ovalRatio, dx) * (180 / Math.PI);
-          const mx = seatA.sx + dx * 0.5;
-          const my = seatA.sy + dy * 0.5;
-          return (
-            <div
-              key={`arrow-${idx}`}
-              className="absolute pointer-events-none"
-              style={{
-                left: `${mx}%`, top: `${my}%`,
-                transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
-                opacity: 0.3,
-              }}
-            >
-              <svg width={compact ? 8 : 11} height={compact ? 8 : 11} viewBox="0 0 10 10">
-                <polygon points="0,0 10,5 0,10" fill="#d4af37" />
-              </svg>
-            </div>
-          );
-        })}
         </div>{/* end absolute inset-0 */}
       </div>{/* end table oval (paddingBottom 46%) */}
       </div>{/* end 10% margin wrapper */}
