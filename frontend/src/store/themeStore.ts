@@ -4,6 +4,15 @@ import { persist } from 'zustand/middleware';
 export type BgTheme    = 'classic' | 'midnight' | 'slate' | 'burgundy' | 'royal' | 'forest';
 export type TableColor = 'green' | 'blue' | 'red' | 'black' | 'teal' | 'purple';
 export type CardStyle  = 'classic' | 'fourcolor' | 'dark';
+/** 'felt' = skeuomorphic wood rail + felt table (default). 'flat' = minimal
+ *  flat-2D table (solid seats, no gradients/shadows) — easier to read at a
+ *  glance and less prone to visual clutter on small/compact tables. */
+export type TableStyle = 'felt' | 'flat';
+
+export const TABLE_STYLE_NAMES: Record<TableStyle, { name: string; nameFr: string }> = {
+  felt: { name: 'Felt (classic)', nameFr: 'Feutre (classique)' },
+  flat: { name: 'Flat 2D',        nameFr: 'Plat 2D'             },
+};
 
 export interface BgThemeDef {
   bg:      string;
@@ -89,11 +98,14 @@ interface ThemeState {
   trainingCardStyle:  CardStyle;
   /** Card style for static display contexts (rules, explanations) */
   displayCardStyle:   CardStyle;
+  /** Poker table rendering style — felt (default) or flat 2D */
+  tableStyle:         TableStyle;
 
   setBgTheme:             (t: BgTheme)    => void;
   setTableColor:          (c: TableColor) => void;
   setTrainingCardStyle:   (s: CardStyle)  => void;
   setDisplayCardStyle:    (s: CardStyle)  => void;
+  setTableStyle:          (s: TableStyle) => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -103,11 +115,13 @@ export const useThemeStore = create<ThemeState>()(
       tableColor:        'green',
       trainingCardStyle: 'fourcolor',
       displayCardStyle:  'fourcolor',
+      tableStyle:        'felt',
 
       setBgTheme:             (bgTheme)           => set({ bgTheme }),
       setTableColor:          (tableColor)        => set({ tableColor }),
       setTrainingCardStyle:   (trainingCardStyle) => set({ trainingCardStyle }),
       setDisplayCardStyle:    (displayCardStyle)  => set({ displayCardStyle }),
+      setTableStyle:          (tableStyle)        => set({ tableStyle }),
     }),
     { name: 'poker-theme' }
   )

@@ -107,6 +107,8 @@ export interface BluffExercise {
   streetNarrative:  BluffBi[];
   correctAction:    BluffAction;
   bluffAmountBB:    number;
+  /** Hero's rough equity vs villain's continuing range — beginner-mode hint only. */
+  heroEquityPct:    number;
   factors: {
     position:     BluffFactor;
     board:        BluffFactor;

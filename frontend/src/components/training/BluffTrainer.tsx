@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, TrendingUp, Zap, Lightbulb } from 'lucide-react';
+import { ChevronRight, TrendingUp, Zap, Lightbulb, Users, Layers, Gauge } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
 import { useModeStore } from '../../store/modeStore';
@@ -71,6 +71,54 @@ const STREET_LABELS: Record<BluffExercise['street'], { fr: string; en: string }>
   turn:  { fr: 'Turn',  en: 'Turn'  },
   river: { fr: 'River', en: 'River' },
 };
+
+// ─── History timeline ─────────────────────────────────────────────────────────
+
+/** Highlights "N BB" amounts in gold, tokenizes the rest for poker-term tooltips. */
+function HistoryText({ text }: { text: string }) {
+  const parts = text.split(/(\d+(?:\.\d+)?\s?BB)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^\d+(?:\.\d+)?\s?BB$/.test(part)
+          ? <span key={i} className="text-yellow-400 font-bold">{part}</span>
+          : <RichLine key={i} text={part} />
+      )}
+    </>
+  );
+}
+
+const STREET_DOT: Record<BluffExercise['street'], string> = {
+  flop:  'bg-blue-900/70 border-blue-600/70 text-blue-300',
+  turn:  'bg-yellow-900/70 border-yellow-600/70 text-yellow-300',
+  river: 'bg-red-900/70 border-red-600/70 text-red-300',
+};
+
+/** Detects the street a narrative line refers to from its leading keyword
+ *  (present in both fr/en text: "Flop [...]", "Turn [...]", "River [...]");
+ *  falls back to the exercise's own street for single-line templates. */
+function lineStreetDot(text: string, fallback: BluffExercise['street']): string {
+  if (/^Flop/i.test(text))  return STREET_DOT.flop;
+  if (/^Turn/i.test(text))  return STREET_DOT.turn;
+  if (/^River/i.test(text)) return STREET_DOT.river;
+  return STREET_DOT[fallback];
+}
+
+function HistoryRow({ icon, badgeClass, text, isLast }: {
+  icon: React.ReactNode; badgeClass: string; text: string; isLast: boolean;
+}) {
+  return (
+    <div className="flex gap-2.5">
+      <div className="flex flex-col items-center">
+        <span className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${badgeClass}`}>
+          {icon}
+        </span>
+        {!isLast && <span className="w-px flex-1 bg-gray-700/60 my-0.5" />}
+      </div>
+      <p className="text-gray-300 pb-2.5 flex-1 leading-snug text-[13px]"><HistoryText text={text} /></p>
+    </div>
+  );
+}
 
 const ALL_ACTIONS: BluffAction[] = ['check-fold', 'bluff-small', 'bluff-medium', 'bluff-large'];
 
@@ -422,17 +470,29 @@ export function BluffTrainer() {
 
             {/* Context block — hand history + question */}
             <div className="w-full rounded-2xl border border-gray-700 overflow-hidden text-sm">
-              {/* Hand history */}
-              <div className="flex items-start gap-3 px-4 py-3 bg-gray-900/70 border-b border-gray-700/60">
-                <span className="text-gray-500 font-bold text-xs uppercase tracking-wide pt-0.5 shrink-0 w-16">
-                  {isEn ? 'History' : 'Histoire'}
-                </span>
-                <div className="flex-1 flex flex-col gap-1.5">
-                  <p className="text-gray-300">{isEn ? ex.preflopNarrative.en : ex.preflopNarrative.fr}</p>
-                  {ex.streetNarrative.map((n, i) => (
-                    <p key={i} className="text-gray-400">{isEn ? n.en : n.fr}</p>
-                  ))}
+              {/* Hand history — visual timeline, one dot per street */}
+              <div className="px-4 py-3 bg-gray-900/70 border-b border-gray-700/60">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Layers size={12} className="text-gray-500" />
+                  <span className="text-gray-500 font-bold text-xs uppercase tracking-wide">
+                    {isEn ? 'History' : 'Histoire'}
+                  </span>
                 </div>
+                <HistoryRow
+                  icon={<Users size={11} />}
+                  badgeClass="bg-gray-800 border-gray-600 text-gray-400"
+                  text={isEn ? ex.preflopNarrative.en : ex.preflopNarrative.fr}
+                  isLast={ex.streetNarrative.length === 0}
+                />
+                {ex.streetNarrative.map((n, i) => (
+                  <HistoryRow
+                    key={i}
+                    icon={<Layers size={10} />}
+                    badgeClass={lineStreetDot(isEn ? n.en : n.fr, ex.street)}
+                    text={isEn ? n.en : n.fr}
+                    isLast={i === ex.streetNarrative.length - 1}
+                  />
+                ))}
               </div>
 
               {/* Question */}
@@ -486,7 +546,15 @@ export function BluffTrainer() {
               text={isEn
                 ? `Your hand isn't strong enough to win at showdown. The question is whether a **bluff** can make villain fold a better hand — and if so, **how big** should it be?\n👉 Look at the board, your position, and the story you've told so far. If everything points to villain being weak, bluff — and size up when you need to fold out their medium hands.\n💡 If you're out of position with no backup equity against a strong range, just **give up** (check / fold).`
                 : `Votre main n'est pas assez forte pour gagner au showdown. La question : un **bluff** peut-il faire coucher une meilleure main à vilain — et si oui, **de combien** ?\n👉 Regardez le board, votre position et l'histoire racontée jusqu'ici. Si tout indique que vilain est faible, bluffez — et augmentez la taille quand il faut faire coucher ses mains moyennes.\n💡 Hors position et sans équité de secours face à une range forte ? **Abandonnez** (check / fold).`}
-            />
+            >
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-900/30 border border-blue-700/40 w-fit">
+                <Gauge size={14} className="text-blue-300 shrink-0" />
+                <span className="text-xs text-blue-200">
+                  {isEn ? 'Your equity here:' : 'Votre équité ici :'}{' '}
+                  <strong className="text-white">{ex.heroEquityPct}%</strong>
+                </span>
+              </div>
+            </BeginnerGuide>
           </motion.div>
         </AnimatePresence>
       )}

@@ -29,6 +29,9 @@ export interface BluffExercise {
     heroHand:     Factor;
   };
   explanation: Bi;
+  /** Hero's rough equity vs villain's continuing range at decision point —
+   *  shown as a beginner-mode hint, not a solver-precise number. */
+  heroEquityPct: number;
   /** Which scenario builder produced this exercise — used to avoid repeating
    *  the same template twice in a row across consecutive fetches. */
   template: BluffTemplate;
@@ -182,6 +185,7 @@ On a dry board with range advantage, the "range bet" at 1/3 pot is optimal. It's
     stackBB,
     preflopNarrative: { fr: preflopFr, en: preflopEn },
     streetNarrative:  [{ fr: 'La BB checke le flop.', en: 'BB checks the flop.' }],
+    heroEquityPct: isBlocker ? 8 : 4,
     correctAction: 'bluff-small',
     bluffAmountBB: betBB,
     factors: {
@@ -286,6 +290,7 @@ On this connected board, your BTN raising range doesn't connect well: you have f
     stackBB,
     preflopNarrative: { fr: `Vous relancez BTN à 2.5 BB, la BB suit. Pot : ${potBB} BB.`, en: `You raise BTN to 2.5 BB, BB calls. Pot: ${potBB} BB.` },
     streetNarrative: [{ fr: 'La BB checke le flop.', en: 'BB checks the flop.' }],
+    heroEquityPct: 25,
     correctAction: 'check-fold',
     bluffAmountBB: 0,
     factors: {
@@ -406,6 +411,7 @@ With a flush draw on a two-tone board, 2/3 pot is optimal: it maximizes fold equ
     stackBB,
     preflopNarrative: { fr: `Vous relancez ${heroPos} à 2.5 BB, la BB suit. Pot : ${potBB} BB.`, en: `You raise ${heroPos} to 2.5 BB, BB calls. Pot: ${potBB} BB.` },
     streetNarrative: [{ fr: 'La BB checke le flop.', en: 'BB checks the flop.' }],
+    heroEquityPct: 36,
     correctAction: 'bluff-medium',
     bluffAmountBB: betBB,
     factors: {
@@ -547,6 +553,7 @@ This is the "delayed c-bet" or "float steal." You take initiative on the turn af
       { fr: `Flop [${flopStr}] : ${villainPos} mise ${Math.round(potBB * 0.3)} BB, vous suivez.`, en: `Flop [${flopStr}]: ${villainPos} bets ${Math.round(potBB * 0.3)} BB, you call.` },
       { fr: `Turn [${turnStr}] : ${villainPos} checke.`, en: `Turn [${turnStr}]: ${villainPos} checks.` },
     ],
+    heroEquityPct: 32,
     correctAction: 'bluff-medium',
     bluffAmountBB: betBB,
     factors: {
@@ -651,6 +658,7 @@ OOP on a hostile board: checking is mandatory. When BTN bets ${villainBet} BB, f
     streetNarrative: [
       { fr: `Flop [${boardStr}] : vous checkez. Le BTN mise ${villainBet} BB.`, en: `Flop [${boardStr}]: you check. BTN bets ${villainBet} BB.` },
     ],
+    heroEquityPct: 25,
     correctAction: 'check-fold',
     bluffAmountBB: 0,
     factors: {

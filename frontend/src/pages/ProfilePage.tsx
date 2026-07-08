@@ -11,8 +11,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { authApi, subscriptionApi, type SubscriptionInfo } from '../services/api';
 import {
   useThemeStore,
-  BG_THEMES, TABLE_COLORS, CARD_STYLES,
-  BgTheme, TableColor, CardStyle,
+  BG_THEMES, TABLE_COLORS, CARD_STYLES, TABLE_STYLE_NAMES,
+  BgTheme, TableColor, CardStyle, TableStyle,
 } from '../store/themeStore';
 import { Hand } from '../components/poker/Card';
 import { useLangStore } from '../store/langStore';
@@ -101,11 +101,11 @@ export function ProfilePage() {
   const { mode, setMode } = useModeStore(useShallow(s => ({ mode: s.mode, setMode: s.setMode })));
   const { zoom, setZoom } = useZoomStore(useShallow(s => ({ zoom: s.zoom, setZoom: s.setZoom })));
   const {
-    bgTheme, tableColor, trainingCardStyle, displayCardStyle,
-    setBgTheme, setTableColor, setTrainingCardStyle, setDisplayCardStyle,
+    bgTheme, tableColor, trainingCardStyle, displayCardStyle, tableStyle,
+    setBgTheme, setTableColor, setTrainingCardStyle, setDisplayCardStyle, setTableStyle,
   } = useThemeStore(useShallow(s => ({
-    bgTheme: s.bgTheme, tableColor: s.tableColor, trainingCardStyle: s.trainingCardStyle, displayCardStyle: s.displayCardStyle,
-    setBgTheme: s.setBgTheme, setTableColor: s.setTableColor, setTrainingCardStyle: s.setTrainingCardStyle, setDisplayCardStyle: s.setDisplayCardStyle,
+    bgTheme: s.bgTheme, tableColor: s.tableColor, trainingCardStyle: s.trainingCardStyle, displayCardStyle: s.displayCardStyle, tableStyle: s.tableStyle,
+    setBgTheme: s.setBgTheme, setTableColor: s.setTableColor, setTrainingCardStyle: s.setTrainingCardStyle, setDisplayCardStyle: s.setDisplayCardStyle, setTableStyle: s.setTableStyle,
   })));
 
   const isEn = lang === 'en';
@@ -310,6 +310,33 @@ export function ProfilePage() {
                     />
                     {isEn ? t.name : t.nameFr}
                     {isActive && <Check size={11} className="text-white/80 ml-1" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Table style — felt (skeuomorphic) vs flat 2D */}
+          <div className="mb-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              {isEn ? 'Table style' : 'Style de table'}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(TABLE_STYLE_NAMES) as TableStyle[]).map(key => {
+                const t = TABLE_STYLE_NAMES[key];
+                const isActive = tableStyle === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setTableStyle(key)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                      isActive
+                        ? 'bg-white/10 border-white/30 text-white scale-105'
+                        : 'bg-gray-800/40 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'
+                    }`}
+                  >
+                    {key === 'felt' ? '🪵' : '▱'} {isEn ? t.name : t.nameFr}
+                    {isActive && <Check size={11} className="text-green-400 ml-1" />}
                   </button>
                 );
               })}

@@ -189,6 +189,7 @@ export function PokerTable({
   // Effective board-card size: explicit prop > compact default > full default
   const bCardSize = boardCardSize ?? (compact ? 'sm' : 'md');
   const isEn = useLangStore(s => s.lang) === 'en';
+  const flat = useThemeStore(s => s.tableStyle) === 'flat';
 
   // Seat geometry + clockwise order depend on the table format.
   const layout = format === '8max' ? SEAT_LAYOUT_8 : format === '3max' ? SEAT_LAYOUT_3 : format === 'hu' ? SEAT_LAYOUT_HU : SEAT_LAYOUT;
@@ -211,7 +212,7 @@ export function PokerTable({
   const tokenPos = (seatIdx: number, side: 'left' | 'right'): { x: number; y: number } => {
     const s = layout[seatIdx];
     if (s.cx !== s.sx) return { x: s.cx, y: s.cy };
-    return { x: s.sx + (side === 'right' ? 14 : -14), y: s.sy };
+    return { x: s.sx + (side === 'right' ? 17 : -17), y: s.sy };
   };
 
   const handleClick = (seatIdx: number) => {
@@ -231,35 +232,47 @@ export function PokerTable({
       {/* ── Table oval — taller in compact mode so md-sized board cards
            (used by exercise trainers) don't collide with the hero seat /
            dealer / blind tokens sitting below the felt center. ── */}
-      <div className="relative w-full" style={{ paddingBottom: compact ? '56%' : '46%' }}>
+      <div className="relative w-full" style={{ paddingBottom: compact ? '62%' : '46%' }}>
         <div className="absolute inset-0">
 
-        {/* ── Outer wood border ── */}
-        <div
-          className="absolute inset-0 rounded-[50%]"
-          style={{
-            background: 'radial-gradient(ellipse at 50% 35%, #7a4520 0%, #3d1f0a 55%, #1e0e04 100%)',
-            boxShadow: '0 25px 80px rgba(0,0,0,0.9), inset 0 2px 6px rgba(255,220,120,0.15)',
-          }}
-        />
-        {/* Wood inner highlight ring */}
-        <div
-          className="absolute rounded-[50%]"
-          style={{ inset: '1.5%', border: '1px solid rgba(255,180,60,0.12)', borderRadius: '50%' }}
-        />
+        {/* ── Outer wood border (felt style only — flat style skips the rail) ── */}
+        {!flat && (
+          <>
+            <div
+              className="absolute inset-0 rounded-[50%]"
+              style={{
+                background: 'radial-gradient(ellipse at 50% 35%, #7a4520 0%, #3d1f0a 55%, #1e0e04 100%)',
+                boxShadow: '0 25px 80px rgba(0,0,0,0.9), inset 0 2px 6px rgba(255,220,120,0.15)',
+              }}
+            />
+            {/* Wood inner highlight ring */}
+            <div
+              className="absolute rounded-[50%]"
+              style={{ inset: '1.5%', border: '1px solid rgba(255,180,60,0.12)', borderRadius: '50%' }}
+            />
+          </>
+        )}
 
-        {/* ── Felt surface ── */}
+        {/* ── Felt surface — radial gradient + wood inset (felt) or flat solid fill (flat) ── */}
         <div
           className="absolute rounded-[50%] overflow-hidden"
-          style={{
+          style={flat ? {
+            inset: '0%',
+            background: 'var(--table-mid, #155530)',
+            border: '2px solid rgba(255,255,255,0.14)',
+          } : {
             inset: '6%',
             background: 'radial-gradient(ellipse at 50% 35%, var(--table-center, #22733f) 0%, var(--table-mid, #155530) 45%, var(--table-edge, #0a3520) 100%)',
             boxShadow: 'inset 0 6px 30px rgba(0,0,0,0.6), inset 0 -2px 10px rgba(0,0,0,0.3)',
           }}
         >
-          {/* Inner stitching lines */}
-          <div className="absolute rounded-[50%]" style={{ inset: '6%',  border: '1px solid rgba(255,255,255,0.08)' }} />
-          <div className="absolute rounded-[50%]" style={{ inset: '8%',  border: '1px solid rgba(255,255,255,0.04)' }} />
+          {/* Inner stitching lines (felt style only) */}
+          {!flat && (
+            <>
+              <div className="absolute rounded-[50%]" style={{ inset: '6%',  border: '1px solid rgba(255,255,255,0.08)' }} />
+              <div className="absolute rounded-[50%]" style={{ inset: '8%',  border: '1px solid rgba(255,255,255,0.04)' }} />
+            </>
+          )}
 
           {/* ── Center: pot badge + board cards ── */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-1.5">
@@ -320,6 +333,7 @@ export function PokerTable({
               isClickable={isClickable && isActive}
               isActive={isActive}
               compact={compact}
+              flat={flat}
               seatSize={seatSize}
               heroLabel={isEn ? 'YOU' : 'VOUS'}
               onClick={() => handleClick(idx)}
@@ -338,6 +352,7 @@ export function PokerTable({
             bg="#dde4ee"
             fg="#1a202c"
             compact={compact}
+            flat={flat}
             size={compact ? 13 : 19}
           />
         </AnimatePresence>
@@ -352,6 +367,7 @@ export function PokerTable({
               bg="#2563eb"
               fg="#fff"
               compact={compact}
+              flat={flat}
               size={compact ? 12 : 17}
             />
           </AnimatePresence>
@@ -366,12 +382,13 @@ export function PokerTable({
             bg="#dc2626"
             fg="#fff"
             compact={compact}
+            flat={flat}
             size={compact ? 12 : 17}
           />
         </AnimatePresence>
 
-        {/* ── Direction arrow (subtle, full size only) ── */}
-        {!compact && (
+        {/* ── Direction arrow (subtle, full size only, felt style only) ── */}
+        {!compact && !flat && (
           <div
             className="absolute pointer-events-none opacity-10"
             style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
@@ -428,6 +445,7 @@ interface SeatNodeProps {
   isClickable: boolean;
   isActive: boolean;
   compact: boolean;
+  flat: boolean;
   seatSize: number;
   heroLabel: string;
   onClick: () => void;
@@ -435,7 +453,7 @@ interface SeatNodeProps {
   showHeroStack?: boolean;
 }
 
-function SeatNode({ seat, position, color, isHero, isClickable, isActive, compact, seatSize, heroLabel, onClick, info, showHeroStack }: SeatNodeProps) {
+function SeatNode({ seat, position, color, isHero, isClickable, isActive, compact, flat, seatSize, heroLabel, onClick, info, showHeroStack }: SeatNodeProps) {
   const posFontSize = compact ? 9 : 12;
 
   // Bet chips: midpoint between seat and chip-token position (chips pushed toward pot)
@@ -460,17 +478,21 @@ function SeatNode({ seat, position, color, isHero, isClickable, isActive, compac
           width:      seatSize,
           height:     seatSize,
           transform:  'translate(-50%, -50%)',
-          background: !isActive
-            ? 'radial-gradient(circle at 38% 32%, #181e28, #0d1117)'
-            : isHero
-              ? 'radial-gradient(circle at 38% 32%, #2e3a50, #161e2e)'
-              : 'radial-gradient(circle at 38% 32%, #232d3d, #111827)',
+          background: flat
+            ? (!isActive ? '#161b26' : isHero ? '#2e3a50' : '#1c2434')
+            : !isActive
+              ? 'radial-gradient(circle at 38% 32%, #181e28, #0d1117)'
+              : isHero
+                ? 'radial-gradient(circle at 38% 32%, #2e3a50, #161e2e)'
+                : 'radial-gradient(circle at 38% 32%, #232d3d, #111827)',
           border: `2.5px solid ${!isActive ? '#1a2030' : isHero ? '#d4af37' : `${color}90`}`,
-          boxShadow: !isActive
+          boxShadow: flat
             ? 'none'
-            : isHero
-              ? `0 0 0 3px rgba(212,175,55,0.25), 0 4px 14px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)`
-              : `0 0 8px ${color}30, 0 3px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)`,
+            : !isActive
+              ? 'none'
+              : isHero
+                ? `0 0 0 3px rgba(212,175,55,0.25), 0 4px 14px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)`
+                : `0 0 8px ${color}30, 0 3px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)`,
           opacity: isActive ? 1 : 0.22,
           zIndex:  10,
           cursor:  isClickable ? 'pointer' : 'default',
@@ -605,8 +627,8 @@ function BetChipStack({ amount, compact }: { amount: string; compact: boolean })
 
 // ─── Token chip (D / SB / BB) ────────────────────────────────────────────────
 
-function TokenChip({ x, y, label, bg, fg, compact, size }: {
-  x: number; y: number; label: string; bg: string; fg: string; compact: boolean; size: number;
+function TokenChip({ x, y, label, bg, fg, compact, flat, size }: {
+  x: number; y: number; label: string; bg: string; fg: string; compact: boolean; flat?: boolean; size: number;
 }) {
   return (
     <motion.div
@@ -621,7 +643,7 @@ function TokenChip({ x, y, label, bg, fg, compact, size }: {
         width:     size,
         height:    size,
         transform: 'translate(-50%, -50%)',
-        background: `radial-gradient(circle at 35% 30%, ${bg}ee, ${bg}bb)`,
+        background: flat ? bg : `radial-gradient(circle at 35% 30%, ${bg}ee, ${bg}bb)`,
         color:      fg,
         fontSize:   Math.max(5, size * 0.42),
         fontWeight: 900,
@@ -629,7 +651,9 @@ function TokenChip({ x, y, label, bg, fg, compact, size }: {
         display:  'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: `0 2px 8px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.35), 0 0 0 1.5px rgba(255,255,255,0.2)`,
+        boxShadow: flat
+          ? '0 0 0 1.5px rgba(255,255,255,0.25)'
+          : `0 2px 8px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.35), 0 0 0 1.5px rgba(255,255,255,0.2)`,
         zIndex:   20,
         letterSpacing: '-0.03em',
       }}
