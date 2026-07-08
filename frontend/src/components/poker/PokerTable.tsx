@@ -189,7 +189,9 @@ export function PokerTable({
   // Effective board-card size: explicit prop > compact default > full default
   const bCardSize = boardCardSize ?? (compact ? 'sm' : 'md');
   const isEn = useLangStore(s => s.lang) === 'en';
-  const flat = useThemeStore(s => s.tableStyle) === 'flat';
+  const tableStyle = useThemeStore(s => s.tableStyle);
+  const setTableStyle = useThemeStore(s => s.setTableStyle);
+  const flat = tableStyle === 'flat';
 
   // Seat geometry + clockwise order depend on the table format.
   const layout = format === '8max' ? SEAT_LAYOUT_8 : format === '3max' ? SEAT_LAYOUT_3 : format === 'hu' ? SEAT_LAYOUT_HU : SEAT_LAYOUT;
@@ -227,6 +229,16 @@ export function PokerTable({
 
   return (
     <div className={`select-none w-full relative ${className}`} style={{ paddingTop: '10%' }}>
+      {/* DEV-only: quick table-style toggle next to the table, no need to open Settings. */}
+      {import.meta.env.DEV && (
+        <button
+          onClick={() => setTableStyle(flat ? 'felt' : 'flat')}
+          className="absolute top-0 right-0 z-30 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-black/70 border border-amber-500/40 text-amber-300/90 hover:text-amber-200 hover:border-amber-400/70 transition-colors"
+          title="DEV — switch table style (felt / flat)"
+        >
+          {flat ? '🪵' : '▱'} {flat ? 'Feutre' : 'Plat'}
+        </button>
+      )}
       {/* 10% horizontal margin creates space for villain cards outside the oval */}
       <div style={{ margin: '0 10%' }}>
       {/* ── Table oval — taller in compact mode so md-sized board cards
@@ -323,6 +335,11 @@ export function PokerTable({
           const color = POSITION_COLORS[pos] || '#888';
           const isActive = !activePlayers || activePlayers.includes(pos);
 
+          // In flat mode the dealer/blind role is shown as a small corner tag on
+          // the seat pod itself, not as a separate floating chip on the felt.
+          const blindTag: 'D' | 'SB' | 'BB' | null =
+            idx === btnSeat ? 'D' : idx === sbSeat ? 'SB' : idx === bbSeat ? 'BB' : null;
+
           return (
             <SeatNode
               key={idx}
@@ -334,6 +351,7 @@ export function PokerTable({
               isActive={isActive}
               compact={compact}
               flat={flat}
+              blindTag={flat ? blindTag : null}
               seatSize={seatSize}
               heroLabel={isEn ? 'YOU' : 'VOUS'}
               onClick={() => handleClick(idx)}
@@ -343,7 +361,10 @@ export function PokerTable({
           );
         })}
 
-        {/* ── Dealer button ── */}
+        {/* ── Dealer/blind chips — felt style only (flat style folds these into
+             a corner tag on each seat pod instead, see blindTag above). ── */}
+        {!flat && (
+        <>
         <AnimatePresence mode="wait">
           <TokenChip
             key={`D-${btnSeat}`}
@@ -352,7 +373,6 @@ export function PokerTable({
             bg="#dde4ee"
             fg="#1a202c"
             compact={compact}
-            flat={flat}
             size={compact ? 13 : 19}
           />
         </AnimatePresence>
@@ -367,7 +387,6 @@ export function PokerTable({
               bg="#2563eb"
               fg="#fff"
               compact={compact}
-              flat={flat}
               size={compact ? 12 : 17}
             />
           </AnimatePresence>
@@ -382,10 +401,11 @@ export function PokerTable({
             bg="#dc2626"
             fg="#fff"
             compact={compact}
-            flat={flat}
             size={compact ? 12 : 17}
           />
         </AnimatePresence>
+        </>
+        )}
 
         {/* ── Direction arrow (subtle, full size only, felt style only) ── */}
         {!compact && !flat && (
@@ -446,6 +466,8 @@ interface SeatNodeProps {
   isActive: boolean;
   compact: boolean;
   flat: boolean;
+  /** Dealer/blind role for this seat — rendered as a corner tag in flat mode only. */
+  blindTag?: 'D' | 'SB' | 'BB' | null;
   seatSize: number;
   heroLabel: string;
   onClick: () => void;
@@ -453,7 +475,10 @@ interface SeatNodeProps {
   showHeroStack?: boolean;
 }
 
-function SeatNode({ seat, position, color, isHero, isClickable, isActive, compact, flat, seatSize, heroLabel, onClick, info, showHeroStack }: SeatNodeProps) {
+const BLIND_TAG_BG: Record<'D' | 'SB' | 'BB', string> = { D: '#dde4ee', SB: '#2563eb', BB: '#dc2626' };
+const BLIND_TAG_FG: Record<'D' | 'SB' | 'BB', string> = { D: '#1a202c', SB: '#fff',    BB: '#fff'     };
+
+function SeatNode({ seat, position, color, isHero, isClickable, isActive, compact, flat, blindTag, seatSize, heroLabel, onClick, info, showHeroStack }: SeatNodeProps) {
   const posFontSize = compact ? 9 : 12;
 
   // Bet chips: midpoint between seat and chip-token position (chips pushed toward pot)
@@ -468,6 +493,65 @@ function SeatNode({ seat, position, color, isHero, isClickable, isActive, compac
     ? `calc(${betY}% + ${compact ? 14 : 22}px)`   // clear the bet chip stack + label
     : `calc(${seat.sy}% + ${seatSize / 2 + 5}px)`; // default: right below the seat circle
 
+  // ─── Flat mode: rectangular info pod (position + stack + blind tag in one
+  // block) instead of a circular seat + separately floating stack badge/token.
+  if (flat) {
+    const showStack = isActive && (!isHero || showHeroStack) && info?.stack;
+    return (
+      <>
+        <button
+          className="absolute flex flex-col items-center justify-center leading-none"
+          style={{
+            left:         `${seat.sx}%`,
+            top:          `${seat.sy}%`,
+            minWidth:     compact ? 38 : 56,
+            transform:    'translate(-50%, -50%)',
+            padding:      compact ? '3px 6px' : '5px 9px',
+            borderRadius: 6,
+            background:   !isActive ? '#12151d' : isHero ? '#1c2a3f' : '#161c28',
+            border:       `1.5px solid ${!isActive ? '#232838' : isHero ? '#d4af37' : color}`,
+            opacity:      isActive ? 1 : 0.35,
+            zIndex:       10,
+            cursor:       isClickable ? 'pointer' : 'default',
+            gap:          2,
+          }}
+          onClick={onClick}
+          tabIndex={isClickable ? 0 : -1}
+        >
+          {blindTag && (
+            <span style={{
+              position: 'absolute', top: -7, right: -7, width: compact ? 14 : 16, height: compact ? 14 : 16,
+              borderRadius: 4, background: BLIND_TAG_BG[blindTag], color: BLIND_TAG_FG[blindTag],
+              fontSize: compact ? 7 : 8, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.6)', letterSpacing: '-0.03em',
+            }}>
+              {blindTag}
+            </span>
+          )}
+          <span style={{ fontSize: posFontSize, fontWeight: 900, color: isHero ? '#d4af37' : '#e2e8f0', letterSpacing: '-0.02em' }}>
+            {position}
+          </span>
+          {showStack && (
+            <span style={{ fontSize: compact ? 7 : 9, fontWeight: 700, color: '#94a3b8' }}>
+              {info!.stack}
+            </span>
+          )}
+        </button>
+
+        {info?.bet && isActive && (
+          <div style={{
+            position: 'absolute', left: `${betX}%`, top: `${betY}%`, transform: 'translate(-50%, -50%)',
+            zIndex: 22, pointerEvents: 'none', background: 'rgba(8,14,26,0.9)', border: '1px solid rgba(212,175,55,0.5)',
+            borderRadius: 5, padding: compact ? '1px 5px' : '2px 7px', fontSize: compact ? 8 : 10, fontWeight: 800, color: '#fbbf24',
+            whiteSpace: 'nowrap',
+          }}>
+            {info.bet}
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <>
       <motion.button
@@ -478,21 +562,17 @@ function SeatNode({ seat, position, color, isHero, isClickable, isActive, compac
           width:      seatSize,
           height:     seatSize,
           transform:  'translate(-50%, -50%)',
-          background: flat
-            ? (!isActive ? '#161b26' : isHero ? '#2e3a50' : '#1c2434')
-            : !isActive
-              ? 'radial-gradient(circle at 38% 32%, #181e28, #0d1117)'
-              : isHero
-                ? 'radial-gradient(circle at 38% 32%, #2e3a50, #161e2e)'
-                : 'radial-gradient(circle at 38% 32%, #232d3d, #111827)',
+          background: !isActive
+            ? 'radial-gradient(circle at 38% 32%, #181e28, #0d1117)'
+            : isHero
+              ? 'radial-gradient(circle at 38% 32%, #2e3a50, #161e2e)'
+              : 'radial-gradient(circle at 38% 32%, #232d3d, #111827)',
           border: `2.5px solid ${!isActive ? '#1a2030' : isHero ? '#d4af37' : `${color}90`}`,
-          boxShadow: flat
+          boxShadow: !isActive
             ? 'none'
-            : !isActive
-              ? 'none'
-              : isHero
-                ? `0 0 0 3px rgba(212,175,55,0.25), 0 4px 14px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)`
-                : `0 0 8px ${color}30, 0 3px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)`,
+            : isHero
+              ? `0 0 0 3px rgba(212,175,55,0.25), 0 4px 14px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)`
+              : `0 0 8px ${color}30, 0 3px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)`,
           opacity: isActive ? 1 : 0.22,
           zIndex:  10,
           cursor:  isClickable ? 'pointer' : 'default',
@@ -627,8 +707,8 @@ function BetChipStack({ amount, compact }: { amount: string; compact: boolean })
 
 // ─── Token chip (D / SB / BB) ────────────────────────────────────────────────
 
-function TokenChip({ x, y, label, bg, fg, compact, flat, size }: {
-  x: number; y: number; label: string; bg: string; fg: string; compact: boolean; flat?: boolean; size: number;
+function TokenChip({ x, y, label, bg, fg, compact, size }: {
+  x: number; y: number; label: string; bg: string; fg: string; compact: boolean; size: number;
 }) {
   return (
     <motion.div
@@ -643,7 +723,7 @@ function TokenChip({ x, y, label, bg, fg, compact, flat, size }: {
         width:     size,
         height:    size,
         transform: 'translate(-50%, -50%)',
-        background: flat ? bg : `radial-gradient(circle at 35% 30%, ${bg}ee, ${bg}bb)`,
+        background: `radial-gradient(circle at 35% 30%, ${bg}ee, ${bg}bb)`,
         color:      fg,
         fontSize:   Math.max(5, size * 0.42),
         fontWeight: 900,
@@ -651,9 +731,7 @@ function TokenChip({ x, y, label, bg, fg, compact, flat, size }: {
         display:  'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: flat
-          ? '0 0 0 1.5px rgba(255,255,255,0.25)'
-          : `0 2px 8px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.35), 0 0 0 1.5px rgba(255,255,255,0.2)`,
+        boxShadow: `0 2px 8px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.35), 0 0 0 1.5px rgba(255,255,255,0.2)`,
         zIndex:   20,
         letterSpacing: '-0.03em',
       }}
