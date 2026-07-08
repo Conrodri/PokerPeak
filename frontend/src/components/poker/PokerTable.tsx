@@ -223,6 +223,10 @@ export function PokerTable({
   };
 
   const seatSize = compact ? 34 : 52;
+  // Oval height as a fraction of its width (matches the paddingBottom below) —
+  // needed to convert sx/sy percentage deltas into a visually-correct angle
+  // for the rotation arrows (the container isn't square).
+  const ovalRatio = compact ? 0.62 : 0.46;
 
   // hasHeroCards kept for future use; actual rendering is done by each trainer
   const hasHeroCards = !!heroCards?.length; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -244,7 +248,7 @@ export function PokerTable({
       {/* ── Table oval — taller in compact mode so md-sized board cards
            (used by exercise trainers) don't collide with the hero seat /
            dealer / blind tokens sitting below the felt center. ── */}
-      <div className="relative w-full" style={{ paddingBottom: compact ? '62%' : '46%' }}>
+      <div className="relative w-full" style={{ paddingBottom: `${ovalRatio * 100}%` }}>
         <div className="absolute inset-0">
 
         {/* ── Outer wood border (felt style only — flat style skips the rail) ── */}
@@ -407,18 +411,34 @@ export function PokerTable({
         </>
         )}
 
-        {/* ── Direction arrow (subtle, full size only, felt style only) ── */}
-        {!compact && !flat && (
-          <div
-            className="absolute pointer-events-none opacity-10"
-            style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
-          >
-            <svg width="60" height="60" viewBox="0 0 60 60">
-              <path d="M 30 8 A 22 22 0 1 0 8 30" fill="none" stroke="white" strokeWidth="1.5" strokeDasharray="4 3" />
-              <polygon points="8,22 3,33 14,31" fill="white" />
-            </svg>
-          </div>
-        )}
+        {/* ── Rotation arrows — one between each pair of consecutive seats,
+             showing the clockwise action order (BTN → SB → BB → ... → BTN). ── */}
+        {layout.map((seatA, idx) => {
+          const seatB = layout[(idx + 1) % layout.length];
+          const dx = seatB.sx - seatA.sx;
+          const dy = seatB.sy - seatA.sy;
+          // Correct for the oval's non-square aspect ratio so the arrow
+          // actually points at seatB once rendered (sx/sy % are independently
+          // relative to width/height, which differ here).
+          const angleDeg = Math.atan2(dy * ovalRatio, dx) * (180 / Math.PI);
+          const mx = seatA.sx + dx * 0.5;
+          const my = seatA.sy + dy * 0.5;
+          return (
+            <div
+              key={`arrow-${idx}`}
+              className="absolute pointer-events-none"
+              style={{
+                left: `${mx}%`, top: `${my}%`,
+                transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
+                opacity: flat ? 0.4 : 0.3,
+              }}
+            >
+              <svg width={compact ? 8 : 11} height={compact ? 8 : 11} viewBox="0 0 10 10">
+                <polygon points="0,0 10,5 0,10" fill={flat ? '#94a3b8' : '#d4af37'} />
+              </svg>
+            </div>
+          );
+        })}
         </div>{/* end absolute inset-0 */}
       </div>{/* end table oval (paddingBottom 46%) */}
       </div>{/* end 10% margin wrapper */}
