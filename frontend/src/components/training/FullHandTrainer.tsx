@@ -185,7 +185,7 @@ function StackBar({ heroPos, villainPos, heroStack, villainStack, potSize, isEn 
   const heroColor    = POSITION_COLORS[heroPos    as Position] ?? '#888';
   const villainColor = POSITION_COLORS[villainPos as Position] ?? '#888';
   return (
-    <div className="flex items-center justify-between bg-gray-900/50 rounded-xl px-4 py-2.5 border border-gray-800 text-xs w-full">
+    <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-800 text-xs w-full">
       <div className="flex items-center gap-2">
         <div className="w-2 h-2 rounded-full" style={{ background: heroColor }} />
         <span className="font-bold" style={{ color: heroColor }}>{heroPos}</span>
@@ -555,48 +555,47 @@ export function FullHandTrainer() {
       {/* ── Stepper ── */}
       <Stepper phase={phase} lastStreet={scenario.lastStreet} isEn={isEn} />
 
-      {/* ── Poker table ── */}
-      <div className="w-full max-w-xs sm:max-w-md mx-auto">
-        <PokerTable
-          heroPosition={scenario.heroPosition as Position}
-          interactive={false}
-          activePlayers={[scenario.heroPosition as Position, scenario.villainPosition as Position]}
-          potDisplay={`${currentPotSize}bb`}
-          heroCards={scenario.heroHand as string[]}
-          boardCards={board as string[]}
-          boardCardSize="md"
-          compact={true}
+      {/* ── Table + hand + stacks + situation — one card, not four ── */}
+      <div className="w-full rounded-2xl border border-gray-700/60 bg-gray-900/50 overflow-hidden">
+        <div className="w-full max-w-xs sm:max-w-md mx-auto px-4 pt-3">
+          <PokerTable
+            heroPosition={scenario.heroPosition as Position}
+            interactive={false}
+            activePlayers={[scenario.heroPosition as Position, scenario.villainPosition as Position]}
+            potDisplay={`${currentPotSize}bb`}
+            heroCards={scenario.heroHand as string[]}
+            boardCards={board as string[]}
+            boardCardSize="md"
+            compact={true}
+          />
+        </div>
+
+        <div className="w-full px-4 py-1.5 border-t border-gray-800 flex flex-col items-center gap-1">
+          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
+            {isEn ? 'Your hand' : 'Votre main'}
+          </p>
+          <Hand cards={scenario.heroHand as any} size="sm" gap="gap-2" animate={false} />
+        </div>
+
+        <StackBar
+          heroPos={scenario.heroPosition}
+          villainPos={scenario.villainPosition}
+          heroStack={effectiveStack}
+          villainStack={effectiveStack}
+          potSize={currentPotSize}
+          isEn={isEn}
         />
-      </div>
 
-      {/* Hero cards */}
-      <div className="w-full rounded-2xl border border-gray-700/60 bg-gray-900/50 px-4 py-1.5 flex flex-col items-center gap-1">
-        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
-          {isEn ? 'Your hand' : 'Votre main'}
-        </p>
-        <Hand cards={scenario.heroHand as any} size="sm" gap="gap-2" animate={false} />
-      </div>
-
-      {/* ── Stack info bar ── */}
-      <StackBar
-        heroPos={scenario.heroPosition}
-        villainPos={scenario.villainPosition}
-        heroStack={effectiveStack}
-        villainStack={effectiveStack}
-        potSize={currentPotSize}
-        isEn={isEn}
-      />
-
-      {/* ── Preflop context info ── */}
-      <div className="bg-gray-900/60 rounded-xl px-4 py-2.5 border border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="text-gray-400">{isEn ? scenario.preflopContext.en : scenario.preflopContext.fr}</span>
-        <span className={`font-semibold px-2 py-0.5 rounded-full border ${
-          scenario.isHeroIP
-            ? 'text-green-400 border-green-800 bg-green-900/20'
-            : 'text-orange-400 border-orange-800 bg-orange-900/20'
-        }`}>
-          {scenario.isHeroIP ? (isEn ? 'In Position' : 'En position') : (isEn ? 'Out of Position' : 'Hors position')}
-        </span>
+        <div className="px-4 py-2.5 border-t border-gray-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="text-gray-400">{isEn ? scenario.preflopContext.en : scenario.preflopContext.fr}</span>
+          <span className={`font-semibold px-2 py-0.5 rounded-full border ${
+            scenario.isHeroIP
+              ? 'text-green-400 border-green-800 bg-green-900/20'
+              : 'text-orange-400 border-orange-800 bg-orange-900/20'
+          }`}>
+            {scenario.isHeroIP ? (isEn ? 'In Position' : 'En position') : (isEn ? 'Out of Position' : 'Hors position')}
+          </span>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
