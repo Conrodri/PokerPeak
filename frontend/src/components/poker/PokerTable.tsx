@@ -24,11 +24,11 @@ export const CLOCKWISE_HU: Position[] = ['BTN', 'BB'];
 // S3 top cards sit in the paddingTop zone (cardY ≈ 8%) — above the oval, below the page title.
 const SEAT_LAYOUT = [
   { sx: 50, sy: 78, cx: 50, cy: 73, side: 'bottom', cardX: null, cardY: null },  // S0: hero
-  { sx: 17, sy: 63, cx: 29, cy: 67, side: 'left',   cardX:    4, cardY:   76 },  // S1: bottom-left
+  { sx: 17, sy: 63, cx: 29, cy: 71, side: 'left',   cardX:    4, cardY:   76 },  // S1: bottom-left
   { sx: 13, sy: 26, cx: 27, cy: 22, side: 'left',   cardX:    4, cardY:   42 },  // S2: left
   { sx: 50, sy: 8,  cx: 50, cy: 19, side: 'top',    cardX:   50, cardY:    5 },  // S3: top (paddingTop zone)
   { sx: 87, sy: 26, cx: 73, cy: 22, side: 'right',  cardX:   96, cardY:   42 },  // S4: right
-  { sx: 83, sy: 63, cx: 71, cy: 67, side: 'right',  cardX:   96, cardY:   76 },  // S5: bottom-right
+  { sx: 83, sy: 63, cx: 71, cy: 71, side: 'right',  cardX:   96, cardY:   76 },  // S5: bottom-right
 ] as const;
 
 // 3-seat layout (hero at S0 bottom-center), used when format === '3max'.
@@ -204,6 +204,16 @@ export function PokerTable({
   const sbSeat  = seatPositions.indexOf('SB');
   const bbSeat  = seatPositions.indexOf('BB');
 
+  // Dealer/blind token position: seats placed at top or bottom (cx === sx) have no
+  // natural horizontal separation from their own stack badge (which sits directly
+  // below the seat, on the same x-axis) — nudge the token sideways in that case.
+  // Left/right seats already push cx away from sx toward the pot, so no nudge needed.
+  const tokenPos = (seatIdx: number, side: 'left' | 'right'): { x: number; y: number } => {
+    const s = layout[seatIdx];
+    if (s.cx !== s.sx) return { x: s.cx, y: s.cy };
+    return { x: s.sx + (side === 'right' ? 14 : -14), y: s.sy };
+  };
+
   const handleClick = (seatIdx: number) => {
     if (!interactive || !onPositionChange || seatIdx === 0) return;
     onPositionChange(seatPositions[seatIdx]);
@@ -218,8 +228,10 @@ export function PokerTable({
     <div className={`select-none w-full relative ${className}`} style={{ paddingTop: '10%' }}>
       {/* 10% horizontal margin creates space for villain cards outside the oval */}
       <div style={{ margin: '0 10%' }}>
-      {/* ── Table oval (fixed 46% aspect ratio regardless of hero cards) ── */}
-      <div className="relative w-full" style={{ paddingBottom: '46%' }}>
+      {/* ── Table oval — taller in compact mode so md-sized board cards
+           (used by exercise trainers) don't collide with the hero seat /
+           dealer / blind tokens sitting below the felt center. ── */}
+      <div className="relative w-full" style={{ paddingBottom: compact ? '56%' : '46%' }}>
         <div className="absolute inset-0">
 
         {/* ── Outer wood border ── */}
@@ -318,15 +330,10 @@ export function PokerTable({
         })}
 
         {/* ── Dealer button ── */}
-        {/* When the hero (seat S0, bottom-center) is on the button, the default
-            token position sits on top of the hero seat circle and hides its
-            "BTN / VOUS" label. Nudge it to the upper-right of the seat (classic
-            "button beside the player" placement) so the seat stays readable. */}
         <AnimatePresence mode="wait">
           <TokenChip
             key={`D-${btnSeat}`}
-            x={btnSeat === 0 ? 64 : layout[btnSeat].cx}
-            y={btnSeat === 0 ? 70 : layout[btnSeat].cy}
+            {...tokenPos(btnSeat, 'right')}
             label="D"
             bg="#dde4ee"
             fg="#1a202c"
@@ -340,8 +347,7 @@ export function PokerTable({
           <AnimatePresence mode="wait">
             <TokenChip
               key={`SB-${sbSeat}`}
-              x={sbSeat === 0 ? 36 : layout[sbSeat].cx}
-              y={sbSeat === 0 ? 70 : layout[sbSeat].cy}
+              {...tokenPos(sbSeat, 'left')}
               label="SB"
               bg="#2563eb"
               fg="#fff"
@@ -355,8 +361,7 @@ export function PokerTable({
         <AnimatePresence mode="wait">
           <TokenChip
             key={`BB-${bbSeat}`}
-            x={bbSeat === 0 ? 64 : layout[bbSeat].cx}
-            y={bbSeat === 0 ? 70 : layout[bbSeat].cy}
+            {...tokenPos(bbSeat, 'right')}
             label="BB"
             bg="#dc2626"
             fg="#fff"
