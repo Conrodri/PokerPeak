@@ -56,6 +56,43 @@ const SEAT_LAYOUT_8 = [
   { sx: 81, sy: 70, cx: 69, cy: 66, side: 'right',  cardX:   96, cardY:   80 },  // S7: bottom-right
 ] as const;
 
+// ─── Stadium seat layout (flat table style) ──────────────────────────────────
+// Coordinates copied from a GTO Wizard table reference screenshot: a
+// rounded-rectangle ("stadium") track, straight top/bottom edges + semicircle
+// caps left/right, seats sitting directly on the outline. Hero is always at
+// slot 0 = bottom-right (same "hero fixed, others rotate" convention as the
+// felt oval layouts above — just a different fixed slot).
+const SEAT_LAYOUT_STADIUM = [
+  { sx: 64, sy: 87, cx: 59, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-right)
+  { sx: 31, sy: 87, cx: 38, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S1: bottom-left
+  { sx: 6,  sy: 51, cx: 21, cy: 51, side: 'left',   cardX: null, cardY: null },  // S2: left cap
+  { sx: 31, sy: 15, cx: 38, cy: 28, side: 'top',    cardX: null, cardY: null },  // S3: top-left
+  { sx: 65, sy: 15, cx: 60, cy: 28, side: 'top',    cardX: null, cardY: null },  // S4: top-right
+  { sx: 89, sy: 51, cx: 75, cy: 51, side: 'right',  cardX: null, cardY: null },  // S5: right cap
+] as const;
+
+const SEAT_LAYOUT_STADIUM_8 = [
+  { sx: 70, sy: 87, cx: 63, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-right)
+  { sx: 50, sy: 87, cx: 50, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S1: bottom-mid
+  { sx: 30, sy: 87, cx: 37, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S2: bottom-left
+  { sx: 6,  sy: 51, cx: 21, cy: 51, side: 'left',   cardX: null, cardY: null },  // S3: left cap
+  { sx: 30, sy: 15, cx: 37, cy: 28, side: 'top',    cardX: null, cardY: null },  // S4: top-left
+  { sx: 50, sy: 15, cx: 50, cy: 28, side: 'top',    cardX: null, cardY: null },  // S5: top-mid
+  { sx: 70, sy: 15, cx: 63, cy: 28, side: 'top',    cardX: null, cardY: null },  // S6: top-right
+  { sx: 89, sy: 51, cx: 75, cy: 51, side: 'right',  cardX: null, cardY: null },  // S7: right cap
+] as const;
+
+const SEAT_LAYOUT_STADIUM_3 = [
+  { sx: 50, sy: 87, cx: 50, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-center)
+  { sx: 6,  sy: 51, cx: 21, cy: 51, side: 'left',   cardX: null, cardY: null },  // S1: left cap
+  { sx: 89, sy: 51, cx: 75, cy: 51, side: 'right',  cardX: null, cardY: null },  // S2: right cap
+] as const;
+
+const SEAT_LAYOUT_STADIUM_HU = [
+  { sx: 50, sy: 87, cx: 50, cy: 74, side: 'bottom', cardX: null, cardY: null },  // S0: hero (bottom-center)
+  { sx: 50, sy: 15, cx: 50, cy: 28, side: 'top',    cardX: null, cardY: null },  // S1: villain (top-center)
+] as const;
+
 export const POSITION_COLORS: Record<Position8, string> = {
   BTN: '#16a34a', SB: '#2563eb', BB: '#dc2626',
   UTG: '#b45309', UTG1: '#d97706', LJ: '#a16207', HJ: '#7c3aed', CO: '#0891b2',
@@ -193,15 +230,18 @@ export function PokerTable({
   const setTableStyle = useThemeStore(s => s.setTableStyle);
   const flat = tableStyle === 'flat';
 
-  // Seat geometry + clockwise order depend on the table format.
-  const layout = format === '8max' ? SEAT_LAYOUT_8 : format === '3max' ? SEAT_LAYOUT_3 : format === 'hu' ? SEAT_LAYOUT_HU : SEAT_LAYOUT;
+  // Seat geometry + clockwise order depend on the table format and style.
+  // Flat style uses the stadium (rounded-rectangle) layouts; felt uses the oval ones.
+  const layout = flat
+    ? (format === '8max' ? SEAT_LAYOUT_STADIUM_8 : format === '3max' ? SEAT_LAYOUT_STADIUM_3 : format === 'hu' ? SEAT_LAYOUT_STADIUM_HU : SEAT_LAYOUT_STADIUM)
+    : (format === '8max' ? SEAT_LAYOUT_8 : format === '3max' ? SEAT_LAYOUT_3 : format === 'hu' ? SEAT_LAYOUT_HU : SEAT_LAYOUT);
   const clockwise = format === '8max' ? CLOCKWISE_8 : format === '3max' ? CLOCKWISE_3 : format === 'hu' ? CLOCKWISE_HU : CLOCKWISE;
 
   const seatPositions = useMemo<Position8[]>(() => {
     const heroIdx = clockwise.indexOf(heroPosition);
     const start = heroIdx < 0 ? 0 : heroIdx;
     return layout.map((_, i) => clockwise[(start + i) % clockwise.length]);
-  }, [heroPosition, format]);
+  }, [heroPosition, format, flat]);
 
   const btnSeat = seatPositions.indexOf('BTN');
   const sbSeat  = seatPositions.indexOf('SB');
@@ -222,11 +262,11 @@ export function PokerTable({
     onPositionChange(seatPositions[seatIdx]);
   };
 
-  const seatSize = compact ? 34 : 52;
-  // Oval height as a fraction of its width (matches the paddingBottom below) —
+  const seatSize = flat ? (compact ? 40 : 60) : (compact ? 34 : 52);
+  // Table height as a fraction of its width (matches the paddingBottom below) —
   // needed to convert sx/sy percentage deltas into a visually-correct angle
-  // for the rotation arrows (the container isn't square).
-  const ovalRatio = compact ? 0.62 : 0.46;
+  // for the felt-style rotation arrows (the container isn't square).
+  const ovalRatio = flat ? (compact ? 0.5 : 0.42) : (compact ? 0.62 : 0.46);
 
   // hasHeroCards kept for future use; actual rendering is done by each trainer
   const hasHeroCards = !!heroCards?.length; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -251,7 +291,9 @@ export function PokerTable({
       <div className="relative w-full" style={{ paddingBottom: `${ovalRatio * 100}%` }}>
         <div className="absolute inset-0">
 
-        {/* ── Outer wood border (felt style only — flat style skips the rail) ── */}
+        {/* ── Felt style: wood rail + felt surface. Flat style: a plain
+             border-only "stadium" outline (rounded rectangle), no fill —
+             matches a GTO-solver-style schematic table. ── */}
         {!flat && (
           <>
             <div
@@ -269,14 +311,15 @@ export function PokerTable({
           </>
         )}
 
-        {/* ── Felt surface — radial gradient + wood inset (felt) or flat solid fill (flat) ── */}
+        {flat && (
+          <div className="absolute inset-0 rounded-[999px]" style={{ border: '1.5px solid rgba(255,255,255,0.22)' }} />
+        )}
+
+        {/* ── Felt surface (felt style only) — flat style has no filled
+             surface at all, just the outline above. ── */}
         <div
-          className="absolute rounded-[50%] overflow-hidden"
-          style={flat ? {
-            inset: '0%',
-            background: 'var(--table-mid, #155530)',
-            border: '2px solid rgba(255,255,255,0.14)',
-          } : {
+          className={flat ? 'absolute inset-0' : 'absolute rounded-[50%] overflow-hidden'}
+          style={flat ? {} : {
             inset: '6%',
             background: 'radial-gradient(ellipse at 50% 35%, var(--table-center, #22733f) 0%, var(--table-mid, #155530) 45%, var(--table-edge, #0a3520) 100%)',
             boxShadow: 'inset 0 6px 30px rgba(0,0,0,0.6), inset 0 -2px 10px rgba(0,0,0,0.3)',
@@ -293,8 +336,18 @@ export function PokerTable({
           {/* ── Center: pot badge + board cards ── */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-1.5">
 
-            {/* Pot badge */}
-            {potDisplay && (
+            {/* Pot — plain bold text in flat style, bordered badge in felt style */}
+            {potDisplay && flat && (
+              <div style={{
+                fontSize:   compact ? 11 : 14,
+                fontWeight: 800,
+                color:      '#e5e7eb',
+                letterSpacing: '0.02em',
+              }}>
+                {potDisplay}
+              </div>
+            )}
+            {potDisplay && !flat && (
               <div style={{
                 background:    'rgba(0,0,0,0.65)',
                 border:        '1px solid rgba(212,175,55,0.55)',
@@ -339,11 +392,6 @@ export function PokerTable({
           const color = POSITION_COLORS[pos] || '#888';
           const isActive = !activePlayers || activePlayers.includes(pos);
 
-          // In flat mode the dealer/blind role is shown as a small corner tag on
-          // the seat pod itself, not as a separate floating chip on the felt.
-          const blindTag: 'D' | 'SB' | 'BB' | null =
-            idx === btnSeat ? 'D' : idx === sbSeat ? 'SB' : idx === bbSeat ? 'BB' : null;
-
           return (
             <SeatNode
               key={idx}
@@ -355,7 +403,6 @@ export function PokerTable({
               isActive={isActive}
               compact={compact}
               flat={flat}
-              blindTag={flat ? blindTag : null}
               seatSize={seatSize}
               heroLabel={isEn ? 'YOU' : 'VOUS'}
               onClick={() => handleClick(idx)}
@@ -365,8 +412,9 @@ export function PokerTable({
           );
         })}
 
-        {/* ── Dealer/blind chips — felt style only (flat style folds these into
-             a corner tag on each seat pod instead, see blindTag above). ── */}
+        {/* ── Dealer button — felt style: gradient chip via tokenPos nudge.
+             Flat style: plain flat circle, fixed offset from the BTN seat
+             (position label already identifies SB/BB, no separate chip needed). ── */}
         {!flat && (
         <>
         <AnimatePresence mode="wait">
@@ -411,13 +459,37 @@ export function PokerTable({
         </>
         )}
 
-        {/* ── Rotation arrows — one between each pair of consecutive seats,
-             showing the clockwise action order (BTN → SB → BB → ... → BTN). ── */}
-        {layout.map((seatA, idx) => {
+        {flat && btnSeat >= 0 && (
+          <div
+            className="absolute flex items-center justify-center pointer-events-none"
+            style={{
+              left: `${layout[btnSeat].sx - 8}%`,
+              top: `${layout[btnSeat].sy + 8}%`,
+              width: compact ? 15 : 19,
+              height: compact ? 15 : 19,
+              transform: 'translate(-50%, -50%)',
+              borderRadius: '50%',
+              background: '#f1ede4',
+              color: '#1a202c',
+              fontSize: compact ? 8 : 10,
+              fontWeight: 900,
+              zIndex: 20,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.6)',
+            }}
+          >
+            D
+          </div>
+        )}
+
+        {/* ── Rotation arrows — felt style only (one between each pair of
+             consecutive seats, showing the clockwise action order
+             BTN → SB → BB → ... → BTN). The flat/stadium style skips these,
+             matching the reference table it copies. ── */}
+        {!flat && layout.map((seatA, idx) => {
           const seatB = layout[(idx + 1) % layout.length];
           const dx = seatB.sx - seatA.sx;
           const dy = seatB.sy - seatA.sy;
-          // Correct for the oval's non-square aspect ratio so the arrow
+          // Correct for the table's non-square aspect ratio so the arrow/line
           // actually points at seatB once rendered (sx/sy % are independently
           // relative to width/height, which differ here).
           const angleDeg = Math.atan2(dy * ovalRatio, dx) * (180 / Math.PI);
@@ -430,11 +502,11 @@ export function PokerTable({
               style={{
                 left: `${mx}%`, top: `${my}%`,
                 transform: `translate(-50%, -50%) rotate(${angleDeg}deg)`,
-                opacity: flat ? 0.4 : 0.3,
+                opacity: 0.3,
               }}
             >
               <svg width={compact ? 8 : 11} height={compact ? 8 : 11} viewBox="0 0 10 10">
-                <polygon points="0,0 10,5 0,10" fill={flat ? '#94a3b8' : '#d4af37'} />
+                <polygon points="0,0 10,5 0,10" fill="#d4af37" />
               </svg>
             </div>
           );
@@ -486,8 +558,6 @@ interface SeatNodeProps {
   isActive: boolean;
   compact: boolean;
   flat: boolean;
-  /** Dealer/blind role for this seat — rendered as a corner tag in flat mode only. */
-  blindTag?: 'D' | 'SB' | 'BB' | null;
   seatSize: number;
   heroLabel: string;
   onClick: () => void;
@@ -495,10 +565,7 @@ interface SeatNodeProps {
   showHeroStack?: boolean;
 }
 
-const BLIND_TAG_BG: Record<'D' | 'SB' | 'BB', string> = { D: '#dde4ee', SB: '#2563eb', BB: '#dc2626' };
-const BLIND_TAG_FG: Record<'D' | 'SB' | 'BB', string> = { D: '#1a202c', SB: '#fff',    BB: '#fff'     };
-
-function SeatNode({ seat, position, color, isHero, isClickable, isActive, compact, flat, blindTag, seatSize, heroLabel, onClick, info, showHeroStack }: SeatNodeProps) {
+function SeatNode({ seat, position, color, isHero, isClickable, isActive, compact, flat, seatSize, heroLabel, onClick, info, showHeroStack }: SeatNodeProps) {
   const posFontSize = compact ? 9 : 12;
 
   // Bet chips: midpoint between seat and chip-token position (chips pushed toward pot)
@@ -513,59 +580,53 @@ function SeatNode({ seat, position, color, isHero, isClickable, isActive, compac
     ? `calc(${betY}% + ${compact ? 14 : 22}px)`   // clear the bet chip stack + label
     : `calc(${seat.sy}% + ${seatSize / 2 + 5}px)`; // default: right below the seat circle
 
-  // ─── Flat mode: rectangular info pod (position + stack + blind tag in one
-  // block) instead of a circular seat + separately floating stack badge/token.
+  // ─── Flat mode: plain circle on the stadium track, position + stack stacked
+  // on two lines inside — copied from a GTO Wizard table reference. No per-
+  // position colour: just gray (folded/inactive), teal (hero) or amber
+  // (other active player) — the seat's own label already reads "SB"/"BB", so
+  // no separate blind-role tag is needed on top of it.
   if (flat) {
     const showStack = isActive && (!isHero || showHeroStack) && info?.stack;
+    const ringColor = !isActive ? '#3f4654' : isHero ? '#2dd4bf' : '#f59e0b';
     return (
       <>
         <button
-          className="absolute flex flex-col items-center justify-center leading-none"
+          className="absolute rounded-full flex flex-col items-center justify-center leading-none focus:outline-none"
           style={{
             left:         `${seat.sx}%`,
             top:          `${seat.sy}%`,
-            minWidth:     compact ? 38 : 56,
+            width:        seatSize,
+            height:       seatSize,
             transform:    'translate(-50%, -50%)',
-            padding:      compact ? '3px 6px' : '5px 9px',
-            borderRadius: 6,
-            background:   !isActive ? '#12151d' : isHero ? '#1c2a3f' : '#161c28',
-            border:       `1.5px solid ${!isActive ? '#232838' : isHero ? '#d4af37' : color}`,
-            opacity:      isActive ? 1 : 0.35,
+            background:   '#14171d',
+            border:       `1.5px solid ${ringColor}`,
+            opacity:      isActive ? 1 : 0.45,
             zIndex:       10,
             cursor:       isClickable ? 'pointer' : 'default',
-            gap:          2,
+            gap:          1,
           }}
           onClick={onClick}
           tabIndex={isClickable ? 0 : -1}
         >
-          {blindTag && (
-            <span style={{
-              position: 'absolute', top: -7, right: -7, width: compact ? 14 : 16, height: compact ? 14 : 16,
-              borderRadius: 4, background: BLIND_TAG_BG[blindTag], color: BLIND_TAG_FG[blindTag],
-              fontSize: compact ? 7 : 8, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.6)', letterSpacing: '-0.03em',
-            }}>
-              {blindTag}
-            </span>
-          )}
-          <span style={{ fontSize: posFontSize, fontWeight: 900, color: isHero ? '#d4af37' : '#e2e8f0', letterSpacing: '-0.02em' }}>
+          <span style={{ fontSize: posFontSize, fontWeight: 800, color: '#e5e7eb', letterSpacing: '-0.02em' }}>
             {position}
           </span>
           {showStack && (
-            <span style={{ fontSize: compact ? 7 : 9, fontWeight: 700, color: '#94a3b8' }}>
+            <span style={{ fontSize: compact ? 7 : 9, fontWeight: 600, color: '#8b93a1' }}>
               {info!.stack}
             </span>
           )}
         </button>
 
         {info?.bet && isActive && (
-          <div style={{
-            position: 'absolute', left: `${betX}%`, top: `${betY}%`, transform: 'translate(-50%, -50%)',
-            zIndex: 22, pointerEvents: 'none', background: 'rgba(8,14,26,0.9)', border: '1px solid rgba(212,175,55,0.5)',
-            borderRadius: 5, padding: compact ? '1px 5px' : '2px 7px', fontSize: compact ? 8 : 10, fontWeight: 800, color: '#fbbf24',
-            whiteSpace: 'nowrap',
-          }}>
-            {info.bet}
+          <div
+            className="absolute flex items-center pointer-events-none"
+            style={{ left: `${betX}%`, top: `${betY}%`, transform: 'translate(-50%, -50%)', zIndex: 22, gap: 4 }}
+          >
+            <span style={{ width: compact ? 6 : 8, height: compact ? 6 : 8, borderRadius: '50%', background: '#38bdf8', flexShrink: 0 }} />
+            <span style={{ fontSize: compact ? 9 : 11, fontWeight: 700, color: '#f1f5f9', whiteSpace: 'nowrap' }}>
+              {info.bet}
+            </span>
           </div>
         )}
       </>
