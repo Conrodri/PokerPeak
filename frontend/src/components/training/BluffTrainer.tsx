@@ -122,13 +122,6 @@ function HistoryRow({ icon, badgeClass, text, isLast }: {
 
 const ALL_ACTIONS: BluffAction[] = ['check-fold', 'bluff-small', 'bluff-medium', 'bluff-large'];
 
-const ACTION_ICON: Record<BluffAction, string> = {
-  'check-fold':   '✋',
-  'bluff-small':  '💙',
-  'bluff-medium': '💜',
-  'bluff-large':  '🔥',
-};
-
 function actionButtonVariant(action: BluffAction, selected: BluffAction | null, correct: BluffAction): string {
   if (!selected) return 'secondary';
   if (action === correct)  return 'gold';
@@ -250,20 +243,17 @@ function ActionButton({
   const label   = labels[action](pot);
   const variant = actionButtonVariant(action, selected, correct);
   const isThis  = selected === action;
-  const isBet   = action !== 'check-fold';
 
   return (
     <Button
+      size="xl"
       variant={variant as any}
-      className={`w-full justify-start text-sm font-medium transition-all ${
+      className={`w-full ${
         selected && action !== correct && action !== selected ? 'opacity-40' : ''
       } ${isThis && action !== correct ? 'ring-2 ring-red-500' : ''}`}
       disabled={!!selected}
       onClick={() => onClick(action)}
     >
-      <span className={`mr-2 text-base ${isBet ? 'text-blue-400' : 'text-gray-400'}`}>
-        {ACTION_ICON[action]}
-      </span>
       {label}
     </Button>
   );
