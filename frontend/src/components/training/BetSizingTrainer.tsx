@@ -319,7 +319,7 @@ export function BetSizingTrainer() {
   }
 
   return (
-    <div className="flex flex-col gap-5 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto">
 
       {/* ── Header — lives HUD during an exam ── */}
       {examActive && <ExamHud onQuit={handleQuitExam} />}
@@ -418,13 +418,13 @@ export function BetSizingTrainer() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex flex-wrap gap-3 justify-center w-full"
+              className="flex flex-wrap gap-2 sm:gap-4 justify-center w-full"
             >
               {ex.frequencyMode ? (
                 FREQ_OPTIONS.map(opt => (
                   <Button
                     key={opt.key}
-                    size="lg"
+                    size="xl"
                     variant="secondary"
                     onClick={() => handleAnswer(opt.key)}
                     className="min-w-[150px]"
@@ -439,7 +439,7 @@ export function BetSizingTrainer() {
                   return (
                     <Button
                       key={key}
-                      size="lg"
+                      size="xl"
                       variant={SIZING_VARIANT[key]}
                       onClick={() => handleAnswer(key)}
                       className="min-w-[150px] flex flex-col items-center gap-0.5 py-2"

@@ -398,7 +398,7 @@ export function BluffTrainer() {
   } as Partial<Record<Position, SeatInfo>>;
 
   return (
-    <div className="flex flex-col gap-5 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto">
 
       {examActive && <ExamHud onQuit={handleQuitExam} />}
 

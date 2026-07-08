@@ -327,7 +327,7 @@ export function PostflopTrainer() {
   }
 
   return (
-    <div className="flex flex-col gap-5 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto">
 
       {/* ── Header — lives HUD during an exam ── */}
       {examActive && <ExamHud onQuit={handleQuitExam} />}
@@ -489,14 +489,14 @@ export function PostflopTrainer() {
             {/* ── Action buttons ── */}
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="flex flex-wrap gap-3 justify-center w-full"
+              className="flex flex-wrap gap-2 sm:gap-4 justify-center w-full"
             >
               {ex.options.map(opt => (
                 <Button
-                  key={opt.key} size="lg"
+                  key={opt.key} size="xl"
                   variant={opt.key === 'fold' ? 'danger' : (opt.key === 'raise' || opt.key === 'bet' || opt.key.startsWith('bet_')) ? 'gold' : 'secondary'}
                   onClick={() => handleAnswer(opt.key)}
-                  className="min-w-[130px]"
+                  className="min-w-[110px]"
                 >
                   {isEn ? opt.labelEn : opt.labelFr}
                 </Button>

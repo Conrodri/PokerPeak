@@ -177,14 +177,14 @@ export function PotOddsTrainer() {
 
   if (examFinished) {
     return (
-      <div className="flex flex-col gap-5 max-w-xl mx-auto pt-4">
+      <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto pt-4">
         <ExamResult module="potodds" onRetry={handleStartExam} onQuit={handleQuitExam} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-5 max-w-xl mx-auto">
+    <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto">
       {/* Header — replaced by the lives HUD during an exam */}
       {examActive && <ExamHud onQuit={handleQuitExam} />}
 
@@ -246,9 +246,9 @@ export function PotOddsTrainer() {
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex gap-4">
-                  <Button size="lg" variant="danger"  onClick={() => handleAnswer('fold')} fullWidth>Fold</Button>
-                  <Button size="lg" variant="primary" onClick={() => handleAnswer('call')} fullWidth>Call</Button>
+                <div className="flex gap-2 sm:gap-4 w-full sm:w-auto mx-auto">
+                  <Button size="xl" variant="danger" className="flex-1 sm:flex-none sm:min-w-[110px]" onClick={() => handleAnswer('fold')}>Fold</Button>
+                  <Button size="xl" variant="gold"   className="flex-1 sm:flex-none sm:min-w-[110px]" onClick={() => handleAnswer('call')}>Call</Button>
                 </div>
 
                 {/* Guidance below the decision — no scrolling needed to answer. */}

@@ -29,7 +29,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useTrainingStore } from '../../store/trainingStore';
 import { Hand } from '../poker/Card';
 import { Button } from '../ui/Button';
-import { ProgressBar } from '../ui/ProgressBar';
+import { SessionStatsBar } from '../ui/SessionStatsBar';
 import { useModeStore } from '../../store/modeStore';
 import { VerdictBanner } from '../ui/VerdictBanner';
 import { Spinner } from '../ui/Spinner';
@@ -38,7 +38,6 @@ import { RichLine } from '../ui/RichText';
 import { BeginnerGuide } from '../ui/BeginnerGuide';
 import { SpoilableHint } from '../ui/SpoilableHint';
 import { TrainerIntro } from '../ui/TrainerIntro';
-import { StatChip } from '../ui/StatChip';
 import { PokerTable, POSITION_COLORS } from '../poker/PokerTable';
 import { CardStr, Position } from '../../types/poker';
 import { postflopApi, trainingApi } from '../../services/api';
@@ -275,7 +274,6 @@ export function FullHandTrainer() {
   const [phase, setPhase]       = useState<HandPhase>('loading');
   const [scenario, setScenario] = useState<FullHandScenario | null>(null);
   const [answered, setAnswered] = useState<Partial<Record<StepKey, string>>>({});
-  const [xpTotal, setXpTotal]   = useState(0);
   const mode = useModeStore(s => s.mode);
 
   // Range matrix for preflop beginner display
@@ -290,7 +288,6 @@ export function FullHandTrainer() {
   const loadScenario = async () => {
     setPhase('loading');
     setAnswered({});
-    setXpTotal(0);
     setRiverRangeStep('hidden');
     setRiverRangeSelected(null);
     setRiverRangeCorrect(false);
@@ -386,7 +383,6 @@ export function FullHandTrainer() {
     const ok = actionKey === correctAction;
     const xp = currentStep === 'preflop' ? 10 : 15;
     setAnswered(prev => ({ ...prev, [currentStep]: actionKey }));
-    if (ok) setXpTotal(prev => prev + xp);
     await recordResult(ok, xp, `fullhand_${currentStep}`);
     setPhase(`${currentStep}_result` as HandPhase);
     if (examActive) recordAnswer(ok, handleContinue);
@@ -437,10 +433,6 @@ export function FullHandTrainer() {
     (phase === 'turn_result'  && scenario?.lastStreet === 'turn')  ||
     phase === 'river_result';
 
-  // ── Accuracy ─────────────────────────────────────────────────────────────────
-  const accuracy = sessionStats.total > 0
-    ? Math.round((sessionStats.correct / sessionStats.total) * 100)
-    : 0;
 
   // ── Current pot size for the table display ───────────────────────────────────
   const currentPotSize =
@@ -721,19 +713,19 @@ export function FullHandTrainer() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex flex-wrap gap-3 justify-center w-full"
+              className="flex flex-wrap gap-2 sm:gap-4 justify-center w-full"
             >
               {('preflop' in decision ? decision.preflop.options : decision.street.options).map((opt) => (
                 <Button
                   key={opt.key}
-                  size="lg"
+                  size="xl"
                   variant={
                     opt.key === 'fold'  ? 'danger' :
                     opt.key === 'raise' ? 'gold' :
                     'secondary'
                   }
                   onClick={() => handleAnswer(opt.key)}
-                  className="min-w-[130px]"
+                  className="min-w-[110px]"
                 >
                   {isEn ? opt.labelEn : opt.labelFr}
                 </Button>
@@ -992,18 +984,11 @@ export function FullHandTrainer() {
             </div>
 
             {/* ── 4. Session stats ── */}
-            {sessionStats.total > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-4 bg-gray-900/60 rounded-xl px-5 py-3 border border-gray-700 w-full"
-              >
-                <StatChip icon={<Target size={14} />} label={isEn ? 'acc.' : 'préc.'} value={`${accuracy}%`} color={accuracy >= 70 ? 'text-green-400' : 'text-yellow-400'} />
-                <StatChip icon={<Trophy size={14} />} label={isEn ? 'this hand' : 'cette main'} value={`+${xpTotal} XP`} color="text-gold-400" />
-                <div className="flex-1"><ProgressBar value={accuracy} color="green" size="sm" /></div>
-                <span className="text-xs text-gray-500 shrink-0">{sessionStats.correct}/{sessionStats.total}</span>
-              </motion.div>
-            )}
+            <SessionStatsBar
+              total={sessionStats.total}
+              correct={sessionStats.correct}
+              xp={sessionStats.xp}
+            />
 
             {/* ── 5. Explanation — beginner only ── */}
             <ExplanationPanel

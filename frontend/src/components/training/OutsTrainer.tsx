@@ -216,14 +216,14 @@ export function OutsTrainer() {
 
   if (examFinished) {
     return (
-      <div className="flex flex-col gap-6 max-w-xl mx-auto pt-4">
+      <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto pt-4">
         <ExamResult module="outs" onRetry={handleStartExam} onQuit={handleQuitExam} />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-xl mx-auto">
+    <div className="flex flex-col gap-2 sm:gap-3 max-w-2xl mx-auto">
 
       {/* Header — replaced by the lives HUD during an exam */}
       {examActive && <ExamHud onQuit={handleQuitExam} />}
