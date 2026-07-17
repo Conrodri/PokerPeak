@@ -518,6 +518,14 @@ function blankTurnCard(scenario: OutsScenario): string {
   return choice(RANK_ORDER.filter(rk => !usedRanks.has(rk))) + choice(SUIT_CHARS);
 }
 
+/** Converts a flop scenario into an equivalent turn scenario by dealing a
+ *  blank (non-improving) 4th board card: same hand, same outs, same draws —
+ *  only the street changes, so Rule of 2 replaces Rule of 4. */
+function toTurnScenario(base: OutsScenario): OutsScenario {
+  if (base.street === 'turn') return base;
+  return { ...base, board: [...base.board, blankTurnCard(base)], street: 'turn' };
+}
+
 /** Random (hand, board, outs) shape for a given outs count, on the flop or
  *  turn. Falls back to any procedural generator if the exact outs count isn't
  *  mapped (still real card variety, just not that precise count). */
@@ -530,25 +538,34 @@ export function randomDrawShape(outs: number, street: 'flop' | 'turn'): DrawShap
   return { heroCards: base.heroCards, board: [...base.board, blankTurnCard(base)], street: 'turn', outs: base.outs, drawType: base.draws[0] };
 }
 
+// Share of freshly-generated scenarios converted to a turn spot (single card
+// to come, Rule of 2) instead of staying on the flop (Rule of 4).
+const TURN_SHARE = 0.3;
+
 export function getRandomOutsScenario(difficulty?: 'expert'): OutsScenario {
   // Expert: hard spots spread across a wide range of outs counts (near-equal
   // parity) so the answer is never predictable — 3/4/6/8/9/12/15, plus a small
   // slice of turn spots (Rule of 2) for street variety.
   if (difficulty === 'expert') {
     const r = Math.random();
-    if (r < 0.14) return genOneOver();           // 3 outs
-    if (r < 0.28) return genGutshot();           // 4 outs
-    if (r < 0.42) return genTwoOver();           // 6 outs
-    if (r < 0.56) return genOESD();              // 8 outs
-    if (r < 0.70) return genFlush();             // 9 outs
-    if (r < 0.82) return genComboFlushGut();     // 12 outs (trap 13)
-    if (r < 0.94) return genComboFlushOESD();    // 15 outs (trap 17)
-    return choice(EXPERT_OUTS_SCENARIOS);        // turn-spot variety (×2 rule)
+    let scenario: OutsScenario;
+    if (r < 0.14) scenario = genOneOver();                // 3 outs
+    else if (r < 0.28) scenario = genGutshot();            // 4 outs
+    else if (r < 0.42) scenario = genTwoOver();            // 6 outs
+    else if (r < 0.56) scenario = genOESD();               // 8 outs
+    else if (r < 0.70) scenario = genFlush();              // 9 outs
+    else if (r < 0.82) scenario = genComboFlushGut();      // 12 outs (trap 13)
+    else if (r < 0.94) scenario = genComboFlushOESD();     // 15 outs (trap 17)
+    else return choice(EXPERT_OUTS_SCENARIOS);             // hand-verified turn-spot variety (×2 rule)
+    return Math.random() < TURN_SHARE ? toTurnScenario(scenario) : scenario;
   }
   // 85% freshly generated (near-infinite card variety), 15% from the small
   // hand-verified list — kept for flavor, deprioritized since the generators
   // already cover the same draw types with random cards each time.
-  if (Math.random() < 0.85) return choice(GENERATORS)();
+  if (Math.random() < 0.85) {
+    const scenario = choice(GENERATORS)();
+    return Math.random() < TURN_SHARE ? toTurnScenario(scenario) : scenario;
+  }
   return OUTS_SCENARIOS[randInt(OUTS_SCENARIOS.length)];
 }
 

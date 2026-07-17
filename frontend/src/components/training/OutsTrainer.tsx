@@ -73,7 +73,7 @@ export function OutsTrainer() {
   const isExpert = mode === 'expert';
 
   // Exam mode (advanced/expert): loop exercises until 3 errors; score = correct.
-  const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('outs');
+  const { examActive, examFinished, startRun, quitRun, recordAnswer, sprintSeconds } = useExamRunner('outs');
 
   useEffect(() => {
     if (phase === 'result') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -234,7 +234,7 @@ export function OutsTrainer() {
           active={examActive && (mode === 'advanced' || mode === 'expert') && !!ex && !isLoading}
           resetKey={`${ex?.heroCards?.join('')}-${ex?.board?.join('')}`}
           onTimeout={handleTimeout}
-          seconds={30}
+          seconds={sprintSeconds}
         />
       )}
 

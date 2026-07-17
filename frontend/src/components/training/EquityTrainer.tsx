@@ -68,7 +68,7 @@ export function EquityTrainer() {
 
   useExerciseLock(!showIntro && phase === 'exercise' && !!equityExercise && !isLoading);
 
-  const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('equity');
+  const { examActive, examFinished, startRun, quitRun, recordAnswer, sprintSeconds } = useExamRunner('equity');
 
   const handleNext = async () => {
     setPhase('exercise');
@@ -221,7 +221,7 @@ export function EquityTrainer() {
           active={examActive && (mode === 'advanced' || mode === 'expert') && !!equityExercise && !isLoading}
           resetKey={equityExercise ? `${equityExercise.potBB}-${equityExercise.betBB}-${equityExercise.street}` : 'loading'}
           onTimeout={handleTimeout}
-          seconds={30}
+          seconds={sprintSeconds}
         />
       )}
 

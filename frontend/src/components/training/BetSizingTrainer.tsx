@@ -184,7 +184,7 @@ export function BetSizingTrainer() {
   useExerciseLock(!showIntro && phase === 'exercise' && !!exercise);
 
   // Exam mode — premium only here (each exercise consumes a credit for free users).
-  const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('betsizing');
+  const { examActive, examFinished, startRun, quitRun, recordAnswer, sprintSeconds } = useExamRunner('betsizing');
 
   const buildPool = (): BetSizingExercise[] => {
     if (mode === 'expert') {
@@ -340,7 +340,7 @@ export function BetSizingTrainer() {
           active={examActive && (mode === 'advanced' || mode === 'expert')}
           resetKey={ex.id}
           onTimeout={handleTimeout}
-          seconds={30}
+          seconds={sprintSeconds}
         />
       )}
 

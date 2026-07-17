@@ -283,7 +283,7 @@ export function BluffTrainer() {
   useExerciseLock(!showIntro && phase === 'exercise' && !!bluffExercise);
 
   // Exam mode (advanced/expert)
-  const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('bluff');
+  const { examActive, examFinished, startRun, quitRun, recordAnswer, sprintSeconds } = useExamRunner('bluff');
 
   const nextExercise = () => {
     fetchBluffExercise();
@@ -404,7 +404,7 @@ export function BluffTrainer() {
           active={examActive && (mode === 'advanced' || mode === 'expert') && !!bluffExercise && !isLoading}
           resetKey={resetKey}
           onTimeout={handleTimeout}
-          seconds={30}
+          seconds={sprintSeconds}
         />
       )}
 

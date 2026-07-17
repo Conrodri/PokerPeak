@@ -328,7 +328,7 @@ export function FullHandTrainer() {
 
   // Exam mode — premium only here (each hand consumes a credit for free users).
   // Each street decision is one exam answer; auto-advance walks the streets.
-  const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('fullhand');
+  const { examActive, examFinished, startRun, quitRun, recordAnswer, sprintSeconds } = useExamRunner('fullhand');
 
   const handleStartExam = () => {
     startRun();
@@ -541,7 +541,7 @@ export function FullHandTrainer() {
         active={examActive && (mode === 'advanced' || mode === 'expert') && !!decision && !phase.endsWith('_result') && riverRangeStep === 'hidden'}
         resetKey={`${scenario?.heroPosition}-${scenario?.flop?.join('')}-${currentStep}-${riverRangeStep}`}
         onTimeout={handleTimeout}
-        seconds={30}
+        seconds={sprintSeconds}
       />
 
       {/* ── Stepper ── */}

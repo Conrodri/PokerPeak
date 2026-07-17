@@ -179,7 +179,7 @@ export function PostflopTrainer() {
   useExerciseLock(!showIntro && phase === 'exercise' && !!exercise && !isLoading);
 
   // Exam mode — premium only here (each exercise consumes a credit for free users).
-  const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('postflop');
+  const { examActive, examFinished, startRun, quitRun, recordAnswer, sprintSeconds } = useExamRunner('postflop');
 
   // Prevent double-fetch on mount via ref guard
   const hasStarted = useRef(false);
@@ -364,7 +364,7 @@ export function PostflopTrainer() {
           active={examActive && (mode === 'advanced' || mode === 'expert')}
           resetKey={ex.heroNotation + ex.street}
           onTimeout={handleTimeout}
-          seconds={30}
+          seconds={sprintSeconds}
         />
       )}
 

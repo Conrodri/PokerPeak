@@ -61,7 +61,7 @@ export function PotOddsTrainer() {
   useExerciseLock(!showIntro && phase === 'exercise' && !!potOddsExercise && !isLoading);
 
   // Exam mode (advanced/expert): loop exercises until 3 errors; score = correct.
-  const { examActive, examFinished, startRun, quitRun, recordAnswer } = useExamRunner('potodds');
+  const { examActive, examFinished, startRun, quitRun, recordAnswer, sprintSeconds } = useExamRunner('potodds');
 
   const handleNext = async () => {
     setPhase('exercise');
@@ -194,7 +194,7 @@ export function PotOddsTrainer() {
           active={examActive && (mode === 'advanced' || mode === 'expert') && !!ex && !isLoading}
           resetKey={`${ex?.potSize}-${ex?.betSize}-${ex?.heroEquity}`}
           onTimeout={handleTimeout}
-          seconds={30}
+          seconds={sprintSeconds}
         />
       )}
 
