@@ -5,6 +5,8 @@ import { Heart, Trophy, RotateCcw, X, Target } from 'lucide-react';
 import { useExamStore, EXAM_MAX_ERRORS } from '../../store/examStore';
 import { useLangStore } from '../../store/langStore';
 import { Button } from '../ui/Button';
+import { Hand } from '../poker/Card';
+import type { CardStr } from '../../types/poker';
 
 /**
  * Exam mode = loop exercises until EXAM_MAX_ERRORS wrong answers; score = correct
@@ -218,19 +220,52 @@ export function ExamResult({ module, onRetry, onQuit }: { module: string; onRetr
         </div>
       )}
 
-      {/* Mistakes breakdown — shown when labels are available (e.g. preflop: notation + position) */}
+      {/* Mistakes breakdown — rich detail (hand/board/outs/equity) when available, else a plain label pill (e.g. preflop: notation + position) */}
       {mistakes.length > 0 && (
         <div className="w-full">
           <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 text-center">
-            {isEn ? 'Missed hands' : 'Mains ratées'}
+            {isEn ? 'Missed exercises' : 'Exercices ratés'}
           </p>
-          <div className="flex flex-wrap gap-1.5 justify-center">
-            {mistakes.map((m, i) => (
-              <span key={i} className="px-2 py-0.5 rounded-md bg-red-900/40 border border-red-800/50 text-red-300 text-xs font-semibold">
-                {m.label}
-              </span>
-            ))}
-          </div>
+          {mistakes.some(m => m.board) ? (
+            // No max-height/scroll here: a run always ends at EXAM_MAX_ERRORS mistakes, so the list is always short.
+            <ul className="flex flex-col gap-1.5 text-left">
+              {mistakes.map((m, i) => (
+                <li key={i} className="bg-red-900/20 border border-red-800/40 rounded-lg px-2.5 py-2 flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {m.heroCards && <Hand cards={m.heroCards as CardStr[]} size="xs" gap="gap-0.5" />}
+                      {m.board && <Hand cards={m.board as CardStr[]} size="xs" gap="gap-0.5" />}
+                    </div>
+                    {m.street && (
+                      <span className="text-[10px] text-gray-500 uppercase tracking-wide shrink-0">
+                        {m.street === 'turn' ? 'Turn' : 'Flop'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-gray-400">
+                      {m.outs !== undefined && `${m.outs} outs`}
+                      {m.outs !== undefined && m.equity !== undefined && ' · '}
+                      {m.equity !== undefined && `${m.equity}% ${isEn ? 'equity' : 'équité'}`}
+                    </span>
+                    <span className="text-red-300 font-semibold">
+                      {m.timedOut
+                        ? (isEn ? 'timed out' : 'temps écoulé')
+                        : `${isEn ? 'picked' : 'choisi'} : ${m.chosenValue}${m.answerUnit === 'equity' ? '%' : ''}`}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex flex-wrap gap-1.5 justify-center">
+              {mistakes.map((m, i) => (
+                <span key={i} className="px-2 py-0.5 rounded-md bg-red-900/40 border border-red-800/50 text-red-300 text-xs font-semibold">
+                  {m.label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -6,7 +6,16 @@ import { TrainingMode } from './modeStore';
 export const EXAM_MAX_ERRORS = 3;
 
 export interface SprintMistake {
-  label: string;  // e.g. "AKs — BTN"
+  label: string;  // e.g. "AKs — BTN" — always shown, fallback when no richer detail below
+  // Richer detail (e.g. Outs trainer): shown as a full breakdown in the recap when present.
+  heroCards?: string[];
+  board?: string[];
+  street?: 'flop' | 'turn';
+  outs?: number;
+  equity?: number;
+  chosenValue?: number;
+  answerUnit?: 'outs' | 'equity';
+  timedOut?: boolean;
 }
 
 interface ExamState {
@@ -25,7 +34,7 @@ interface ExamState {
   loadRecords: () => Promise<void>;
   start: (module: string, mode?: TrainingMode) => void;
   /** Record one answer. Returns true if this answer ended the run. */
-  answer: (isCorrect: boolean, label?: string) => boolean;
+  answer: (isCorrect: boolean, mistake?: SprintMistake) => boolean;
   /** Stop early — shows the recap card without saving the score. */
   forfeit: () => void;
   /** Fully exit exam mode (called from the recap card's Quit button). */
@@ -59,7 +68,7 @@ export const useExamStore = create<ExamState>((set, get) => ({
     isNewRecord: false, isForfeited: false, mistakes: [], history: [],
   }),
 
-  answer: (isCorrect, label) => {
+  answer: (isCorrect, mistake) => {
     const { active, finished, correct, errors, mistakes, module, mode } = get();
     if (!active || finished) return false;
 
@@ -68,7 +77,7 @@ export const useExamStore = create<ExamState>((set, get) => ({
       return false;
     }
 
-    const newMistakes = label ? [...mistakes, { label }] : mistakes;
+    const newMistakes = mistake ? [...mistakes, mistake] : mistakes;
     const newErrors = errors + 1;
     if (newErrors < EXAM_MAX_ERRORS) {
       set({ errors: newErrors, mistakes: newMistakes });

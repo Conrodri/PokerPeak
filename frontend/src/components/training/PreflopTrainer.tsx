@@ -493,7 +493,7 @@ export function PreflopTrainer() {
     }
     setPhase('result');
     if (examActive && openCorrect !== null)
-      recordAnswer(openCorrect, handleNext, 1400, `${preflopExercise.notation} — ${preflopExercise.position}`);
+      recordAnswer(openCorrect, handleNext, 1400, { label: `${preflopExercise.notation} — ${preflopExercise.position}` });
   };
 
   // ─── handleExpertAnswer (expert 2-step quiz: action + frequency) ──────────────
@@ -531,7 +531,7 @@ export function PreflopTrainer() {
     if (isBBSession) setBBSelected(action === 0 ? 'fold' : action === 1 ? 'call' : '3bet');
     await recordResult(isCorrect, xp, 'preflop', timeTaken);
     setPhase('result');
-    if (examActive) recordAnswer(isCorrect, handleNext, 1400, `${notation} — ${position}`);
+    if (examActive) recordAnswer(isCorrect, handleNext, 1400, { label: `${notation} — ${position}` });
   };
 
   // ─── handleAnswerBB ───────────────────────────────────────────────────────────
@@ -593,7 +593,7 @@ export function PreflopTrainer() {
     });
     await recordResult(isCorrect, xp, 'preflop', timeTaken);
     setPhase('result');
-    if (examActive) recordAnswer(isCorrect, handleNext, 1400, `${bbExercise.notation} — BB`);
+    if (examActive) recordAnswer(isCorrect, handleNext, 1400, { label: `${bbExercise.notation} — BB` });
   };
 
   // ─── handleBB3betType (advanced — step 2: value vs bluff) ─────────────────────
@@ -621,7 +621,7 @@ export function PreflopTrainer() {
     await recordResult(isCorrect, xp, 'preflop', timeTaken);
     setBB3betStep(false);
     setPhase('result');
-    if (examActive) recordAnswer(isCorrect, handleNext, 1400, `${bbExercise.notation} — BB`);
+    if (examActive) recordAnswer(isCorrect, handleNext, 1400, { label: `${bbExercise.notation} — BB` });
   };
 
   // ─── handleNext ───────────────────────────────────────────────────────────────

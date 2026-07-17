@@ -32,6 +32,7 @@ import { useLangStore } from '../../store/langStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useShallow } from 'zustand/react/shallow';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintMistake } from '../../store/examStore';
 import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 
@@ -95,6 +96,18 @@ export function OutsTrainer() {
     }
   }, [outsExercise, isExpert]);
 
+  const buildMistake = (chosenValue?: number): SprintMistake => ({
+    label: `${outsExercise!.heroCards.join(' ')} · ${outsExercise!.outs} outs`,
+    heroCards: outsExercise!.heroCards,
+    board: outsExercise!.board,
+    street: outsExercise!.street,
+    outs: outsExercise!.outs,
+    equity: outsExercise!.equityEstimate,
+    chosenValue,
+    answerUnit: isExpert ? 'equity' : 'outs',
+    timedOut: chosenValue === undefined,
+  });
+
   const handleAnswer = (value: number) => {
     if (!outsExercise) return;
     const correctValue = isExpert ? outsExercise.equityEstimate : outsExercise.outs;
@@ -102,7 +115,7 @@ export function OutsTrainer() {
     setSelected(value);
     setPhase('result');
     recordResult(correct, correct ? 15 : 5, 'outs');
-    if (examActive) recordAnswer(correct, handleNext);
+    if (examActive) recordAnswer(correct, handleNext, 1400, correct ? undefined : buildMistake(value));
   };
 
   // Expert sprint: no decision within 5s → counts as a miss and moves on.
@@ -111,7 +124,7 @@ export function OutsTrainer() {
     setSelected(-1);
     setPhase('result');
     recordResult(false, 5, 'outs');
-    if (examActive) recordAnswer(false, handleNext);
+    if (examActive) recordAnswer(false, handleNext, 1400, buildMistake());
   };
 
   const handleStart = async () => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useExamStore } from '../store/examStore';
+import { useExamStore, SprintMistake } from '../store/examStore';
 import { useModeStore } from '../store/modeStore';
 
 /**
@@ -41,8 +41,8 @@ export function useExamRunner(module: string) {
   const clearTimer = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
 
   /** Record one exam answer; auto-advance via `next` unless the run just ended. Returns true if ended. */
-  const recordAnswer = (isCorrect: boolean, next: () => void, delay = 1400, label?: string): boolean => {
-    const ended = answer(isCorrect, label);
+  const recordAnswer = (isCorrect: boolean, next: () => void, delay = 1400, mistake?: SprintMistake): boolean => {
+    const ended = answer(isCorrect, mistake);
     if (!ended) timer.current = window.setTimeout(next, delay);
     return ended;
   };
