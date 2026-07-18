@@ -228,12 +228,12 @@ export function TrainerIntro({
               </span>
             </div>
           )}
-          <div className="flex gap-2 w-full">
-            <Button size="md" variant="gold" onClick={() => { analytics.moduleStarted(title); onStart(); }} className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-2 w-full">
+            <Button size="md" variant="gold" onClick={() => { analytics.moduleStarted(title); onStart(); }} className="w-full sm:flex-1">
               <Play size={16} className="inline mr-2" />
               {startLabel}
             </Button>
-            {examSlot}
+            {examSlot && <div className="w-full sm:w-auto">{examSlot}</div>}
           </div>
           {bottomSlot}
         </div>

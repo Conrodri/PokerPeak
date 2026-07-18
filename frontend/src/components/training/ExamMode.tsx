@@ -46,7 +46,7 @@ export function ExamLauncher({ module, onStart }: { module: string; onStart: () 
   return (
     <Button
       variant="secondary" size="lg" onClick={onStart}
-      className="flex items-center justify-center gap-2 bg-indigo-900/60 hover:bg-indigo-800/70 border border-indigo-700/60 text-indigo-200 hover:text-indigo-100 whitespace-nowrap shrink-0"
+      className="flex items-center justify-center gap-2 bg-indigo-900/60 hover:bg-indigo-800/70 border border-indigo-700/60 text-indigo-200 hover:text-indigo-100 whitespace-nowrap shrink-0 w-full sm:w-auto"
       title={isEn
         ? `Chain exercises until ${EXAM_MAX_ERRORS} mistakes — score = correct answers`
         : `Enchaîne les exercices jusqu'à ${EXAM_MAX_ERRORS} erreurs — score = bonnes réponses`}
