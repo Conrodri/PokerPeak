@@ -96,17 +96,21 @@ export function OutsTrainer() {
     }
   }, [outsExercise, isExpert]);
 
-  const buildMistake = (chosenValue?: number): SprintMistake => ({
-    label: `${outsExercise!.heroCards.join(' ')} · ${outsExercise!.outs} outs`,
-    heroCards: outsExercise!.heroCards,
-    board: outsExercise!.board,
-    street: outsExercise!.street,
-    outs: outsExercise!.outs,
-    equity: outsExercise!.equityEstimate,
-    chosenValue,
-    answerUnit: isExpert ? 'equity' : 'outs',
-    timedOut: chosenValue === undefined,
-  });
+  const buildMistake = (chosenValue?: number): SprintMistake => {
+    const fmt = (v: number) => isExpert ? `${v}%` : `${v} ${isEn ? 'outs' : 'outs'}`;
+    return {
+      label: `${outsExercise!.heroCards.join(' ')} · ${outsExercise!.outs} outs`,
+      heroCards: outsExercise!.heroCards,
+      board: outsExercise!.board,
+      street: outsExercise!.street,
+      facts: isExpert
+        ? [`${outsExercise!.outs} outs`]
+        : [`${outsExercise!.equityEstimate}% ${isEn ? 'equity' : 'équité'}`],
+      correct: fmt(isExpert ? outsExercise!.equityEstimate : outsExercise!.outs),
+      chosen: chosenValue !== undefined ? fmt(chosenValue) : undefined,
+      timedOut: chosenValue === undefined,
+    };
+  };
 
   const handleAnswer = (value: number) => {
     if (!outsExercise) return;

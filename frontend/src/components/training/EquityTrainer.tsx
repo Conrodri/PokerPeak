@@ -15,6 +15,7 @@ import { useT } from '../../i18n';
 import { useLangStore } from '../../store/langStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintMistake } from '../../store/examStore';
 import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
@@ -84,6 +85,22 @@ export function EquityTrainer() {
     handleAnswer(wrong);
   };
 
+  const buildMistake = (option: number): SprintMistake => {
+    const ex = equityExercise!;
+    const correct = Math.round(ex.hasBounty ? ex.requiredEquityBounty : ex.requiredEquity);
+    return {
+      label: `${ex.potBB}bb / ${ex.betBB}bb — ${ex.villainPosition}`,
+      street: ex.street as 'flop' | 'turn' | 'river',
+      facts: [
+        `Pot ${ex.potBB}bb`,
+        isEn ? `${ex.villainPosition} bets ${ex.betBB}bb (${ex.betFractionLabel})` : `${ex.villainPosition} mise ${ex.betBB}bb (${ex.betFractionLabel})`,
+        ...(ex.hasBounty ? [`Bounty ${ex.bountyBB}bb`] : []),
+      ],
+      correct: `${correct}%`,
+      chosen: `${option}%`,
+    };
+  };
+
   const handleAnswer = (option: number) => {
     if (!equityExercise || picked !== null) return;
     const correct      = Math.round(equityExercise.hasBounty ? equityExercise.requiredEquityBounty : equityExercise.requiredEquity);
@@ -92,7 +109,7 @@ export function EquityTrainer() {
     setIsCorrect(isRight);
     setPhase('result');
     recordResult(isRight, isRight ? 15 : 5, 'equity');
-    if (examActive) recordAnswer(isRight, handleNext);
+    if (examActive) recordAnswer(isRight, handleNext, 1400, isRight ? undefined : buildMistake(option));
   };
 
   const handleStart = async () => {

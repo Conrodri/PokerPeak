@@ -7,6 +7,7 @@ import { useModeStore } from '../../store/modeStore';
 import { useLangStore } from '../../store/langStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintMistake } from '../../store/examStore';
 import { Button } from '../ui/Button';
 import { SessionStatsBar } from '../ui/SessionStatsBar';
 import { VerdictBanner } from '../ui/VerdictBanner';
@@ -319,6 +320,24 @@ export function BluffTrainer() {
     backToIntro();
   };
 
+  const buildMistake = (action: BluffAction): SprintMistake => {
+    const e = bluffExercise!;
+    const labels = isEn ? ACTION_LABELS_EN : ACTION_LABELS_FR;
+    return {
+      label: `${e.heroPosition} vs ${e.villainPosition} · ${e.street}`,
+      heroCards: e.heroHand,
+      board: e.board,
+      street: e.street,
+      facts: [
+        `Pot ${e.potBB}bb`,
+        isEn ? (e.heroIsIP ? 'In position' : 'Out of position') : (e.heroIsIP ? 'En position' : 'Hors position'),
+        `${isEn ? 'Equity' : 'Équité'} ${e.heroEquityPct}%`,
+      ],
+      correct: labels[e.correctAction](e.potBB),
+      chosen: labels[action](e.potBB),
+    };
+  };
+
   const handleAnswer = async (action: BluffAction) => {
     if (!bluffExercise || selected) return;
     const timeTaken = Date.now() - startTime;
@@ -329,7 +348,7 @@ export function BluffTrainer() {
     setPhase('result');
     setIsExercising(false);
     await recordResult(isCorrect, xp, 'bluff', timeTaken);
-    if (examActive) recordAnswer(isCorrect, handleNext);
+    if (examActive) recordAnswer(isCorrect, handleNext, 1400, isCorrect ? undefined : buildMistake(action));
   };
 
   const handleTimeout = () => {

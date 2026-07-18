@@ -23,6 +23,7 @@ const FULLHAND_METHODOLOGY = {
 };
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintMistake } from '../../store/examStore';
 import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
@@ -376,6 +377,32 @@ export function FullHandTrainer() {
 
   // ── Handle answer ────────────────────────────────────────────────────────────
 
+  const buildMistake = (actionKey: string): SprintMistake => {
+    const d = decision!;
+    const isPreflop = 'preflop' in d;
+    const opts = isPreflop ? d.preflop.options : d.street.options;
+    const correctKey = isPreflop ? d.preflop.correctAction : d.street.correctAction;
+    const correctOpt = opts.find(o => o.key === correctKey);
+    const chosenOpt = opts.find(o => o.key === actionKey);
+    return {
+      label: `${scenario!.heroNotation} · ${currentStep}`,
+      heroCards: scenario!.heroHand,
+      board: isPreflop ? undefined : board,
+      street: isPreflop ? undefined : (currentStep as 'flop' | 'turn' | 'river'),
+      facts: isPreflop
+        ? [scenario!.heroPosition, isEn ? `Range ${Math.round(d.preflop.rangeFreq * 100)}%` : `Range ${Math.round(d.preflop.rangeFreq * 100)}%`]
+        : [
+            `Pot ${d.street.potSize}bb`,
+            `${isEn ? 'Equity' : 'Équité'} ${d.street.heroEquity}%`,
+            d.street.villainAction === 'bet'
+              ? (isEn ? `Villain bets ${d.street.villainBetSize}bb` : `Vilain mise ${d.street.villainBetSize}bb`)
+              : (isEn ? 'Villain checks' : 'Vilain check'),
+          ],
+      correct: correctOpt ? (isEn ? correctOpt.labelEn : correctOpt.labelFr) : correctKey,
+      chosen: chosenOpt ? (isEn ? chosenOpt.labelEn : chosenOpt.labelFr) : actionKey,
+    };
+  };
+
   const handleAnswer = async (actionKey: string) => {
     if (!decision) return;
     const correctAction =
@@ -385,7 +412,7 @@ export function FullHandTrainer() {
     setAnswered(prev => ({ ...prev, [currentStep]: actionKey }));
     await recordResult(ok, xp, `fullhand_${currentStep}`);
     setPhase(`${currentStep}_result` as HandPhase);
-    if (examActive) recordAnswer(ok, handleContinue);
+    if (examActive) recordAnswer(ok, handleContinue, 1400, ok ? undefined : buildMistake(actionKey));
   };
 
   // Expert sprint: no decision within 30 s → submit a wrong action (a miss).

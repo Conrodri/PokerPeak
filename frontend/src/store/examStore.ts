@@ -7,14 +7,14 @@ export const EXAM_MAX_ERRORS = 3;
 
 export interface SprintMistake {
   label: string;  // e.g. "AKs — BTN" — always shown, fallback when no richer detail below
-  // Richer detail (e.g. Outs trainer): shown as a full breakdown in the recap when present.
+  // Richer detail (every trainer): rendered as a full situation + verdict breakdown
+  // in the recap when `correct` is present; falls back to the plain label pill otherwise.
   heroCards?: string[];
   board?: string[];
-  street?: 'flop' | 'turn';
-  outs?: number;
-  equity?: number;
-  chosenValue?: number;
-  answerUnit?: 'outs' | 'equity';
+  street?: 'flop' | 'turn' | 'river';
+  facts?: string[];   // extra one-line facts about the situation (pot, position, equity, texture...)
+  correct?: string;   // correct answer, human-readable
+  chosen?: string;    // what the user picked, human-readable
   timedOut?: boolean;
 }
 

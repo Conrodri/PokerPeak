@@ -220,38 +220,41 @@ export function ExamResult({ module, onRetry, onQuit }: { module: string; onRetr
         </div>
       )}
 
-      {/* Mistakes breakdown — rich detail (hand/board/outs/equity) when available, else a plain label pill (e.g. preflop: notation + position) */}
+      {/* Mistakes breakdown — full situation + verdict when available (every trainer),
+          else a plain label pill fallback. */}
       {mistakes.length > 0 && (
         <div className="w-full">
           <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 text-center">
             {isEn ? 'Missed exercises' : 'Exercices ratés'}
           </p>
-          {mistakes.some(m => m.board) ? (
+          {mistakes.some(m => m.correct) ? (
             // No max-height/scroll here: a run always ends at EXAM_MAX_ERRORS mistakes, so the list is always short.
             <ul className="flex flex-col gap-1.5 text-left">
               {mistakes.map((m, i) => (
                 <li key={i} className="bg-red-900/20 border border-red-800/40 rounded-lg px-2.5 py-2 flex flex-col gap-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      {m.heroCards && <Hand cards={m.heroCards as CardStr[]} size="xs" gap="gap-0.5" />}
-                      {m.board && <Hand cards={m.board as CardStr[]} size="xs" gap="gap-0.5" />}
+                  {(m.heroCards || m.board || m.street) && (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {m.heroCards && <Hand cards={m.heroCards as CardStr[]} size="xs" gap="gap-0.5" />}
+                        {m.board && <Hand cards={m.board as CardStr[]} size="xs" gap="gap-0.5" />}
+                      </div>
+                      {m.street && (
+                        <span className="text-[10px] text-gray-500 uppercase tracking-wide shrink-0">
+                          {{ flop: 'Flop', turn: 'Turn', river: 'River' }[m.street]}
+                        </span>
+                      )}
                     </div>
-                    {m.street && (
-                      <span className="text-[10px] text-gray-500 uppercase tracking-wide shrink-0">
-                        {m.street === 'turn' ? 'Turn' : 'Flop'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-gray-400">
-                      {m.outs !== undefined && `${m.outs} outs`}
-                      {m.outs !== undefined && m.equity !== undefined && ' · '}
-                      {m.equity !== undefined && `${m.equity}% ${isEn ? 'equity' : 'équité'}`}
-                    </span>
-                    <span className="text-red-300 font-semibold">
-                      {m.timedOut
-                        ? (isEn ? 'timed out' : 'temps écoulé')
-                        : `${isEn ? 'picked' : 'choisi'} : ${m.chosenValue}${m.answerUnit === 'equity' ? '%' : ''}`}
+                  )}
+                  {!m.heroCards && !m.board && (
+                    <p className="text-xs font-semibold text-gray-300">{m.label}</p>
+                  )}
+                  {m.facts && m.facts.length > 0 && (
+                    <p className="text-[11px] text-gray-400">{m.facts.join(' · ')}</p>
+                  )}
+                  <div className="flex items-center justify-between text-[11px] gap-2">
+                    <span className="text-green-400 font-semibold truncate">✓ {m.correct}</span>
+                    <span className="text-red-300 font-semibold truncate shrink-0">
+                      {m.timedOut ? (isEn ? 'timed out' : 'temps écoulé') : `✗ ${m.chosen}`}
                     </span>
                   </div>
                 </li>

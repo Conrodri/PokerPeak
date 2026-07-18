@@ -34,6 +34,7 @@ import { useLangStore } from '../../store/langStore';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useShallow } from 'zustand/react/shallow';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintMistake } from '../../store/examStore';
 import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 
@@ -70,11 +71,30 @@ export function PotOddsTrainer() {
     await fetchPotOddsExercise();
   };
 
+  const actionLabel = (a: 'call' | 'fold') => a === 'call' ? 'Call' : 'Fold';
+
   const handleAnswer = async (action: 'call' | 'fold') => {
     if (!potOddsExercise) return;
+    const ex = potOddsExercise;
     const r = await checkPotOddsAnswer(action, Date.now() - startTime.current);
     setPhase('result');
-    if (examActive) recordAnswer(r.isCorrect, handleNext);
+    if (examActive) {
+      const mistake: SprintMistake | undefined = r.isCorrect ? undefined : {
+        label: `${ex.potSize}bb / ${ex.betSize}bb`,
+        heroCards: ex.heroCards,
+        board: ex.board,
+        street: ex.street as 'flop' | 'turn' | 'river',
+        facts: [
+          `Pot ${ex.potSize}bb`,
+          `Mise ${ex.betSize}bb`,
+          `${isEn ? 'Equity' : 'Équité'} ${ex.heroEquity}%`,
+          isEn ? `Required ${r.requiredEquity}%` : `Requis ${r.requiredEquity}%`,
+        ],
+        correct: actionLabel(ex.correctAction),
+        chosen: actionLabel(action),
+      };
+      recordAnswer(r.isCorrect, handleNext, 1400, mistake);
+    }
   };
 
   // Expert sprint: no decision within 5s → submit the wrong action (a miss).

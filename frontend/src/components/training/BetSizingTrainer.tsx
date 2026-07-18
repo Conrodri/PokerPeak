@@ -4,6 +4,7 @@ import { ChevronRight, Zap, Lightbulb } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintMistake } from '../../store/examStore';
 import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
@@ -218,6 +219,36 @@ export function BetSizingTrainer() {
     setTrainerStarted(false);
   };
 
+  const sizingLabel = (key: string, potSize: number) => {
+    const sk = key as SizingKey;
+    const cfg = SIZING[sk];
+    const bb = sk === 'check' ? 0 : sizingBb(potSize, sk);
+    return isEn ? cfg.labelEn(bb) : cfg.labelFr(bb);
+  };
+
+  const buildMistake = (key: string): SprintMistake => {
+    const e = exercise!;
+    const correctLabel = e.frequencyMode
+      ? (FREQ_OPTIONS.find(o => o.key === e.correctFrequency)?.[isEn ? 'labelEn' : 'labelFr'] ?? e.correctFrequency)
+      : sizingLabel(e.correctKey, e.potSize);
+    const chosenLabel = e.frequencyMode
+      ? (FREQ_OPTIONS.find(o => o.key === key)?.[isEn ? 'labelEn' : 'labelFr'] ?? key)
+      : sizingLabel(key, e.potSize);
+    return {
+      label: `${e.heroPosition} vs ${e.villainPosition} · ${e.street}`,
+      heroCards: e.heroHand as string[],
+      board: e.board as string[],
+      street: e.street,
+      facts: [
+        `Pot ${e.potSize}bb`,
+        isEn ? (e.isHeroIP ? 'In position' : 'Out of position') : (e.isHeroIP ? 'En position' : 'Hors position'),
+        isEn ? e.boardTexture.en : e.boardTexture.fr,
+      ],
+      correct: correctLabel,
+      chosen: chosenLabel,
+    };
+  };
+
   const handleAnswer = async (key: string) => {
     if (!exercise || phase === 'result') return;
     setSelected(key);
@@ -228,7 +259,7 @@ export function BetSizingTrainer() {
     setXpEarned(xp);
     await recordResult(ok, xp, 'betsizing');
     setPhase('result');
-    if (examActive) recordAnswer(ok, handleNext);
+    if (examActive) recordAnswer(ok, handleNext, 1400, ok ? undefined : buildMistake(key));
   };
 
   // Expert sprint: no decision within 30 s → submit a wrong answer (a miss).

@@ -19,6 +19,7 @@ const POSTFLOP_METHODOLOGY = {
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { useExerciseLock } from '../../hooks/useExerciseLock';
 import { useExamRunner } from '../../hooks/useExamRunner';
+import { SprintMistake } from '../../store/examStore';
 import { SprintTimer } from '../ui/SprintTimer';
 import { ExamLauncher, ExamHud, ExamResult } from './ExamMode';
 import { useShallow } from 'zustand/react/shallow';
@@ -217,6 +218,28 @@ export function PostflopTrainer() {
     fetchExercise();
   };
 
+  const buildMistake = (action: ActionKey): SprintMistake => {
+    const ex = exercise!;
+    const correctOpt = ex.options.find(o => o.key === ex.correctAction);
+    const chosenOpt = ex.options.find(o => o.key === action);
+    return {
+      label: `${ex.heroNotation} · ${ex.street}`,
+      heroCards: ex.heroHand,
+      board: ex.board,
+      street: ex.street as 'flop' | 'turn' | 'river',
+      facts: [
+        `${ex.heroPosition} vs ${ex.villainPosition}`,
+        `Pot ${ex.potSize}bb`,
+        ex.villainAction === 'bet'
+          ? (isEn ? `Villain bets ${ex.villainBetSize}bb` : `Vilain mise ${ex.villainBetSize}bb`)
+          : (isEn ? 'Villain checks' : 'Vilain check'),
+        `${isEn ? 'Equity' : 'Équité'} ${ex.heroEquity}%`,
+      ],
+      correct: correctOpt ? (isEn ? correctOpt.labelEn : correctOpt.labelFr) : ex.correctAction,
+      chosen: chosenOpt ? (isEn ? chosenOpt.labelEn : chosenOpt.labelFr) : action,
+    };
+  };
+
   const handleAnswer = async (action: ActionKey) => {
     if (!exercise) return;
     setSelected(action);
@@ -225,7 +248,7 @@ export function PostflopTrainer() {
     setXpEarned(xp);
     await recordResult(ok, xp, `postflop_${exercise.street}`);
     setPhase('result');
-    if (examActive) recordAnswer(ok, handleNext);
+    if (examActive) recordAnswer(ok, handleNext, 1400, ok ? undefined : buildMistake(action));
   };
 
   // Expert sprint: no decision within 5s → submit a wrong option (a miss).

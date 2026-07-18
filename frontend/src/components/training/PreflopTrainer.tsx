@@ -449,6 +449,7 @@ export function PreflopTrainer() {
     const timeTaken = Date.now() - startTime.current;
     setOpenAnswer(action);
     let openCorrect: boolean | null = null;
+    let correctActionLabel: string | undefined;
 
     // Beginner = GTO only. Custom ranges apply from Advanced upward.
     if (preflopEnabled && mode !== 'basic') {
@@ -466,6 +467,7 @@ export function PreflopTrainer() {
           cellVal >= 0.8 ? 'raise' : cellVal <= 0 ? 'fold' : 'call';
         const isCorrect = action === correctAction;
         openCorrect = isCorrect;
+        correctActionLabel = correctAction;
         const xp = isCorrect ? 15 : 5;
         setLocalResult({
           isCorrect,
@@ -478,6 +480,7 @@ export function PreflopTrainer() {
       } else {
         const r = await checkPreflopAnswer(action, timeTaken, format, gameType);
         openCorrect = r.isCorrect;
+        correctActionLabel = r.correctAction;
         try {
           const data = await trainingApi.getRangeMatrix(preflopExercise.position, format, gameType);
           setRangeMatrix(data.matrix);
@@ -486,6 +489,7 @@ export function PreflopTrainer() {
     } else {
       const r = await checkPreflopAnswer(action, timeTaken, format, gameType);
       openCorrect = r.isCorrect;
+      correctActionLabel = r.correctAction;
       try {
         const data = await trainingApi.getRangeMatrix(preflopExercise.position, format, gameType);
         setRangeMatrix(data.matrix);
@@ -493,7 +497,11 @@ export function PreflopTrainer() {
     }
     setPhase('result');
     if (examActive && openCorrect !== null)
-      recordAnswer(openCorrect, handleNext, 1400, { label: `${preflopExercise.notation} — ${preflopExercise.position}` });
+      recordAnswer(openCorrect, handleNext, 1400, openCorrect ? undefined : {
+        label: `${preflopExercise.notation} — ${preflopExercise.position}`,
+        correct: correctActionLabel,
+        chosen: action,
+      });
   };
 
   // ─── handleExpertAnswer (expert 2-step quiz: action + frequency) ──────────────
@@ -531,7 +539,11 @@ export function PreflopTrainer() {
     if (isBBSession) setBBSelected(action === 0 ? 'fold' : action === 1 ? 'call' : '3bet');
     await recordResult(isCorrect, xp, 'preflop', timeTaken);
     setPhase('result');
-    if (examActive) recordAnswer(isCorrect, handleNext, 1400, { label: `${notation} — ${position}` });
+    if (examActive) recordAnswer(isCorrect, handleNext, 1400, isCorrect ? undefined : {
+      label: `${notation} — ${position}`,
+      correct: mixStr,
+      chosen: `${actLabel(action)} ${freqPct}%`,
+    });
   };
 
   // ─── handleAnswerBB ───────────────────────────────────────────────────────────
@@ -593,7 +605,11 @@ export function PreflopTrainer() {
     });
     await recordResult(isCorrect, xp, 'preflop', timeTaken);
     setPhase('result');
-    if (examActive) recordAnswer(isCorrect, handleNext, 1400, { label: `${bbExercise.notation} — BB` });
+    if (examActive) recordAnswer(isCorrect, handleNext, 1400, isCorrect ? undefined : {
+      label: `${bbExercise.notation} — BB`,
+      correct: resultAction,
+      chosen: action,
+    });
   };
 
   // ─── handleBB3betType (advanced — step 2: value vs bluff) ─────────────────────
@@ -621,7 +637,11 @@ export function PreflopTrainer() {
     await recordResult(isCorrect, xp, 'preflop', timeTaken);
     setBB3betStep(false);
     setPhase('result');
-    if (examActive) recordAnswer(isCorrect, handleNext, 1400, { label: `${bbExercise.notation} — BB` });
+    if (examActive) recordAnswer(isCorrect, handleNext, 1400, isCorrect ? undefined : {
+      label: `${bbExercise.notation} — BB`,
+      correct: expectedKind === 'value3bet' ? 'bluff' : 'value',
+      chosen: type,
+    });
   };
 
   // ─── handleNext ───────────────────────────────────────────────────────────────
