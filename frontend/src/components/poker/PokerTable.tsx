@@ -464,32 +464,41 @@ export function PokerTable({
         </>
         )}
 
-        {flat && btnSeat >= 0 && (
-          <div
-            className="absolute flex items-center justify-center pointer-events-none"
-            style={{
-              // Push the D chip toward the table CENTER, partway between the
-              // seat and its cx/cy point (which is also where the bet chip
-              // sits) — close enough to the seat to read as "belonging" to
-              // it, but stopping well short of cx/cy so it never touches the
-              // bet dot/text when that same seat has posted a bet.
-              left: `${layout[btnSeat].sx + (layout[btnSeat].cx - layout[btnSeat].sx) * 0.35}%`,
-              top: `${layout[btnSeat].sy + (layout[btnSeat].cy - layout[btnSeat].sy) * 0.35}%`,
-              width: compact ? 15 : 19,
-              height: compact ? 15 : 19,
-              transform: 'translate(-50%, -50%)',
-              borderRadius: '50%',
-              background: '#f1ede4',
-              color: '#1a202c',
-              fontSize: compact ? 8 : 10,
-              fontWeight: 900,
-              zIndex: 20,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.6)',
-            }}
-          >
-            D
-          </div>
-        )}
+        {flat && btnSeat >= 0 && (() => {
+          const seat = layout[btnSeat];
+          const dx = seat.cx - seat.sx;
+          const dy = seat.cy - seat.sy;
+          const len = Math.hypot(dx, dy) || 1;
+          const ux = dx / len, uy = dy / len;
+          const chipSize = compact ? 15 : 19;
+          // Push the D chip toward the table center by a FIXED PIXEL distance
+          // (not a % fraction of the sx/cx delta) so it always clears the
+          // seat's own radius — a % fraction was too short for bottom seats,
+          // where cx/cy sits almost directly above sx/sy, landing the chip
+          // inside the seat circle itself on narrow (mobile) containers.
+          const pushPx = seatSize / 2 + chipSize / 2 + 4;
+          return (
+            <div
+              className="absolute flex items-center justify-center pointer-events-none"
+              style={{
+                left: `calc(${seat.sx}% + ${(ux * pushPx).toFixed(1)}px)`,
+                top: `calc(${seat.sy}% + ${(uy * pushPx).toFixed(1)}px)`,
+                width: chipSize,
+                height: chipSize,
+                transform: 'translate(-50%, -50%)',
+                borderRadius: '50%',
+                background: '#f1ede4',
+                color: '#1a202c',
+                fontSize: compact ? 8 : 10,
+                fontWeight: 900,
+                zIndex: 20,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.6)',
+              }}
+            >
+              D
+            </div>
+          );
+        })()}
 
         </div>{/* end absolute inset-0 */}
       </div>{/* end table oval (paddingBottom 46%) */}
