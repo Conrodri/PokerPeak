@@ -31,6 +31,15 @@ Tous les fichiers dans `backend/src/services/poker/`.
 - **Meilleure main sur 5-7 cartes** : `chooseFiveIndices(n)` précalcule (et cache dans une `Map`) tous les indices de combinaisons C(n,5) pour `n=5,6,7` — évite de régénérer les combinaisons à chaque appel (`evaluateBestHand`/`bestScore` sont eux aussi appelés massivement en boucle Monte Carlo).
 - Gère la quinte "wheel" (A-2-3-4-5, où l'As joue bas) comme cas spécial dans `isStraight()`.
 
+**Exemple**
+```ts
+evaluateBestHand(['Ah', 'Kh', 'Qh', 'Jh', 'Th', '2c', '7d']);
+// → { rank: HandRank.ROYAL_FLUSH, score: 9070649125, description: 'Royal Flush', bestCards: [...] }
+
+compareHands(['Ah', 'Ad', '2c', '3d', '9s'], ['Kh', 'Kd', '2c', '3d', '9s']);
+// → 1  (la première main gagne : paire d'As bat paire de Rois)
+```
+
 ### `equity.ts` — simulation Monte Carlo d'équité
 
 `calculateEquity(hand1, hand2, board, simulations=5000)` — trois stratégies selon combien de cartes restent à venir, choisies pour être **exactes quand c'est gratuit, échantillonnées seulement quand c'est nécessaire** :
@@ -43,6 +52,17 @@ Tous les fichiers dans `backend/src/services/poker/`.
 
 Le tirage échantillonné réutilise un **Fisher-Yates partiel** sur un pool de cartes construit une seule fois (`removeCards(createDeck(), knownCards)`), et écrit dans des **buffers `cards1`/`cards2` réutilisés** entre itérations (pas de `[...hand1, ...board, ...runout]` recréé à chaque tour) — élimine l'allocation mémoire par itération sur un hot path exécuté des milliers de fois par requête.
 
+**Exemple**
+```ts
+// AKs vs QQ, flop déjà tombé — 2 cartes à venir → Monte Carlo échantillonné
+calculateEquity(['Ah', 'Kh'], ['Qc', 'Qd'], ['Kd', '7h', '2s'], 5000);
+// → { hand1WinPct: 91.2, hand2WinPct: 8.8, tiePct: 0, simulations: 5000 }
+
+// Même mains, turn tombée — 1 carte à venir → énumération exacte (pas d'aléa)
+calculateEquity(['Ah', 'Kh'], ['Qc', 'Qd'], ['Kd', '7h', '2s', '9c']);
+// → { hand1WinPct: 95.7, hand2WinPct: 4.3, tiePct: 0, simulations: 44 }
+```
+
 ### `outs.ts` — comptage d'outs et génération procédurale
 
 Voir aussi le travail de cette session sur la génération turn (résumé ci-dessous, déjà en prod).
@@ -54,12 +74,33 @@ Voir aussi le travail de cette session sur la génération turn (résumé ci-des
 - `estimateEquityFromOuts(outs, street)` — Règle de 2 et 4 : `outs × 4` sur flop, `outs × 2` sur turn.
 - `randomDrawShape(outs, street)` — **réutilisation DRY** : le module Pot Odds a besoin de tirages avec un nombre d'outs précis mais veut de la variété de cartes ; plutôt que maintenir un second générateur, il réutilise les générateurs d'Outs via `SHAPE_GENERATORS` (map `outsCount → générateur`).
 
+**Exemple**
+```ts
+getRandomOutsScenario();
+// → { heroCards: ['9h', '8h'], board: ['7c', 'Th', '2h'], street: 'flop', outs: 15, trap: 17,
+//     difficulty: 'hard', draws: [{ fr: 'Tirage couleur (cœur)...', en: '...' }, { fr: 'Tirage quinte...', en: '...' }] }
+
+estimateEquityFromOuts(9, 'flop');  // → 36  (9 outs × 4, deux cartes à venir)
+estimateEquityFromOuts(9, 'turn');  // → 18  (9 outs × 2, une seule carte à venir)
+```
+
 ### `potOdds.ts` — cotes du pot et implied odds
 
 - `calculatePotOdds(pot, bet, heroEquity)` → `{ potOdds, requiredEquity, ev, isProfitable, reasoning }`. `requiredEquity = bet / (pot + 2×bet)`.
 - Trois niveaux de génération procédurale, un par difficulté : `generateEasyPotOddsScenario` (basic), `generateClosePotOddsScenario` (advanced/expert — équité volontairement proche du seuil pour forcer une vraie décision), `generateImpliedOddsScenario` (expert uniquement).
 - **Implied odds** : chaque scénario expert a un `impliedWinnings` (gains supplémentaires espérés si le tirage arrive) et un `villainStackBehind`. `impliedRequiredEquity = call / (potDirect + impliedWinnings)` — un seuil **plus bas** que le seuil direct, qui peut faire basculer la décision de fold à call.
 - **Correction apportée cette session** : la validation backend (`checkPotOddsAnswer`, contrôleur) accepte historiquement **soit** l'action directe **soit** l'action implied comme correcte (`isCorrect = userAction === directCorrectAction || userAction === impliedCorrectAction`) — un choix délibérément permissif pour une question unique, documenté en commentaire *"either action is a defensible read of the spot"*. Le frontend pose désormais **2 questions strictes et séparées** (sans implied, puis avec) en mode expert — chacune jugée strictement contre son propre seuil, calculées côté client à partir des champs déjà renvoyés par l'exercice (`requiredEquity` et `impliedRequiredEquity`), sans changement d'API nécessaire.
+
+**Exemple**
+```ts
+calculatePotOdds(/* pot */ 20, /* bet */ 10, /* heroEquity */ 28);
+// → { potOdds: 0.25, requiredEquity: 25, ev: +0.6, isProfitable: true,
+//     reasoning: '10 ÷ (20+10+10) = 25% requis, tu as 28% → call rentable' }
+
+// Scénario expert avec implied odds : le direct dit fold, l'implied dit call
+// requiredEquity: 20.8 (seuil direct)   → 16% d'équité < 20.8% → fold
+// impliedRequiredEquity: 11.9 (avec 18bb d'implied winnings) → 16% ≥ 11.9% → call
+```
 
 ### `bluffService.ts` — génération narrative de spots de bluff
 
@@ -71,9 +112,28 @@ Chaque générateur construit un board avec des contraintes de forme (ex. "carte
 
 `BluffExercise.template` est renvoyé au frontend et utilisé pour **éviter de tirer deux fois le même template consécutivement** (variété perçue).
 
+**Exemple** (extrait de la sortie de `buildIpCbetDry()`)
+```ts
+{
+  heroHand: ['Ah', '6c'], board: ['Ks', '8c', '3d'], street: 'flop',
+  heroPosition: 'BTN', villainPosition: 'BB', heroIsIP: true,
+  potBB: 9, correctAction: 'bluff-small', bluffAmountBB: 3,
+  factors: { position: { score: 'positive', fr: '...' }, board: { score: 'positive', fr: '...' }, ... },
+  template: 'dry',
+}
+```
+
 ### `bbDefense.ts` — défense Big Blind (règles, pas matrice)
 
 Contrairement aux ranges d'ouverture (matrices 13×13), la défense BB est un **arbre de règles codées à la main** (`getBBDefenseAction(notation)`) — parce que c'est une décision à 3 issues (fold/call/3-bet) avec des mains "mixtes" fréquentes (ex. `JJ` : 3-bet ou call, `mk('3bet', 'call', true, 'value3bet')`), plus simple à exprimer en cascade de conditions (paires → `if r >= 12`, Ax suited → `if lo === 13`...) qu'en matrice de fréquences continues. Retourne aussi `kind` (`value3bet | bluff3bet | call | fold`) — utilisé par le trainer Préflop pour la question bonus "value ou bluff ?" en mode avancé.
+
+**Exemple**
+```ts
+getBBDefenseAction('AKs');  // → { action: '3bet', alt: '3bet', isMixed: false, kind: 'value3bet' }
+getBBDefenseAction('JJ');   // → { action: '3bet', alt: 'call',  isMixed: true,  kind: 'value3bet' }  (mixte, lean 3-bet)
+getBBDefenseAction('A5s');  // → { action: '3bet', alt: 'call',  isMixed: true,  kind: 'bluff3bet' }  (bluff 3-bet, blocker d'As)
+getBBDefenseAction('72o');  // → { action: 'fold', alt: 'fold',  isMixed: false, kind: 'fold' }
+```
 
 ### `preflopCanonical.ts`
 
@@ -97,10 +157,29 @@ Matrices `Record<Position, number[][]>` par format × game type : `OPEN_RAISE` (
 
 Fonctions de lookup : `getMatrixIndices(notation)`, `getRangeFrequency(position, notation, format, gameType)`, `getCorrectAction(...)`, `getRangeMatrix(...)`, `getRangePercentage(...)` (pondérée par nombre de combos : 6 pour paires, 4 suited, 12 offsuit).
 
+**Exemple**
+```ts
+getMatrixIndices('AKs');                  // → [0, 1]   (A=index 0, K=index 1, i<j → triangle suited)
+getRangeFrequency('BTN', 'AKs');          // → 1.0      (raise à 100% en BTN, 6-max cash game)
+getRangeFrequency('UTG', 'A5s');          // → 0.25     (mix : raise 25% du temps seulement en UTG)
+getCorrectAction('UTG', 'A5s');           // → { action: 'raise', frequency: 0.25, isMixed: true }
+getRangePercentage('BTN', '6max', 'cashgame'); // → ~45  (% de mains ouvertes en BTN, pondéré par combos)
+```
+
 ### CustomRange (mode simple) vs ExpertRange (mode expert)
 
 - **`CustomRange.cells`** : `number[169]`. Pour BB, ce sont des **codes d'action 0-4** (pas des fréquences) — validé explicitement côté serveur : `max = isBB ? 4 : 1`. Codes issus de `bbDefense.ts` : `fold=0, call=1, value3bet=3, bluff3bet=4` (le code `2`, "thin call", est mentionné en commentaire mais jamais produit — incohérence mineure entre commentaire et implémentation actuelle).
 - **`ExpertRange.mix`** : `number[676]` (169 × 4). Chaque groupe de 4 = `[fold, call, raise3x, allin]`, doit sommer à ~1.0 (tolérance `[0.99, 1.01]`, `validateMix()`) — modèle multi-actions fréquentiel complet (vraie stratégie mixte GTO), alors que CustomRange est mono-action par main (sauf le cas "mixte" affiché comme call).
+
+**Exemple**
+```ts
+// CustomRange.cells — flat 169, index 0 = AA (i===j), index 13 = AKo (i>j, ligne A)
+cells[0]  = 1.0;   // AA → raise 100%
+cells[169-1] = 0;  // 22 → fold
+
+// ExpertRange.mix — 4 valeurs par main, ex. AA (index 0 → offsets 0-3)
+mix.slice(0, 4);   // [fold, call, raise3x, allin] → [0, 0, 0.7, 0.3]  (AA : 70% 3-bet, 30% all-in, jamais fold/call)
+```
 
 ### RangeProfile — regroupement par tranche de stack (MTT)
 
@@ -108,6 +187,19 @@ Système plus récent qui a remplacé conceptuellement `RangePreset` pour le mod
 
 - **Seeding automatique** : au premier appel de `listProfiles`, si l'utilisateur n'a aucun profil, `seedDefaultProfile()` crée un profil "Profil type" (expert) avec 3 tranches par défaut (`<20bb`, `<50bb`, `<100bb`), pré-remplies par `tierData()` qui dérive un mix `[fold,call,raise,allin]` depuis les fréquences GTO d'ouverture, pondéré différemment par profondeur (`short` = jam-heavy 55% allin, `mid` = raise-dominant, `deep` = plus de flats/pas de jam).
 - **Résolution runtime** (`resolveRange`, `GET /profiles/resolve?position=&stack=`) : cherche le profil actif → la tranche dont `stack ∈ [stackMin, stackMax[` → fallback sur la dernière tranche si aucune ne correspond → fallback sur `CustomRange` si aucun profil actif. `simpleOnly=true` bypass tout le système de profils.
+
+**Exemple**
+```
+GET /api/profiles/resolve?position=BTN&stack=35
+
+→ { success: true, data: {
+      cells: [0, 1, 1, ...],     // 169 valeurs, tranche "<50bb" du profil actif
+      source: 'profile',
+      profileName: 'Profil type',
+      stackRangeLabel: '< 50bb',
+      includeFolds: true,
+    } }
+```
 
 ---
 
@@ -138,6 +230,15 @@ Système plus récent qui a remplacé conceptuellement `RangePreset` pour le mod
 | `DailyChallenge` / `Challenge` | Défis quotidiens personnalisés (premium) | — |
 
 **Note perf** : les agrégations "historique par jour" (leaderboard, stats perso) sont faites **en JavaScript après fetch**, pas via `GROUP BY DATE(...)` SQL — probablement pour rester portable entre la syntaxe de troncature de date SQLite (dev) et PostgreSQL (prod), qui diffèrent.
+
+**Exemple** (requête Prisma typique, `examController.ts`)
+```ts
+const record = await prisma.examRecord.upsert({
+  where:  { userId_module_mode: { userId, module: 'potodds', mode: 'expert' } },
+  update: { best: 42 },
+  create: { userId, module: 'potodds', mode: 'expert', best: 42 },
+});
+```
 
 ---
 
@@ -183,6 +284,18 @@ Système plus récent qui a remplacé conceptuellement `RangePreset` pour le mod
 2. `googleCallback` : vérifie le `state` (CSRF), rejette si `gUser.verified_email === false` (*"an unverified address could otherwise be used to hijack an existing account"* via account-linking par e-mail) ; cherche un `User` par `googleId` OU `email` (lie automatiquement un compte email/password préexistant à son `googleId` s'il se connecte via Google pour la première fois), sinon crée un compte (`username` dérivé du nom Google, dédupliqué par suffixe numérique aléatoire si pris).
 3. **Livraison du token en fragment d'URL** : redirige vers `${FRONTEND_URL}/auth/callback#token=...` — **`#`, pas `?`** — commentaire explicite : *"fragments are never sent to servers or leaked via the Referer header / proxy logs"*.
 
+**Exemple**
+```
+POST /api/auth/register  { username: "conrodri", email: "c@x.com", password: "hunter22" }
+→ 201  { success: true, data: { needsVerification: true, email: "c@x.com" } }
+
+POST /api/auth/login  { email: "c@x.com", password: "hunter22" }
+→ 200  { success: true, data: { token: "eyJhbGci...", user: { id, username, isPremium: true, ... } } }
+
+// Payload JWT décodé (jwt.io) :
+{ "userId": "clx...", "username": "conrodri", "isPremium": true, "isPremiumExpert": true, "iat": ..., "exp": ... }
+```
+
 ---
 
 ## 6. Quota gratuit
@@ -198,6 +311,13 @@ Système plus récent qui a remplacé conceptuellement `RangePreset` pour le mod
 `CLAUDE.md` lui-même contient la trace de cette transition (section "Tiers d'accès") : *"Les routes premium ne sont plus gatées par middleware (accès ouvert) ; le quota gratuit reste suivi côté client via `quotaApi.consume()`"* — cette phrase décrit une architecture qui, à l'inspection du code, **n'a pas (ou plus) d'implémentation fonctionnelle ni côté serveur ni côté client**. En pratique, combiné au fait que `isPremium`/`isPremiumExpert` valent `true` par défaut pour tout nouveau compte (voir [§7](#7-abonnements-tiers)), la question du quota gratuit est aujourd'hui **largement théorique** dans l'état du code.
 
 **Pour un développeur reprenant ce chantier** : soit réimplémenter le middleware + la route en s'appuyant sur le modèle `FreeUsage` déjà présent en DB (son commentaire de schéma décrit précisément le design voulu : reset par date calendaire Europe/Paris, nouvelle ligne à chaque jour, pas de purge), soit décider consciemment que ce garde-fou n'est plus nécessaire et nettoyer le modèle mort + la doc.
+
+**Exemple** (à quoi ressemblerait une ligne `FreeUsage`, si le système était branché)
+```ts
+{ userId: "clx...", module: "postflop", date: "2026-07-18", count: 3 }
+// Le 4e exercice postflop de la journée pour cet utilisateur incrémenterait
+// count à 4 ; le 6e serait refusé (quota = 5/jour/module).
+```
 
 ---
 
@@ -239,6 +359,22 @@ C'est le **seul** garde-fou serveur basé sur le tier trouvé dans le code (coh�
 
 Le leaderboard filtre aussi sur le tier (`getLeaderboard` : `WHERE isPremium OR isPremiumExpert`) — mais comme les deux valent `true` par défaut, cela n'exclut en pratique que les comptes explicitement rétrogradés via `cancelSubscription`.
 
+**Exemple**
+```
+GET /api/subscription/  (authentifié)
+→ { success: true, data: {
+      tier: 'expert', isPremium: true, isPremiumExpert: true,
+      premiumSince: '2026-01-10T...', premiumUntil: null,
+      premiumExpertSince: '2026-01-10T...', premiumExpertUntil: null,
+    } }
+
+// Octroi manuel d'un tier (Prisma Studio ou script) :
+await prisma.user.update({
+  where: { email: 'client@x.com' },
+  data:  { isPremium: true, premiumSince: new Date(), premiumUntil: null },
+});
+```
+
 ---
 
 ## 8. Achievements
@@ -249,6 +385,20 @@ Le leaderboard filtre aussi sur le tier (`getLeaderboard` : `WHERE isPremium OR 
 - **Garde-fou minimum d'échantillon** : `accuracy` n'est comptée que si `totalExercises >= 100` (sinon `value` forcé à 0 → badge verrouillé), `daily_acc` seulement si `>= 10` exercices ce jour-là — évite qu'un unique exercice réussi débloque un badge de précision à 100%. Note : la barre de progression, elle, ignore ce garde-fou et affiche le pourcentage réel — peut visuellement suggérer un badge "presque débloqué" alors qu'il est en fait à 0.
 - **Calcul entièrement à la volée, jamais persisté** : pas de flag "unlocked" en DB, pas de job, pas de déclenchement à un moment précis — `computeAchievements()` est recalculé à chaque requête qui en a besoin (`getUserStats` avec les vraies données sur 730 jours, `getLeaderboard` avec des données **allégées** — `buildLeaderboardInput()` force `daysPlayed/bestDayExercises/... = 0`, donc les catégories `days`/`daily_*` ne peuvent jamais apparaître "unlocked" dans le contexte leaderboard, commentaire explicite du code).
 - **Sélection du "meilleur" titre** : `TIER_WEIGHT` (platinum=40 → bronze=10) + `CAT_WEIGHT` (tie-breaker : `accuracy`=6 en tête, `days`/`exercises`=0 en dernier — priorité à la précision/au sprint expert sur le simple volume). `PlayerStats.selectedTitleId` (modifiable via `PUT /stats/title`, validé côté serveur contre la liste `ACHIEVEMENTS`) **prime** sur ce calcul automatique si défini par l'utilisateur.
+
+**Exemple**
+```ts
+computeAchievements({
+  totalExercises: 1200, accuracy: 78, daysPlayed: 45,
+  bestSprintAdvanced: 22, bestSprintExpert: 9,
+  bestDayExercises: 85, bestDayCorrect: 70, bestDayAccuracy: 91,
+});
+// → tableau de 48 badges, chacun avec { ...def, value, progress, unlocked }
+// ex. { id: 'exercises_gold', category: 'exercises', tier: 'gold', threshold: 1000, value: 1200, unlocked: true }
+
+getBestAchievement(achievements);
+// → le badge débloqué le plus "fort" (poids tier + poids catégorie), ex. sprint_expert bronze si aucun gold débloqué
+```
 
 ---
 
@@ -278,6 +428,20 @@ Un run **abandonné** (`forfeit`) n'appelle jamais `saveExamScore` — ni `ExamR
 - **Timer dégressif en mode expert** : `useExamRunner.ts` calcule `sprintSeconds` — base 30s, `-5s` tous les 5 bonnes réponses cumulées dans le run, plancher 10s (`SPRINT_BASE_SECONDS=30, SPRINT_STEP_SECONDS=5, SPRINT_STEP_CORRECT=5, SPRINT_MIN_SECONDS=10`). Avancé garde 30s fixe. Centralisé dans ce hook, partagé par les 7 trainers utilisant `<SprintTimer>`.
 - **Récap détaillé** : `SprintMistake` (générique — `heroCards?, board?, street?, facts?, correct?, chosen?, timedOut?`) construit par chaque trainer sur ses erreurs, affiché par `ExamResult` sous forme de carte par exercice raté, avec repli sur une pastille simple (`label`) pour le module Préflop (pas de représentation "board" naturelle).
 
+**Exemple**
+```
+POST /api/exam/record  (authentifié)  { module: "potodds", mode: "expert", score: 18 }
+→ { success: true, data: {
+      best: 18, isNewRecord: true,
+      history: [{ score: 18, createdAt: '...' }, { score: 14, createdAt: '...' }, ...],  // 8 derniers runs
+    } }
+```
+```tsx
+// Câblage type d'un trainer (voir OutsTrainer.tsx pour l'implémentation réelle)
+const { examActive, examFinished, startRun, quitRun, recordAnswer, sprintSeconds } = useExamRunner('outs');
+// à la réponse : if (examActive) recordAnswer(isCorrect, handleNext, 1400, mistakeIfWrong);
+```
+
 ---
 
 ## 10. Stats et classement
@@ -295,6 +459,17 @@ Un run **abandonné** (`forfeit`) n'appelle jamais `saveExamScore` — ni `ExamR
 ### Historique par jour
 
 Deux endpoints (`getUserStats` pour un profil public, `getProgressHistory` pour l'utilisateur courant avec fenêtre `?days=`) chargent les `SessionExercise` bruts sur la période puis agrègent **en mémoire JS** (`byDay[date].total/.correct/.xp += ...`) plutôt qu'en SQL — probablement pour rester portable entre la syntaxe de troncature de date SQLite (dev) et PostgreSQL (prod).
+
+**Exemple**
+```
+GET /api/stats/leaderboard?limit=10
+→ { success: true, data: [
+      { rank: 1, username: 'conrodri', isPremiumExpert: true, xp: 4820, level: 12,
+        totalExercises: 1200, accuracy: 78, title: { title: 'Maître du Sprint', tier: 'gold', icon: '🏆' },
+        modules: { potodds: { accuracy: 82, total: 340, advanced: 22, expert: 9 }, preflop8: { advanced: 15, expert: 4 }, ... } },
+      ...
+    ] }
+```
 
 ---
 
@@ -319,6 +494,16 @@ Deux endpoints (`getUserStats` pour un profil public, `getProgressHistory` pour 
 
 Le mode **Expert de Main complète bypass volontairement le pool** (`getFullHandScenario`) : le pool est figé à un taux "in range" de 80%, alors que le mode expert veut viser 50% (plus de scénarios hors range = plus dur) — la génération à la demande est donc utilisée systématiquement pour ce cas précis, au prix de la latence.
 
+**Exemple**
+```ts
+// Régénérer le cache localement (à lancer sur sa propre machine, cf. principe
+// "précompute côté CPU utilisateur" de CLAUDE.md) :
+// npm run pregenerate   (depuis backend/)
+
+const flopPool = createExercisePool({ target: 20, threshold: 5, build: buildFlopExercise, label: 'flop' });
+flopPool.take();  // → un exercice flop pré-généré (ou généré à la volée si le pool est vide), O(1)
+```
+
 ---
 
 ## 12. Frontend — stores Zustand
@@ -340,6 +525,17 @@ Tous dans `frontend/src/store/`. Ceux qui portent une **préférence utilisateur
 
 **`zoomStore`** expose une fonction hors-store `applyStoredZoom()` qui lit directement `localStorage` (parse JSON manuel) pour appliquer le zoom **avant** l'hydratation React — évite un flash de mauvaise taille de police au premier rendu.
 
+**Exemple**
+```tsx
+// Lire (avec sélecteur — évite un re-render sur les champs non utilisés)
+const mode = useModeStore(s => s.mode);              // 'basic' | 'advanced' | 'expert'
+const { bgTheme, tableColor } = useThemeStore(useShallow(s => ({ bgTheme: s.bgTheme, tableColor: s.tableColor })));
+
+// Écrire
+useModeStore.getState().setMode('expert');            // hors composant React, lecture/écriture directe du store
+useLangStore(s => s.setLang)('en');
+```
+
 ---
 
 ## 13. Frontend — hooks personnalisés
@@ -349,6 +545,20 @@ Tous dans `frontend/src/store/`. Ceux qui portent une **préférence utilisateur
 - **`useExamRunner(module)`** — câblage partagé du mode examen : charge les records au montage, calcule `sprintSeconds` (voir [§9](#9-mode-sprint--exam)), expose `recordAnswer(isCorrect, next, delay=1400, mistake?)` qui gère l'auto-avance (timer nettoyé au démontage).
 - **`useExerciseLock(active)`** — verrouille le changement de mode pendant qu'une décision est affichée, en pilotant `trainingStore.setIsExercising`. Remplace une paire de `useEffect` dupliquée dans chaque trainer (mount/unmount).
 - **`useIsMobile()`** — `window.matchMedia('(max-width: 639px)')` réactif (breakpoint Tailwind `sm`), init SSR-safe.
+
+**Exemple**
+```tsx
+function OutsTrainer() {
+  const { examActive, examFinished, startRun, quitRun, recordAnswer, sprintSeconds } = useExamRunner('outs');
+  useExerciseLock(!showIntro && phase === 'exercise' && !!outsExercise && !isLoading);
+  const isMobile = useIsMobile();
+  // ...
+  const handleAnswer = (value: number) => {
+    const correct = value === correctValue;
+    if (examActive) recordAnswer(correct, handleNext, 1400, correct ? undefined : buildMistake(value));
+  };
+}
+```
 
 ---
 
@@ -361,6 +571,15 @@ Tous dans `frontend/src/store/`. Ceux qui portent une **préférence utilisateur
 - Pas de hook `useTranslation()` classique : le hook réel est `useT()` (`lang === 'fr' ? fr : en`), qui retourne l'objet complet — les composants font `const t = useT(); t.nav.home`.
 - La langue active (`poker-lang` en localStorage) est aussi lue **manuellement, hors React**, par `services/api.ts` pour injecter `?lang=` sur chaque requête API.
 
+**Exemple**
+```tsx
+const t = useT();
+const isEn = useLangStore(s => s.lang) === 'en';
+
+<p>{t.training.next_ex}</p>                          // objet complet, accès direct par clé
+<p>{isEn ? 'Start training' : "Commencer l'entraînement"}</p>  // pattern alternatif utilisé dans les trainers
+```
+
 ---
 
 ## 15. Theming
@@ -371,6 +590,13 @@ Tous dans `frontend/src/store/`. Ceux qui portent une **préférence utilisateur
 - **Application via CSS custom properties**, pas de classes Tailwind dynamiques pour le fond/table : `Layout.tsx` pose `--app-bg`, `--table-center`, `--table-mid`, `--table-edge` sur `document.documentElement` à chaque changement de thème (`useEffect`), consommées ailleurs via `var(--table-center)`. Les styles de cartes, eux, sont appliqués par classes Tailwind conditionnelles directement dans les composants de rendu de carte.
 - Il n'y a pas de vrai switch clair/sombre — tous les `BG_THEMES` sont des fonds sombres ; "thème" ici désigne uniquement la palette (fond + table), pas un mode light/dark.
 
+**Exemple**
+```tsx
+useThemeStore.getState().setTableColor('blue');
+// → pose --table-center/--table-mid/--table-edge sur <html>, consommé par ex. :
+<div style={{ background: `radial-gradient(var(--table-center), var(--table-edge))` }} />
+```
+
 ---
 
 ## 16. Analytics
@@ -378,6 +604,13 @@ Tous dans `frontend/src/store/`. Ceux qui portent une **préférence utilisateur
 `frontend/src/lib/analytics.ts` — basé sur `@vercel/analytics` (`track()`), pas une solution maison. Événements : `moduleStarted`, `exerciseCompleted`, `premiumCtaClicked`, `signup`, `login(method)`, `emailVerified`. Les pageviews sont automatiques via `<Analytics />` monté dans `App.tsx`.
 
 **Point notable** : le bandeau cookies (`CookieBanner.tsx`) est purement informatif — il stocke `cookie_consent` dans `localStorage` pour ne plus se réafficher, mais **rien ne lit cette clé pour activer/désactiver le tracking** : `<Analytics />` est monté inconditionnellement. Cohérent avec le texte du bandeau ("cookies techniques uniquement, aucun cookie publicitaire") si Vercel Analytics est effectivement cookieless côté navigateur — mais il n'y a pas de mécanisme technique de consentement conditionnant le SDK, seulement un bandeau qui ne se réaffiche pas deux fois.
+
+**Exemple**
+```ts
+analytics.moduleStarted('potodds');
+analytics.exerciseCompleted('potodds', true);
+analytics.login('google');
+```
 
 ---
 
@@ -390,6 +623,13 @@ Tous dans `frontend/src/store/`. Ceux qui portent une **préférence utilisateur
 - Familles exportées : `authApi`, `trainingApi`, `rangesApi`, `profilesApi`, `postflopApi`, `examApi`, `subscriptionApi`, `statsApi` — toutes déballent la convention backend `{ success, data }` via `.then(r => r.data.data)`.
 - `pingBackend()` (hors familles) — fetch fire-and-forget vers `/api/health` au montage de `App.tsx`, pour réveiller le service Render free-tier avant que l'utilisateur n'atteigne un module.
 
+**Exemple**
+```ts
+const exercise = await trainingApi.getPreflopExercise('BTN', '6max', 'cashgame');
+const result   = await trainingApi.checkPreflopAnswer('raise', 1240, '6max', 'cashgame');
+const records  = await examApi.records();  // { [module]: { advanced, expert } }
+```
+
 ---
 
 ## 18. Conventions UI et direction artistique
@@ -401,6 +641,14 @@ Résumé opérationnel (le détail exhaustif vit dans `CLAUDE.md`, section "Prin
 - **Échelle visuelle standard** dérivée de `TrainerIntro.tsx` / `PokerRulesPage.tsx` : `max-w-xl mx-auto`, `gap-2.5`, cards en `bg-gray-900/50 rounded-xl px-3 py-2.5 border border-gray-800`, titres en `text-sm font-bold text-white mb-2`, etc. — toute nouvelle page doit s'aligner sur cette densité plutôt que d'inventer sa propre échelle.
 - **Un module = une icône (Lucide) + une couleur, réutilisées partout** (cartes, menus, stats, classement) — un nouveau module clone le pattern d'un module existant plutôt que d'inventer une nouvelle structure.
 - **Pattern auto-advance vs manuel** : en sprint (`examActive`), les trainers avancent automatiquement après un délai (`recordAnswer(..., delay)`) ; en pratique normale, l'avancement est toujours déclenché par un clic utilisateur explicite ("Exercice suivant"). Cette distinction a été respectée lors de l'ajout des flux à 2 questions consécutives (Équité/Pot Odds expert, voir [§2](#2-moteur-poker-backend)) : auto-avance en sprint, bouton "Continuer" en pratique normale.
+
+**Exemple** (encart standard, échelle `TrainerIntro`)
+```tsx
+<div className="bg-gray-900/50 rounded-xl px-3 py-2.5 border border-gray-800">
+  <h3 className="text-sm font-bold text-white mb-2">Titre de section</h3>
+  <p className="text-xs text-gray-400">Texte corps principal.</p>
+</div>
+```
 
 ---
 
@@ -420,6 +668,20 @@ Backend uniquement (Vitest, `backend/vitest.config.ts`, `include: ['src/**/*.tes
 
 Aucun test frontend (React/UI) trouvé — l'effort de test cible spécifiquement la **logique GTO/mathématique** où une régression serait silencieuse mais critique (un calcul d'équité ou une range faux ne "crashe" jamais, il enseigne juste des choses fausses).
 
+**Exemple**
+```bash
+cd backend && npm test                          # lance toute la suite (58 tests)
+cd backend && npx vitest run src/services/poker/outs.test.ts   # un seul fichier
+```
+```ts
+// Style des tests — services/poker/outs.test.ts
+describe('estimateEquityFromOuts — Rule of 2 & 4', () => {
+  it('multiplies by 4 on the flop', () => {
+    expect(estimateEquityFromOuts(9, 'flop')).toBe(36);
+  });
+});
+```
+
 ---
 
 ## 20. Déploiement
@@ -428,6 +690,16 @@ Aucun test frontend (React/UI) trouvé — l'effort de test cible spécifiquemen
 - **`frontend/vercel.json`** : config SPA minimale — fallback `filesystem` puis `/.* → /index.html` pour laisser React Router gérer le routing côté client. Pas de config de build custom (Vercel détecte Vite automatiquement).
 - **`backend/.env.example`** : `DATABASE_URL="file:./dev.db"` (SQLite dev), `CORS_ORIGIN=http://localhost:5173`, `RESEND_API_KEY` vide en dev (liens de vérification loggés en console au lieu d'être envoyés).
 - Séparation confirmée : Vercel (front statique) + Render (API Express) + Neon (Postgres managé, consommé via `DATABASE_URL` sur Render). Le frontend cible le backend via `VITE_API_URL` (absente en dev → proxy Vite vers `localhost:3001`, définie en prod vers l'URL `*.onrender.com`).
+
+**Exemple**
+```bash
+# Dev local (deux terminaux)
+cd backend && npm run dev      # http://localhost:3001, régénère prisma/dev.prisma à chaque lancement
+cd frontend && npm run dev     # http://localhost:5173, proxy /api vers le backend
+
+# Vérifier que l'API prod est réveillée (cold start Render free-tier ~25s)
+curl https://pokertrainer.onrender.com/api/health
+```
 
 ---
 
