@@ -2,35 +2,7 @@
 
 > Documentation interne pour développeurs. Décrit ce qui a été construit, comment, et — surtout — **pourquoi**, à partir d'une lecture directe du code source (pas seulement des intentions déclarées dans `CLAUDE.md`). Là où le code et `CLAUDE.md` divergent, cette doc suit le code et signale l'écart.
 >
-> Page non listée dans la navigation — accessible uniquement via `/documentation`.
-
----
-
-## Table des matières
-
-1. [Vue d'ensemble & stack](#1-vue-densemble--stack)
-2. [Moteur poker (backend)](#2-moteur-poker-backend)
-3. [Ranges GTO — représentation et système custom](#3-ranges-gto--représentation-et-système-custom)
-4. [Base de données (Prisma)](#4-base-de-données-prisma)
-5. [Authentification](#5-authentification)
-6. [Quota gratuit](#6-quota-gratuit)
-7. [Abonnements (tiers)](#7-abonnements-tiers)
-8. [Achievements](#8-achievements)
-9. [Mode Sprint / Exam](#9-mode-sprint--exam)
-10. [Stats et classement](#10-stats-et-classement)
-11. [Génération pré-calculée (pregeneration cache)](#11-génération-pré-calculée-pregeneration-cache)
-12. [Frontend — stores Zustand](#12-frontend--stores-zustand)
-13. [Frontend — hooks personnalisés](#13-frontend--hooks-personnalisés)
-14. [i18n](#14-i18n)
-15. [Theming](#15-theming)
-16. [Analytics](#16-analytics)
-17. [Service API centralisé](#17-service-api-centralisé)
-18. [Conventions UI et direction artistique](#18-conventions-ui-et-direction-artistique)
-19. [Tests](#19-tests)
-20. [Déploiement](#20-déploiement)
-21. [Écarts connus avec CLAUDE.md](#21-écarts-connus-avec-claudemd)
-
----
+> Page non listée dans la navigation — accessible uniquement via `/documentation`. Navigation par section dans la barre latérale (menu déroulant sur mobile).
 
 ## 1. Vue d'ensemble & stack
 
