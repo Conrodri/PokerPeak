@@ -61,6 +61,11 @@ export function EquityTrainer() {
   const [phase, setPhase]         = useState<Phase>('exercise');
   const [picked, setPicked]       = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState(false);
+  // Expert (bounty) exercises ask 2 consecutive questions: without, then with the
+  // bounty. `noBountyAnswer` holds the first answer through both steps so the
+  // final result can recap it too.
+  const [step, setStep] = useState<'noBounty' | 'bounty'>('noBounty');
+  const [noBountyAnswer, setNoBountyAnswer] = useState<{ picked: number; correct: boolean } | null>(null);
   const mode = useModeStore(s => s.mode);
 
   useEffect(() => {
@@ -75,21 +80,32 @@ export function EquityTrainer() {
     setPhase('exercise');
     setPicked(null);
     setIsCorrect(false);
+    setStep('noBounty');
+    setNoBountyAnswer(null);
     await fetchEquityExercise();
   };
 
   const handleTimeout = () => {
-    if (!equityExercise || picked !== null) return;
+    if (!equityExercise) return;
+    if (equityExercise.hasBounty && step === 'noBounty') {
+      if (noBountyAnswer) return;
+      const correct = Math.round(equityExercise.requiredEquity);
+      const wrong = equityExercise.optionsNoBounty.find(o => o !== correct) ?? equityExercise.optionsNoBounty[0];
+      handleAnswer(wrong);
+      return;
+    }
+    if (picked !== null) return;
     const correct = Math.round(equityExercise.hasBounty ? equityExercise.requiredEquityBounty : equityExercise.requiredEquity);
     const wrong = equityExercise.options.find(o => o !== correct) ?? equityExercise.options[0];
     handleAnswer(wrong);
   };
 
-  const buildMistake = (option: number): SprintMistake => {
+  const buildMistake = (option: number, forStep: 'noBounty' | 'bounty'): SprintMistake => {
     const ex = equityExercise!;
-    const correct = Math.round(ex.hasBounty ? ex.requiredEquityBounty : ex.requiredEquity);
+    const correct = forStep === 'noBounty' ? Math.round(ex.requiredEquity) : Math.round(ex.hasBounty ? ex.requiredEquityBounty : ex.requiredEquity);
+    const stepSuffix = ex.hasBounty ? (forStep === 'noBounty' ? (isEn ? ' — no bounty' : ' — sans bounty') : (isEn ? ' — with bounty' : ' — avec bounty')) : '';
     return {
-      label: `${ex.potBB}bb / ${ex.betBB}bb — ${ex.villainPosition}`,
+      label: `${ex.potBB}bb / ${ex.betBB}bb — ${ex.villainPosition}${stepSuffix}`,
       street: ex.street as 'flop' | 'turn' | 'river',
       facts: [
         `Pot ${ex.potBB}bb`,
@@ -102,14 +118,29 @@ export function EquityTrainer() {
   };
 
   const handleAnswer = (option: number) => {
-    if (!equityExercise || picked !== null) return;
+    if (!equityExercise) return;
+
+    // Step 1 of 2 (expert only): required equity ignoring the bounty.
+    if (equityExercise.hasBounty && step === 'noBounty') {
+      if (noBountyAnswer) return;
+      const correctNB = Math.round(equityExercise.requiredEquity);
+      const isRightNB = option === correctNB;
+      setNoBountyAnswer({ picked: option, correct: isRightNB });
+      recordResult(isRightNB, isRightNB ? 10 : 3, 'equity');
+      if (examActive) {
+        recordAnswer(isRightNB, () => setStep('bounty'), 1200, isRightNB ? undefined : buildMistake(option, 'noBounty'));
+      }
+      return;
+    }
+
+    if (picked !== null) return;
     const correct      = Math.round(equityExercise.hasBounty ? equityExercise.requiredEquityBounty : equityExercise.requiredEquity);
     const isRight      = option === correct;
     setPicked(option);
     setIsCorrect(isRight);
     setPhase('result');
     recordResult(isRight, isRight ? 15 : 5, 'equity');
-    if (examActive) recordAnswer(isRight, handleNext, 1400, isRight ? undefined : buildMistake(option));
+    if (examActive) recordAnswer(isRight, handleNext, 1400, isRight ? undefined : buildMistake(option, 'bounty'));
   };
 
   const handleStart = async () => {
@@ -118,6 +149,8 @@ export function EquityTrainer() {
     setTrainerStarted(true);
     setPicked(null);
     setIsCorrect(false);
+    setStep('noBounty');
+    setNoBountyAnswer(null);
     setPhase('exercise');
     await fetchEquityExercise();
   };
@@ -128,6 +161,8 @@ export function EquityTrainer() {
     setTrainerStarted(true);
     setPicked(null);
     setIsCorrect(false);
+    setStep('noBounty');
+    setNoBountyAnswer(null);
     setPhase('exercise');
     await fetchEquityExercise();
   };
@@ -232,11 +267,12 @@ export function EquityTrainer() {
       {/* Header */}
       {examActive && <ExamHud onQuit={handleQuitExam} />}
 
-      {/* Sprint countdown — advanced and expert only */}
+      {/* Sprint countdown — advanced and expert only. Paused while the step-1
+          (no-bounty) verdict is shown; resets fresh for each of the 2 questions. */}
       {phase === 'exercise' && (
         <SprintTimer
-          active={examActive && (mode === 'advanced' || mode === 'expert') && !!equityExercise && !isLoading}
-          resetKey={equityExercise ? `${equityExercise.potBB}-${equityExercise.betBB}-${equityExercise.street}` : 'loading'}
+          active={examActive && (mode === 'advanced' || mode === 'expert') && !!equityExercise && !isLoading && !(step === 'noBounty' && noBountyAnswer)}
+          resetKey={equityExercise ? `${equityExercise.potBB}-${equityExercise.betBB}-${equityExercise.street}-${step}` : 'loading'}
           onTimeout={handleTimeout}
           seconds={sprintSeconds}
         />
@@ -287,27 +323,58 @@ export function EquityTrainer() {
                   )}
                 </div>
 
+                {/* Expert: 2 consecutive questions — step indicator */}
+                {ex.hasBounty && (
+                  <div className="flex justify-center">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-purple-900/30 text-purple-300 border-purple-700">
+                      {isEn ? `Question ${step === 'noBounty' ? 1 : 2}/2` : `Question ${step === 'noBounty' ? 1 : 2}/2`}
+                    </span>
+                  </div>
+                )}
+
                 {/* Question */}
                 <p className="text-center text-white font-semibold text-lg">
                   {ex.hasBounty
-                    ? (isEn ? 'With this bounty, what minimum equity to call?' : 'Avec ce bounty, quelle équité minimale pour appeler ?')
+                    ? (step === 'noBounty'
+                        ? (isEn ? 'Without this bounty, what minimum equity to call?' : 'Sans ce bounty, quelle équité minimale pour appeler ?')
+                        : (isEn ? 'With this bounty, what minimum equity to call?' : 'Avec ce bounty, quelle équité minimale pour appeler ?'))
                     : (isEn ? 'What minimum equity do you need to call?' : 'Quelle équité minimale pour appeler ?')}
                 </p>
 
-                {/* 4 option buttons — sorted ascending (top-left → bottom-right) */}
-                <div className="grid grid-cols-2 gap-3">
-                  {[...ex.options].sort((a, b) => a - b).map(opt => (
-                    <motion.button
-                      key={opt}
-                      onClick={() => handleAnswer(opt)}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      className="bg-gray-800/80 border-2 border-gray-600 hover:border-purple-500 rounded-xl p-4 text-white font-mono font-bold text-2xl transition-all"
-                    >
-                      {opt}%
-                    </motion.button>
-                  ))}
-                </div>
+                {/* Step 1 verdict (expert only) — brief feedback before the 2nd question */}
+                {ex.hasBounty && step === 'noBounty' && noBountyAnswer ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className={`px-4 py-2.5 rounded-xl font-bold text-sm border ${
+                      noBountyAnswer.correct
+                        ? 'bg-green-900/30 text-green-300 border-green-700'
+                        : 'bg-red-900/30 text-red-300 border-red-700'
+                    }`}>
+                      {noBountyAnswer.correct
+                        ? `✓ ${noBountyAnswer.picked}%`
+                        : `✗ ${noBountyAnswer.picked}% — ${isEn ? 'correct was' : 'la bonne réponse était'} ${Math.round(ex.requiredEquity)}%`}
+                    </div>
+                    {!examActive && (
+                      <Button variant="gold" size="md" onClick={() => setStep('bounty')}>
+                        {isEn ? 'Continue →' : 'Continuer →'}
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  /* 4 option buttons — sorted ascending (top-left → bottom-right) */
+                  <div className="grid grid-cols-2 gap-3">
+                    {[...(ex.hasBounty && step === 'noBounty' ? ex.optionsNoBounty : ex.options)].sort((a, b) => a - b).map(opt => (
+                      <motion.button
+                        key={opt}
+                        onClick={() => handleAnswer(opt)}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="bg-gray-800/80 border-2 border-gray-600 hover:border-purple-500 rounded-xl p-4 text-white font-mono font-bold text-2xl transition-all"
+                      >
+                        {opt}%
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Beginner guide */}
                 <BeginnerGuide
@@ -403,9 +470,21 @@ export function EquityTrainer() {
               </div>
             )}
 
+            {/* Step 1 recap (expert only) — the no-bounty answer */}
+            {ex.hasBounty && noBountyAnswer && (
+              <div className="flex items-center gap-3 text-sm pt-1 border-t border-gray-700/50 pt-3">
+                <span className="text-gray-400">{isEn ? 'Without bounty, you answered' : 'Sans bounty, vous avez répondu'} :</span>
+                <span className={`font-mono font-bold text-lg ${noBountyAnswer.correct ? 'text-green-400' : 'text-red-400'}`}>
+                  {noBountyAnswer.picked}%
+                </span>
+              </div>
+            )}
+
             {/* Your answer vs correct */}
             <div className="flex items-center gap-3 text-sm pt-1">
-              <span className="text-gray-400">{isEn ? 'Your answer' : 'Votre réponse'} :</span>
+              <span className="text-gray-400">
+                {ex.hasBounty ? (isEn ? 'With bounty, you answered' : 'Avec bounty, vous avez répondu') : (isEn ? 'Your answer' : 'Votre réponse')} :
+              </span>
               <span className={`font-mono font-bold text-lg ${isCorrect ? 'text-green-400' : 'text-red-400'}`}>
                 {picked}%
               </span>

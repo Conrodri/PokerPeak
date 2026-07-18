@@ -57,6 +57,7 @@ export interface EquityExercise {
   betFractionLabel: string;
   requiredEquity: number;
   options: number[];
+  optionsNoBounty: number[];
   explanation: string;
   explanationAdvanced: string;
   hasBounty: boolean;

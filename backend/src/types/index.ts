@@ -34,11 +34,12 @@ export interface EquityExercise {
   villainPosition: Position;
   heroPosition: Position;
   betFractionLabel: string; // e.g. "1/2 pot"
-  requiredEquity: number;   // correct answer, 1-decimal %
-  options: number[];        // 4 integer MC choices (always includes round(requiredEquity))
+  requiredEquity: number;   // correct answer without bounty, 1-decimal %
+  options: number[];        // 4 integer MC choices for the with-bounty question (or the only question, non-expert)
+  optionsNoBounty: number[]; // 4 integer MC choices for the without-bounty question (expert only; same as `options` otherwise)
   explanation: string;
   explanationAdvanced: string;
-  // Expert: tournament bounty
+  // Expert: tournament bounty — 2 sequential questions (without, then with bounty)
   hasBounty: boolean;
   bountyBB: number;
   requiredEquityBounty: number; // adjusted required equity when bounty is counted

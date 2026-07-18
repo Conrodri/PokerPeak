@@ -45,13 +45,19 @@ type Phase = 'exercise' | 'result';
 export function PotOddsTrainer() {
   const t = useT();
   const isEn = useLangStore(s => s.lang) === 'en';
-  const { potOddsExercise, lastResult, sessionStats, isLoading, fetchPotOddsExercise, checkPotOddsAnswer, setTrainerStarted } = useTrainingStore(
-    useShallow(s => ({ potOddsExercise: s.potOddsExercise, lastResult: s.lastResult, sessionStats: s.sessionStats, isLoading: s.isLoading, fetchPotOddsExercise: s.fetchPotOddsExercise, checkPotOddsAnswer: s.checkPotOddsAnswer, setTrainerStarted: s.setTrainerStarted }))
+  const { potOddsExercise, lastResult, sessionStats, isLoading, fetchPotOddsExercise, checkPotOddsAnswer, recordResult, setTrainerStarted } = useTrainingStore(
+    useShallow(s => ({ potOddsExercise: s.potOddsExercise, lastResult: s.lastResult, sessionStats: s.sessionStats, isLoading: s.isLoading, fetchPotOddsExercise: s.fetchPotOddsExercise, checkPotOddsAnswer: s.checkPotOddsAnswer, recordResult: s.recordResult, setTrainerStarted: s.setTrainerStarted }))
   );
   const [showIntro, setShowIntro] = useState(true);
   const [phase, setPhase] = useState<Phase>('exercise');
   const [showFormula, setShowFormula] = useState(false);
   const [showEv, setShowEv] = useState(false);
+  // Expert (implied odds) exercises ask 2 consecutive questions: without, then
+  // with implied odds. `directAnswer` holds the first answer through both
+  // steps so the final result can recap it too.
+  const [oddsStep, setOddsStep] = useState<'direct' | 'implied'>('direct');
+  const [directAnswer, setDirectAnswer] = useState<{ action: 'call' | 'fold'; correct: boolean } | null>(null);
+  const [finalCorrect, setFinalCorrect] = useState(false);
   const mode = useModeStore(s => s.mode);
   const startTime = useRef<number>(Date.now());
 
@@ -68,18 +74,54 @@ export function PotOddsTrainer() {
     setPhase('exercise');
     setShowFormula(false);
     setShowEv(false);
+    setOddsStep('direct');
+    setDirectAnswer(null);
     await fetchPotOddsExercise();
   };
 
   const actionLabel = (a: 'call' | 'fold') => a === 'call' ? 'Call' : 'Fold';
+  const directCorrectAction = (heroEquity: number, requiredEquity: number): 'call' | 'fold' =>
+    heroEquity >= requiredEquity ? 'call' : 'fold';
 
   const handleAnswer = async (action: 'call' | 'fold') => {
     if (!potOddsExercise) return;
     const ex = potOddsExercise;
+    const hasImplied = ex.impliedWinnings !== undefined;
+
+    // Step 1 of 2 (expert only): call/fold ignoring implied odds.
+    if (hasImplied && oddsStep === 'direct') {
+      if (directAnswer) return;
+      const correctDirect = directCorrectAction(ex.heroEquity, ex.requiredEquity);
+      const isRightDirect = action === correctDirect;
+      setDirectAnswer({ action, correct: isRightDirect });
+      recordResult(isRightDirect, isRightDirect ? 10 : 3, 'potodds');
+      if (examActive) {
+        const mistake: SprintMistake | undefined = isRightDirect ? undefined : {
+          label: `${ex.potSize}bb / ${ex.betSize}bb — ${isEn ? 'no implied odds' : 'sans implied odds'}`,
+          heroCards: ex.heroCards,
+          board: ex.board,
+          street: ex.street as 'flop' | 'turn' | 'river',
+          facts: [
+            `Pot ${ex.potSize}bb`,
+            `Mise ${ex.betSize}bb`,
+            `${isEn ? 'Equity' : 'Équité'} ${ex.heroEquity}%`,
+            isEn ? `Direct threshold ${ex.requiredEquity}%` : `Seuil direct ${ex.requiredEquity}%`,
+          ],
+          correct: actionLabel(correctDirect),
+          chosen: actionLabel(action),
+        };
+        recordAnswer(isRightDirect, () => setOddsStep('implied'), 1200, mistake);
+      }
+      return;
+    }
+
+    if (phase === 'result') return;
     const r = await checkPotOddsAnswer(action, Date.now() - startTime.current);
+    const isRightFinal = hasImplied ? action === ex.correctAction : r.isCorrect;
+    setFinalCorrect(isRightFinal);
     setPhase('result');
     if (examActive) {
-      const mistake: SprintMistake | undefined = r.isCorrect ? undefined : {
+      const mistake: SprintMistake | undefined = isRightFinal ? undefined : {
         label: `${ex.potSize}bb / ${ex.betSize}bb`,
         heroCards: ex.heroCards,
         board: ex.board,
@@ -88,19 +130,28 @@ export function PotOddsTrainer() {
           `Pot ${ex.potSize}bb`,
           `Mise ${ex.betSize}bb`,
           `${isEn ? 'Equity' : 'Équité'} ${ex.heroEquity}%`,
-          isEn ? `Required ${r.requiredEquity}%` : `Requis ${r.requiredEquity}%`,
+          hasImplied
+            ? (isEn ? `Implied threshold ${ex.impliedRequiredEquity}%` : `Seuil implied ${ex.impliedRequiredEquity}%`)
+            : (isEn ? `Required ${r.requiredEquity}%` : `Requis ${r.requiredEquity}%`),
         ],
         correct: actionLabel(ex.correctAction),
         chosen: actionLabel(action),
       };
-      recordAnswer(r.isCorrect, handleNext, 1400, mistake);
+      recordAnswer(isRightFinal, handleNext, 1400, mistake);
     }
   };
 
   // Expert sprint: no decision within 5s → submit the wrong action (a miss).
   const handleTimeout = () => {
     if (!potOddsExercise || phase !== 'exercise') return;
-    handleAnswer(potOddsExercise.correctAction === 'call' ? 'fold' : 'call');
+    const ex = potOddsExercise;
+    if (ex.impliedWinnings !== undefined && oddsStep === 'direct') {
+      if (directAnswer) return;
+      const correctDirect = directCorrectAction(ex.heroEquity, ex.requiredEquity);
+      handleAnswer(correctDirect === 'call' ? 'fold' : 'call');
+      return;
+    }
+    handleAnswer(ex.correctAction === 'call' ? 'fold' : 'call');
   };
 
   const handleStart = async () => {
@@ -109,6 +160,8 @@ export function PotOddsTrainer() {
     setTrainerStarted(true);
     setShowFormula(false);
     setShowEv(false);
+    setOddsStep('direct');
+    setDirectAnswer(null);
     setPhase('exercise');
     await fetchPotOddsExercise();
   };
@@ -119,6 +172,8 @@ export function PotOddsTrainer() {
     setTrainerStarted(true);
     setShowFormula(false);
     setShowEv(false);
+    setOddsStep('direct');
+    setDirectAnswer(null);
     setPhase('exercise');
     await fetchPotOddsExercise();
   };
@@ -208,11 +263,13 @@ export function PotOddsTrainer() {
       {/* Header — replaced by the lives HUD during an exam */}
       {examActive && <ExamHud onQuit={handleQuitExam} />}
 
-      {/* Sprint countdown — active for advanced and expert (30s each; basic has no timer) */}
+      {/* Sprint countdown — active for advanced and expert (30s each; basic has no timer).
+          Paused while the step-1 (no-implied-odds) verdict is shown; resets fresh
+          for each of the 2 questions. */}
       {phase === 'exercise' && (
         <SprintTimer
-          active={examActive && (mode === 'advanced' || mode === 'expert') && !!ex && !isLoading}
-          resetKey={`${ex?.potSize}-${ex?.betSize}-${ex?.heroEquity}`}
+          active={examActive && (mode === 'advanced' || mode === 'expert') && !!ex && !isLoading && !(ex?.impliedWinnings !== undefined && oddsStep === 'direct' && directAnswer)}
+          resetKey={`${ex?.potSize}-${ex?.betSize}-${ex?.heroEquity}-${oddsStep}`}
           onTimeout={handleTimeout}
           seconds={sprintSeconds}
         />
@@ -257,19 +314,54 @@ export function PotOddsTrainer() {
                   </div>
                 )}
 
+                {/* Expert: 2 consecutive questions — step indicator */}
+                {ex.impliedWinnings !== undefined && (
+                  <div className="flex justify-center">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-purple-900/30 text-purple-300 border-purple-700">
+                      {isEn ? `Question ${oddsStep === 'direct' ? 1 : 2}/2` : `Question ${oddsStep === 'direct' ? 1 : 2}/2`}
+                    </span>
+                  </div>
+                )}
+
                 {/* Question */}
                 <div className="text-center bg-gray-900/60 rounded-xl py-2.5 border border-gray-700">
-                  <p className="text-base text-white font-semibold">{t.training.profitable_q}</p>
+                  <p className="text-base text-white font-semibold">
+                    {ex.impliedWinnings !== undefined
+                      ? (oddsStep === 'direct'
+                          ? (isEn ? 'Without implied odds, should you call?' : 'Sans les implied odds, dois-tu caller ?')
+                          : (isEn ? 'With implied odds, should you call?' : 'Avec les implied odds, dois-tu caller ?'))
+                      : t.training.profitable_q}
+                  </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {t.training.call_costs}<span className="text-white font-bold">{ex.betSize}bb</span>
                   </p>
                 </div>
 
-                {/* Action buttons */}
-                <div className="flex gap-2 sm:gap-4 w-full sm:w-auto mx-auto">
-                  <Button size="xl" variant="danger" className="flex-1 sm:flex-none sm:min-w-[110px]" onClick={() => handleAnswer('fold')}>Fold</Button>
-                  <Button size="xl" variant="gold"   className="flex-1 sm:flex-none sm:min-w-[110px]" onClick={() => handleAnswer('call')}>Call</Button>
-                </div>
+                {/* Step 1 verdict (expert only) — brief feedback before the 2nd question */}
+                {ex.impliedWinnings !== undefined && oddsStep === 'direct' && directAnswer ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <div className={`px-4 py-2.5 rounded-xl font-bold text-sm border ${
+                      directAnswer.correct
+                        ? 'bg-green-900/30 text-green-300 border-green-700'
+                        : 'bg-red-900/30 text-red-300 border-red-700'
+                    }`}>
+                      {directAnswer.correct
+                        ? `✓ ${actionLabel(directAnswer.action)}`
+                        : `✗ ${actionLabel(directAnswer.action)} — ${isEn ? 'correct was' : 'la bonne réponse était'} ${actionLabel(directCorrectAction(ex.heroEquity, ex.requiredEquity))}`}
+                    </div>
+                    {!examActive && (
+                      <Button variant="gold" size="md" onClick={() => setOddsStep('implied')}>
+                        {isEn ? 'Continue →' : 'Continuer →'}
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  /* Action buttons */
+                  <div className="flex gap-2 sm:gap-4 w-full sm:w-auto mx-auto">
+                    <Button size="xl" variant="danger" className="flex-1 sm:flex-none sm:min-w-[110px]" onClick={() => handleAnswer('fold')}>Fold</Button>
+                    <Button size="xl" variant="gold"   className="flex-1 sm:flex-none sm:min-w-[110px]" onClick={() => handleAnswer('call')}>Call</Button>
+                  </div>
+                )}
 
                 {/* Guidance below the decision — no scrolling needed to answer. */}
                 <BeginnerGuide
@@ -346,7 +438,17 @@ export function PotOddsTrainer() {
       {phase === 'result' && lastResult && ex && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
 
-          <VerdictBanner isCorrect={lastResult.isCorrect} />
+          <VerdictBanner isCorrect={finalCorrect} />
+
+          {/* Step 1 recap (expert only) — the no-implied-odds answer */}
+          {ex.impliedWinnings !== undefined && directAnswer && (
+            <div className="flex items-center gap-3 text-sm justify-center">
+              <span className="text-gray-400">{isEn ? 'Without implied odds, you answered' : 'Sans implied odds, vous avez répondu'} :</span>
+              <span className={`font-mono font-bold ${directAnswer.correct ? 'text-green-400' : 'text-red-400'}`}>
+                {actionLabel(directAnswer.action)}
+              </span>
+            </div>
+          )}
 
           {/* Cards recap */}
           <CardDisplay heroCards={ex.heroCards as [CardStr, CardStr]} board={ex.board as CardStr[]} street={ex.street} isEn={isEn} dimmed />

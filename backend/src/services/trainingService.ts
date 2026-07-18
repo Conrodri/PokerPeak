@@ -272,18 +272,20 @@ export function generateEquityExercise(
       street, potBB, betBB, villainPosition, heroPosition,
       betFractionLabel: betLabel,
       requiredEquity: targetEquity,
-      options, explanation, explanationAdvanced,
+      options, optionsNoBounty: options, explanation, explanationAdvanced,
       hasBounty: false, bountyBB: 0, requiredEquityBounty: 0,
     };
   }
 
-  // Expert: advanced scenario + bounty calculation
+  // Expert: advanced scenario + bounty calculation — 2 sequential questions,
+  // without then with the bounty, each with its own MC options.
   const sc = ADVANCED_EQUITY_SCENARIOS[Math.floor(Math.random() * ADVANCED_EQUITY_SCENARIOS.length)];
   const { potBB, betBB } = sc;
   const requiredEquity = Math.round(betBB / (potBB + 2 * betBB) * 1000) / 10;
   const bountyBB = EQUITY_BOUNTIES[Math.floor(Math.random() * EQUITY_BOUNTIES.length)];
   const requiredEquityBounty = Math.round(betBB / (potBB + 2 * betBB + bountyBB) * 1000) / 10;
   const options = buildEquityCallOptions(Math.round(requiredEquityBounty));
+  const optionsNoBounty = buildEquityCallOptions(Math.round(requiredEquity));
   const betLabel = `${Math.round((betBB / potBB) * 100)}% pot`;
   const totalPot = potBB + 2 * betBB;
   const totalPotBounty = potBB + 2 * betBB + bountyBB;
@@ -304,7 +306,7 @@ export function generateEquityExercise(
   return {
     street, potBB, betBB, villainPosition, heroPosition,
     betFractionLabel: betLabel,
-    requiredEquity, options, explanation, explanationAdvanced,
+    requiredEquity, options, optionsNoBounty, explanation, explanationAdvanced,
     hasBounty: true, bountyBB, requiredEquityBounty,
   };
 }
