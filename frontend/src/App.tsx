@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Analytics } from '@vercel/analytics/react';
 import { Layout } from './components/layout/Layout';
@@ -32,8 +32,48 @@ const VerifyEmailPage      = lazy(() => import('./pages/VerifyEmailPage').then(m
 const ForgotPasswordPage   = lazy(() => import('./pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage    = lazy(() => import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
 const AchievementsPage     = lazy(() => import('./pages/AchievementsPage').then(m => ({ default: m.AchievementsPage })));
+// Internal developer docs — reachable only by typing the URL, never linked from
+// any nav/menu/button. Rendered standalone below, outside the consumer Layout.
+const DocumentationPage    = lazy(() => import('./pages/DocumentationPage').then(m => ({ default: m.DocumentationPage })));
 
-export default function App() {
+// Every real page keeps the normal app Layout (Navbar/Footer/back button).
+// /documentation is intercepted earlier by AppShell and never reaches here.
+function AppRoutes() {
+  return (
+    <Layout>
+      <ErrorBoundary>
+        <Suspense fallback={<Spinner />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/rules" element={<PokerRulesPage />} />
+            <Route path="/glossary" element={<GlossaryPage />} />
+            <Route path="/learning-path" element={<LearningPathPage />} />
+            <Route path="/training" element={<TrainingPage />} />
+            <Route path="/table" element={<TablePage />} />
+            <Route path="/stats" element={<StatsPage />} />
+            <Route path="/stats/:username" element={<StatsPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/premium" element={<PremiumPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route path="/cgu"          element={<CGUPage />} />
+            <Route path="/privacy"      element={<PrivacyPage />} />
+            <Route path="/verify-email"    element={<VerifyEmailPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password"  element={<ResetPasswordPage />} />
+            <Route path="/achievements"   element={<AchievementsPage />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
+    </Layout>
+  );
+}
+
+// Chrome shared by every real page: cookie banner, analytics, first-visit
+// onboarding modal. Skipped entirely on /documentation (see AppShell below) —
+// that page is a bare internal doc, not part of the consumer product surface.
+function AppChrome() {
   const fetchMe = useAuthStore(s => s.fetchMe);
   const startSession = useTrainingStore(s => s.startSession);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -53,41 +93,35 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <Layout>
-        <ErrorBoundary>
-          <Suspense fallback={<Spinner />}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/rules" element={<PokerRulesPage />} />
-              <Route path="/glossary" element={<GlossaryPage />} />
-              <Route path="/learning-path" element={<LearningPathPage />} />
-              <Route path="/training" element={<TrainingPage />} />
-              <Route path="/table" element={<TablePage />} />
-              <Route path="/stats" element={<StatsPage />} />
-              <Route path="/stats/:username" element={<StatsPage />} />
-              <Route path="/leaderboard" element={<LeaderboardPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/premium" element={<PremiumPage />} />
-              <Route path="/auth/callback" element={<AuthCallbackPage />} />
-              <Route path="/cgu"          element={<CGUPage />} />
-              <Route path="/privacy"      element={<PrivacyPage />} />
-              <Route path="/verify-email"    element={<VerifyEmailPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password"  element={<ResetPasswordPage />} />
-              <Route path="/achievements"   element={<AchievementsPage />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
-      </Layout>
-
+    <>
+      <AppRoutes />
       <CookieBanner />
       <Analytics />
-
       <AnimatePresence>
         {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
       </AnimatePresence>
+    </>
+  );
+}
+
+// /documentation renders completely bare (no chrome, no onboarding, no cookie
+// banner) — it's an internal doc page, not part of the consumer product.
+function AppShell() {
+  const { pathname } = useLocation();
+  if (pathname === '/documentation') {
+    return (
+      <Suspense fallback={<Spinner />}>
+        <DocumentationPage />
+      </Suspense>
+    );
+  }
+  return <AppChrome />;
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
     </BrowserRouter>
   );
 }
