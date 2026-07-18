@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeSlug from 'rehype-slug';
 import DOC_CONTENT from '../docs/DOCUMENTATION.md?raw';
 
 // Internal developer documentation. Deliberately NOT linked from any nav,
@@ -12,7 +13,7 @@ export function DocumentationPage() {
     <div className="min-h-screen bg-[#0a0e14] text-gray-200">
       <div className="max-w-4xl mx-auto px-4 sm:px-8 py-10 sm:py-14">
         <article className="doc-content">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{DOC_CONTENT}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSlug]}>{DOC_CONTENT}</ReactMarkdown>
         </article>
       </div>
     </div>
